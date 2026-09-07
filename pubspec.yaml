@@ -1,8 +1,8 @@
 name: skyui
-description: SkyUI
+description: Veltron OS - SkyUI Automotive Infotainment System
 publish_to: "none"
 
-version: 1.0.0+1
+version: 0.2.0-alpha+1
 
 environment:
   sdk: ">=3.12.0 <4.0.0"
