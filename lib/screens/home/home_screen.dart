@@ -114,9 +114,10 @@ class _HomeScreenState extends State<HomeScreen>
                 final centerCardHeight = (availableHeight - _kSpacing) / 2;
                 final totalHorizontalSpacing = _kSpacing * 2;
                 final contentWidth = availableWidth - totalHorizontalSpacing;
-                final vehicleWidth = (contentWidth / 5) * 2;
-                final centerWidth = contentWidth / 5;
-                final navWidth = (contentWidth / 5) * 2;
+                // 21:9 ultrawide optimized proportions: 7 : 4 : 5
+                final vehicleWidth = (contentWidth / 16) * 7;
+                final centerWidth = (contentWidth / 16) * 4;
+                final navWidth = (contentWidth / 16) * 5;
 
                 // ── Nav card geometry in the content coordinate space ──────
                 // The nav card starts at x = vehicleWidth + spacing + centerWidth + spacing,

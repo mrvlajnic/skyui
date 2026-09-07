@@ -14,7 +14,7 @@ class SkyUIApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'SkyUI',
+      title: 'Veltron OS - SkyUI',
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0B0B10),
