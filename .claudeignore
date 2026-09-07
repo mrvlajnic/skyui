@@ -1,0 +1,16 @@
+build/
+.dart_tool/
+.git/
+.idea/
+.vscode/
+
+ios/
+android/
+linux/
+macos/
+windows/
+web/
+
+test/
+
+pubspec.lock
