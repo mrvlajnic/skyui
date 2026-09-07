@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class MediaCard extends StatefulWidget {
-  const MediaCard({super.key});
+  final VoidCallback? onTap;
+
+  const MediaCard({super.key, this.onTap});
 
   @override
   State<MediaCard> createState() => _MediaCardState();
@@ -12,17 +14,19 @@ class _MediaCardState extends State<MediaCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF13131A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0x22FFFFFF),
-          width: 1,
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF13131A),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0x22FFFFFF),
+            width: 1,
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -122,6 +126,7 @@ class _MediaCardState extends State<MediaCard> {
             _ProgressBar(progress: playbackPosition),
           ],
         ),
+      ),
       ),
     );
   }

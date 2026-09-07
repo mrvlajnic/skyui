@@ -1,6 +1,6 @@
 # SkyUI Architecture
 
-Version: 0.1 Alpha
+Version: 0.3 Alpha
 
 ---
 

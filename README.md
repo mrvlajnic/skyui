@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.2.0--alpha-orange.svg?style=for-the-badge&logo=flutter" alt="Version: v0.2.0-alpha"/>
-  <img src="https://img.shields.io/badge/stage-Alpha%20Preview-red.svg?style=for-the-badge" alt="Stage: Alpha Preview"/>
+  <img src="https://img.shields.io/badge/version-v0.3.0--alpha-orange.svg?style=for-the-badge&logo=flutter" alt="Version: v0.3.0-alpha"/>
+  <img src="https://img.shields.io/badge/stage-Alpha%20Milestone-red.svg?style=for-the-badge" alt="Stage: Alpha Milestone"/>
   <img src="https://img.shields.io/badge/display-21%3A9%20Ultrawide-blue.svg?style=for-the-badge" alt="Display: 21:9 Ultrawide"/>
   <img src="https://img.shields.io/badge/license-Veltron%20Proprietary-darkgreen.svg?style=for-the-badge" alt="License: Proprietary"/>
 </p>
@@ -29,21 +29,20 @@
 
 ## 🚀 Current Status & Progress Matrix
 
-### Release Tag: `v0.2.0-alpha` (Build 2026.09)
+### Release Tag: `v0.3.0-alpha` (Build 2026.09 — Major Milestone)
 
-We have transitioned from initial wireframes to a fully functional, animated 21:9 ultrawide automotive cockpit dashboard.
+We have completed the core triad of automotive applications: **Advanced Navigation & HUD**, **Dedicated Phone & Dialing Suite**, and **Multi-Section Media / Music Player** with anchored navigation UX and smooth cubic transitions.
 
 | Module / System | Status | Version / Details |
 | :--- | :---: | :--- |
 | **System Architecture & Theme** | ✅ Complete | Modular UI hierarchy, custom Veltron Dark tokens, responsive scale |
 | **21:9 Ultrawide Layout Engine** | ✅ Complete | Golden proportion grid (7:4:5 ratio for Vehicle, Media/Phone, Navigation) |
-| **Vehicle Telemetry Card** | ✅ Complete | Battery state (76%), real-time range estimation (385 km), doors lock indicator, car render, quick actions (Search, Charging, Climate, Driver Profile) |
-| **Media Player Card** | ✅ Complete | Custom vinyl disc visualizer, track metadata, playback controls, dual-duration progress bar |
-| **Phone & Connectivity Card** | ✅ Complete | Paired device telemetry ("Marko's iPhone"), signal strength meter, battery gauge, direct call/message triggers |
-| **Interactive Navigation Card** | ✅ Complete | Custom vector map background, road grid generator, glowing cyan route preview, turn overview |
-| **Full-Screen Navigation Overlay** | ✅ Complete | Smooth spring-expansion transition, turn-by-turn instruction HUD, destination card, live stats (Speed, Distance, ETA, Route) |
-| **Aerodynamic Climate Control Bar** | ✅ Complete | Slanted edge automotive silhouette with racing red accent, dual-zone independent temps (0.5° increments), 3-stage heated seats, 4-level fan controls with AUTO mode, center trip efficiency diagnostics |
-| **Persistent Vertical Sidebar** | ✅ Complete | Veltron badge, quick-switch navigation icons, active amber indicator |
+| **Dynamic Sliding Sidebar Indicator** | ✅ Complete | Silky smooth sliding selector animation (`Curves.easeInOutCubic`) tracking active destinations |
+| **Vehicle Telemetry Card** | ✅ Complete | Battery state (76%), real-time range estimation (385 km), doors lock indicator, car render, quick actions |
+| **Connected Media Card & Studio** | ✅ Complete | Vinyl disc visualizer, compact card & 3-section expanded studio with anchored Section 3 Navigation |
+| **Dedicated Phone & Dialing Suite** | ✅ Complete | Dual-pane cockpit: Contact book, category filters, smartphone silhouette frame, DTMF numpad dialer |
+| **Interactive Navigation Card & Enhanced HUD** | ✅ Complete | Vector map canvas, speed limit sign HUD, turn-by-turn instruction banner, floating map controls, route options |
+| **Aerodynamic Climate Control Bar** | ✅ Complete | Slanted edge automotive silhouette with racing red accent, dual-zone independent temps, 3-stage heated seats, 4-level fan |
 | **Status Header & Connectivity** | ✅ Complete | Brand emblem, live system clock, LTE/5G, Wi-Fi, Bluetooth status indicators |
 | **Standalone 21:9 App Runner** | ✅ Complete | Borderless browser app launcher (`run_app.bat` / `run_app.py`) for native 1680x720 ultrawide cockpit simulation |
 | **CAN Bus / OBD-II Hardware Bridge**| 🔄 In Progress | Virtual telemetry feed mock for testing vehicle signals |
@@ -62,7 +61,7 @@ We have transitioned from initial wireframes to a fully functional, animated 21:
 │ [=]│  • Ready to Drive           │  • "Night Drive"         │  • Live Vector Map Canvas          │
 │    │  • Battery: 76% (385 km)    │  • Veltron Sounds        │  • Glowing Route Trail             │
 │ [N]│  • Doors: Locked            │  • Transport Controls    │  • Expanding Full-Screen Mode      │
-│    │  • 3D Vehicle Render        ├──────────────────────────┤  • Turn-by-turn guidance HUD       │
+│    │  • 3D Vehicle Render        ├──────────────────────────┤  • Speed Limit & Maneuver HUD      │
 │ [M]│  • Quick Charging/Profile   │  PHONE & COMMS           │  • Live Speed & ETA Telemetry      │
 │    │                             │  • Marko's iPhone (5G)   │                                    │
 │ [P]│                             │  • Battery & Signal Bar  │                                    │
@@ -71,16 +70,29 @@ We have transitioned from initial wireframes to a fully functional, animated 21:
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 1. 21:9 Ultrawide Golden Layout
+### 1. 21:9 Ultrawide Golden Layout & Animated Indicator
 - Tailored for modern automotive panoramic dash displays.
 - Mathematically balanced 7:4:5 column split keeps critical vehicle stats closest to the driver.
+- Vertical sidebar includes a dynamic sliding selector indicator that glides fluidly (`Curves.easeInOutCubic`) to highlight the active view.
 
-### 2. Animated Full-Screen Navigation Expansion
-- Tapping the compact Navigation card triggers a 350ms cubic ease transition.
-- Adjacent cards smoothly fade while the map expands to fill the entire upper deck.
-- Includes turn-by-turn HUD, destination details, speed, trip distance, and estimated arrival time.
+### 2. Dedicated Music / Media Screen with Anchored Navigation (3-Section Rule)
+- Expanding from `MediaCard` or sidebar, the screen divides into 3 ergonomic cockpit zones:
+  - **Section 1 (Left - Library & Queue):** Source pills (*Veltron Sounds*, *Spotify*, *Radio DAB+*, *Bluetooth*), search filter, interactive tracklist with **live animated mini equalizer bars** on playing tracks, and system audio telemetry (*Meridian 3D*, *FLAC 96kHz/24-bit*).
+  - **Section 2 (Center - Hero Stage):** Spinning vinyl disc record with realistic grooves, 24-band audio spectrum waveform visualizer, sound stage presets (*Meridian 3D*, *Driver Focus*, *All Seats*), timeline scrubber, transport controls (Shuffle, Previous, glowing Play/Pause, Next, Repeat), volume slider, and close button.
+  - **Section 3 (Far Right - Navigation Card):** **Crucial Driver UX:** The navigation card remains anchored in its exact dashboard position, fully visible and interactive, ensuring navigation awareness is never lost while managing audio.
 
-### 3. Dual-Zone Aerodynamic Climate Panel
+### 3. Dedicated Phone & Dialing Cockpit
+- Fluid expansion from `PhoneCard` into a comprehensive telephony center:
+  - **Contact Directory:** Search contacts, category tabs (*All*, *Favorites*, *Recents*, *Missed*), avatar letter badges, direct dial buttons.
+  - **Automotive Smartphone Silhouette Frame:** Realistic handset border showing paired device state ("Connected via Bluetooth 5.3", 5G, 89% battery).
+  - **Integrated DTMF Keypad:** Full numeric dialing pad with sub-letters, live number preview with backspace, glowing green Call action, and quick toggles for Voicemail, Mute, and Speaker.
+
+### 4. Advanced Navigation & GPS Suite
+- **Speed Limit HUD:** Live speed limit circle (e.g. 80 km/h) paired with current vehicle speed (65 km/h).
+- **Turn-by-Turn Guidance:** Next maneuver icon, street name, distance countdown, arrival time, remaining kilometers, and destination battery reserve (68%).
+- **Map Tools & Search:** Category quick-chips (*Supercharger*, *Coffee*, *Parking*, *Saved*), floating map controls (Recenter, Layers, 2D/3D tilt, Zoom in/out), and alternative route cards (Fastest vs. Eco).
+
+### 5. Dual-Zone Aerodynamic Climate Panel
 - Custom canvas-clipped geometry with aerodynamic 20px slant and signature red accent stripe.
 - Independent driver and passenger temperature controls in 0.5° increments.
 - 3-level seat heater toggle with animated status LEDs and 4-speed fan control with auto-regulation.
@@ -99,14 +111,16 @@ lib/
 ├── models/                  # Data contracts (Vehicle, Media, Route, Climate)
 ├── screens/
 │   ├── home/                # Main dashboard coordinator & animation controller
-│   └── navigation/          # Expanded full-screen navigation layout
+│   ├── media/               # Dedicated 3-section music studio & visualizer
+│   ├── navigation/          # Expanded full-screen navigation layout & GPS HUD
+│   └── phone/               # Dedicated dialing cockpit & contact directory
 ├── services/                # Hardware bridges, telemetry, audio session
 └── widgets/
     ├── app_card.dart        # Base automotive card surface
     ├── cards/               # Vehicle, Media, Phone, Navigation cards
     ├── climate/             # Aerodynamic bottom dual-zone climate panel
     ├── header/              # System status bar & telemetry indicators
-    └── sidebar/             # Automotive quick-access vertical navigation rail
+    └── sidebar/             # Automotive quick-access vertical navigation rail with animated indicator
 ```
 
 ---
@@ -156,7 +170,7 @@ lib/
 ## 📜 Terms of Service & Alpha Disclaimer
 
 > ### **VELTRON OS / SKYUI ALPHA SOFTWARE DISCLAIMER**
-> **Current Release Version:** `v0.2.0-alpha`  
+> **Current Release Version:** `v0.3.0-alpha`  
 > **Effective Date:** September 2026
 
 PLEASE READ CAREFULLY BEFORE USING, INSTALLING, OR TESTING THIS SOFTWARE.

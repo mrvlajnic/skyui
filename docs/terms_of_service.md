@@ -1,7 +1,7 @@
 # Veltron OS — SkyUI Terms of Service & Alpha Agreement
 
 **Product:** SkyUI Infotainment System (Veltron OS)  
-**Version:** `v0.2.0-alpha`  
+**Version:** `v0.3.0-alpha`  
 **Effective Date:** September 7, 2026  
 **Document Status:** Official Alpha Release Terms
 
@@ -18,7 +18,7 @@ If you do not agree with any part of these terms, do not download, install, buil
 ## 2. Alpha Stage Evaluation & Scope of License
 
 ### 2.1 Experimental Status
-SkyUI is currently provided in an **Alpha preview state** (`v0.2.0-alpha`). The software is actively under development, and features, user interfaces, logic controllers, animations, and communication protocols are subject to change, redesign, or discontinuation at any time without notice.
+SkyUI is currently provided in an **Alpha preview state** (`v0.3.0-alpha`). The software is actively under development, and features, user interfaces, logic controllers, animations, and communication protocols are subject to change, redesign, or discontinuation at any time without notice.
 
 ### 2.2 Limited Evaluation License
 Veltron Cars grants authorized testers and developers a limited, non-exclusive, non-transferable, revocable license to use the Software solely for:

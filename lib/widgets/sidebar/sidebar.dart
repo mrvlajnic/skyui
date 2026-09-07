@@ -3,14 +3,33 @@ import 'package:flutter/material.dart';
 import 'sidebar_item.dart';
 
 class Sidebar extends StatefulWidget {
-  const Sidebar({super.key});
+  final int? selectedIndex;
+  final ValueChanged<int>? onItemSelected;
+
+  const Sidebar({
+    super.key,
+    this.selectedIndex,
+    this.onItemSelected,
+  });
 
   @override
   State<Sidebar> createState() => _SidebarState();
 }
 
 class _SidebarState extends State<Sidebar> {
-  int selectedIndex = 0;
+  int _internalIndex = 0;
+
+  int get _currentIndex => widget.selectedIndex ?? _internalIndex;
+
+  void _onTap(int index) {
+    if (widget.onItemSelected != null) {
+      widget.onItemSelected!(index);
+    } else {
+      setState(() {
+        _internalIndex = index;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,23 +62,15 @@ class _SidebarState extends State<Sidebar> {
           for (var index = 0; index < topItems.length; index++)
             SidebarItem(
               icon: topItems[index].icon,
-              selected: selectedIndex == index,
-              onTap: () {
-                setState(() {
-                  selectedIndex = index;
-                });
-              },
+              selected: _currentIndex == index,
+              onTap: () => _onTap(index),
             ),
           const Spacer(),
           for (var index = 0; index < bottomItems.length; index++)
             SidebarItem(
               icon: bottomItems[index].icon,
-              selected: selectedIndex == topItems.length + index,
-              onTap: () {
-                setState(() {
-                  selectedIndex = topItems.length + index;
-                });
-              },
+              selected: _currentIndex == topItems.length + index,
+              onTap: () => _onTap(topItems.length + index),
             ),
           const SizedBox(height: 20),
         ],

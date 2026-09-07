@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 
 class PhoneCard extends StatelessWidget {
-  const PhoneCard({super.key});
+  final VoidCallback? onTap;
+
+  const PhoneCard({super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF13131A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0x22FFFFFF),
-          width: 1,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF13131A),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0x22FFFFFF),
+            width: 1,
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -101,6 +105,7 @@ class PhoneCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
