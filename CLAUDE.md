@@ -4,18 +4,17 @@
 
 ## Project Overview
 
-SkyUI is a custom automotive infotainment system developed for the Veltron ecosystem.
+SkyUI is an automotive infotainment interface I'm building for the Veltron ecosystem.
 
-The objective is to create a production-ready, modular, modern, responsive and scalable infotainment interface.
+The goal is a modular, responsive UI for in-vehicle screens. It's a prototype, built incrementally — not production software yet.
 
-This project is NOT a mobile application.
-It is an automotive operating system interface.
+This is not a mobile app. It's an automotive HMI (human-machine interface).
 
 ---
 
 # Vision
 
-The long-term goal is to build a complete automotive operating system including:
+Long term, I want this to grow into a full automotive OS interface covering:
 
 - Home
 - Navigation
@@ -29,7 +28,7 @@ The long-term goal is to build a complete automotive operating system including:
 - AI Assistant
 - User Profiles
 
-The project should remain highly modular.
+It needs to stay modular as more of this gets built.
 
 ---
 
@@ -88,22 +87,19 @@ Implemented:
 
 # Design Language
 
-SkyUI follows these principles:
+Principles I'm following:
 
 - Minimal
-- Premium
-- Automotive
 - Dark UI
-- Clean
+- Automotive-appropriate — built for a dashboard, not a phone
 - Responsive
-- Modern
-- Performance First
+- Performance first
 
 Avoid clutter.
 
 Avoid unnecessary colors.
 
-Every screen should feel like it belongs inside a premium vehicle.
+Every screen should look like it belongs on a vehicle dashboard, not a phone screen.
 
 ---
 
