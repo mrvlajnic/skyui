@@ -9,10 +9,7 @@ class VehicleCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF13131A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0x22FFFFFF),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0x22FFFFFF), width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -61,6 +58,29 @@ class VehicleCard extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.7),
                       size: 20,
                     ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFC857).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: const Color(0xFFFFC857).withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: const Text(
+                        'DEMO DATA',
+                        style: TextStyle(
+                          color: Color(0xFFFFC857),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -74,10 +94,7 @@ class VehicleCard extends StatelessWidget {
                   width: double.infinity,
                   alignment: Alignment.center,
                   errorBuilder: (context, error, stackTrace) => const Center(
-                    child: Text(
-                      '🚗',
-                      style: TextStyle(fontSize: 64),
-                    ),
+                    child: Text('🚗', style: TextStyle(fontSize: 64)),
                   ),
                 ),
               ),
@@ -206,7 +223,10 @@ class VehicleCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 _ActionButton(icon: Icons.toys_outlined, label: 'Climate'),
                 const SizedBox(width: 12),
-                _ActionButton(icon: Icons.person_outline, label: 'Driver Profile'),
+                _ActionButton(
+                  icon: Icons.person_outline,
+                  label: 'Driver Profile',
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -250,35 +270,48 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.05),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: Colors.white.withValues(alpha: 0.8),
-              size: 24,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+      child: Semantics(
+        button: true,
+        enabled: false,
+        label: '$label, unavailable in prototype',
+        excludeSemantics: true,
+        child: Tooltip(
+          message: '$label — unavailable in prototype',
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: null,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 48),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.02),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.04),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(icon, color: Colors.white24, size: 24),
+                    const SizedBox(height: 8),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
-          ],
+          ),
         ),
       ),
     );

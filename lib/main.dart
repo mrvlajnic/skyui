@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'core/theme/theme.dart';
 import 'widgets/header/header.dart';
 import 'screens/home/home_screen.dart';
 
@@ -15,20 +16,14 @@ class SkyUIApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Veltron OS - SkyUI',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0B0B10),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.theme(),
       builder: (context, child) {
         return SafeArea(
           bottom: false,
           child: Column(
             children: [
               const Header(),
-              Expanded(
-                child: child ?? const SizedBox.shrink(),
-              ),
+              Expanded(child: child ?? const SizedBox.shrink()),
             ],
           ),
         );
@@ -37,4 +32,3 @@ class SkyUIApp extends StatelessWidget {
     );
   }
 }
-

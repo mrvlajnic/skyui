@@ -5,87 +5,66 @@ import 'package:flutter/material.dart';
 ///
 /// Implements a dual-card digital cockpit telephony hub:
 /// - Left Card: Communication Hub (Dialer, sub-tabs, interactive keypad, recents list with letter avatars)
-/// - Right Card: Connected Device Status (Xiaomi 17, smartphone silhouette, in-call HUD with controls)
+/// - Right Card: Simulated device status and in-call HUD with controls
 class PhoneScreen extends StatefulWidget {
   final VoidCallback? onClose;
+  final ValueChanged<bool>? onCallStateChanged;
 
-  const PhoneScreen({super.key, this.onClose});
+  const PhoneScreen({super.key, this.onClose, this.onCallStateChanged});
 
   @override
   State<PhoneScreen> createState() => _PhoneScreenState();
 }
 
 class _PhoneScreenState extends State<PhoneScreen> {
-  int _selectedSubTab = 0; // 0: Dialer, 1: Recents, 2: Contacts, 3: Voicemail
-  String _dialedNumber = '+381 63 123 4567';
+  int _selectedSubTab = 0;
+  String _dialedNumber = '';
 
   // Active call state
-  bool _isInCall = true;
+  bool _isInCall = false;
   bool _isMuted = false;
-  int _callDurationSeconds = 24;
+  int _callDurationSeconds = 0;
   Timer? _callTimer;
 
   // Active contact info
-  String _activeCallerName = 'Helena (RS7)';
-  String _activeCallerNumber = '+381 63 123 4567';
-  String _activeCallerInitial = 'H';
+  String _activeCallerName = 'No active call';
+  String _activeCallerNumber = 'Ready to call';
+  String _activeCallerInitial = '';
 
   final List<_RecentCallItem> _recentCalls = const [
     _RecentCallItem(
-      name: 'Aleksandar',
+      name: 'Demo Caller A',
       initial: 'A',
-      number: '+381 64 221 8899',
+      number: '+1 202 555 0100',
       type: _CallType.outgoing,
       typeLabel: 'Mobile',
       time: '10:32',
     ),
     _RecentCallItem(
-      name: 'Helena (RS7)',
-      initial: 'H',
-      number: '+381 63 123 4567',
+      name: 'Demo Caller B',
+      initial: 'B',
+      number: '+1 202 555 0101',
       type: _CallType.incoming,
       typeLabel: 'Mobile',
       time: '09:47',
     ),
     _RecentCallItem(
-      name: 'Milan',
-      initial: 'M',
-      number: '+381 62 994 3321',
+      name: 'Demo Caller C',
+      initial: 'C',
+      number: '+1 202 555 0102',
       type: _CallType.missed,
       typeLabel: 'Mobile',
       time: 'Yesterday',
     ),
     _RecentCallItem(
-      name: 'Mama',
-      initial: 'M',
-      number: '+381 60 445 6789',
-      type: _CallType.incoming,
-      typeLabel: 'Mobile',
-      time: 'Yesterday',
-    ),
-    _RecentCallItem(
-      name: 'Petar',
-      initial: 'P',
-      number: '+381 65 778 1234',
-      type: _CallType.incoming,
-      typeLabel: 'Mobile',
-      time: 'Mon',
-    ),
-    _RecentCallItem(
-      name: 'VoIP Support',
-      initial: 'V',
-      number: '+381 11 300 0000',
+      name: 'Demo Support',
+      initial: 'S',
+      number: '+1 202 555 0103',
       type: _CallType.work,
       typeLabel: 'Work',
       time: 'Mon',
     ),
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _startCallTimer();
-  }
 
   @override
   void dispose() {
@@ -105,12 +84,14 @@ class _PhoneScreenState extends State<PhoneScreen> {
   }
 
   void _onKeyPress(String value) {
+    if (_isInCall || _dialedNumber.length >= 32) return;
     setState(() {
       _dialedNumber += value;
     });
   }
 
   void _onBackspace() {
+    if (_isInCall) return;
     if (_dialedNumber.isNotEmpty) {
       setState(() {
         _dialedNumber = _dialedNumber.substring(0, _dialedNumber.length - 1);
@@ -119,17 +100,20 @@ class _PhoneScreenState extends State<PhoneScreen> {
   }
 
   void _onCallPressed() {
-    if (_dialedNumber.trim().isEmpty) return;
+    if (_isInCall) return;
+    final number = _dialedNumber.trim();
+    if (number.isEmpty) return;
     setState(() {
       _isInCall = true;
-      _activeCallerName = _dialedNumber;
-      _activeCallerNumber = _dialedNumber;
-      _activeCallerInitial = _dialedNumber.replaceAll('+', '').isNotEmpty
-          ? _dialedNumber.replaceAll('+', '')[0].toUpperCase()
+      _activeCallerName = number;
+      _activeCallerNumber = number;
+      _activeCallerInitial = number.replaceAll('+', '').isNotEmpty
+          ? number.replaceAll('+', '')[0].toUpperCase()
           : 'P';
       _callDurationSeconds = 0;
     });
     _startCallTimer();
+    widget.onCallStateChanged?.call(true);
   }
 
   void _onEndCall() {
@@ -137,18 +121,15 @@ class _PhoneScreenState extends State<PhoneScreen> {
       _isInCall = false;
     });
     _callTimer?.cancel();
+    widget.onCallStateChanged?.call(false);
   }
 
   void _selectContact(_RecentCallItem item) {
+    if (_isInCall) return;
     setState(() {
       _dialedNumber = item.number;
-      _activeCallerName = item.name;
-      _activeCallerNumber = item.number;
-      _activeCallerInitial = item.initial;
-      _isInCall = true;
-      _callDurationSeconds = 0;
+      _selectedSubTab = 0;
     });
-    _startCallTimer();
   }
 
   String _formatCallDuration(int totalSeconds) {
@@ -167,6 +148,8 @@ class _PhoneScreenState extends State<PhoneScreen> {
           flex: 13,
           child: _LeftCommunicationCard(
             onClose: widget.onClose,
+            canClose: !_isInCall,
+            isInCall: _isInCall,
             selectedSubTab: _selectedSubTab,
             onSubTabChanged: (index) => setState(() => _selectedSubTab = index),
             dialedNumber: _dialedNumber,
@@ -190,7 +173,10 @@ class _PhoneScreenState extends State<PhoneScreen> {
             callerName: _activeCallerName,
             callerNumber: _activeCallerNumber,
             callerInitial: _activeCallerInitial,
-            onToggleMute: () => setState(() => _isMuted = !_isMuted),
+            canStartCall: _dialedNumber.trim().isNotEmpty,
+            onToggleMute: _isInCall
+                ? () => setState(() => _isMuted = !_isMuted)
+                : null,
             onEndCall: _onEndCall,
             onStartCall: _onCallPressed,
           ),
@@ -206,6 +192,8 @@ class _PhoneScreenState extends State<PhoneScreen> {
 
 class _LeftCommunicationCard extends StatelessWidget {
   final VoidCallback? onClose;
+  final bool canClose;
+  final bool isInCall;
   final int selectedSubTab;
   final ValueChanged<int> onSubTabChanged;
   final String dialedNumber;
@@ -217,6 +205,8 @@ class _LeftCommunicationCard extends StatelessWidget {
 
   const _LeftCommunicationCard({
     this.onClose,
+    required this.canClose,
+    required this.isInCall,
     required this.selectedSubTab,
     required this.onSubTabChanged,
     required this.dialedNumber,
@@ -233,10 +223,7 @@ class _LeftCommunicationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF13131A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0x22FFFFFF),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0x22FFFFFF), width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Column(
@@ -287,24 +274,41 @@ class _LeftCommunicationCard extends StatelessWidget {
                 ],
               ),
               const Spacer(),
-              if (onClose != null)
-                GestureDetector(
-                  onTap: onClose,
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        width: 1,
+              if (onClose != null && canClose)
+                Semantics(
+                  key: const ValueKey('phone-close-button'),
+                  button: true,
+                  label: 'Close phone',
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Center(
+                      child: Material(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(10),
+                        child: InkWell(
+                          onTap: onClose,
+                          borderRadius: BorderRadius.circular(10),
+                          child: SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                color: Colors.white70,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    child: const Icon(
-                      Icons.close_rounded,
-                      color: Colors.white70,
-                      size: 20,
                     ),
                   ),
                 ),
@@ -336,35 +340,24 @@ class _LeftCommunicationCard extends StatelessWidget {
                 ),
 
                 const SizedBox(width: 16),
-
-                // 2. Dialer Keypad Center Section
                 Expanded(
-                  flex: 5,
-                  child: _KeypadSection(
-                    dialedNumber: dialedNumber,
-                    onKeyPress: onKeyPress,
-                    onBackspace: onBackspace,
-                    onCallPressed: onCallPressed,
-                  ),
-                ),
+                  child: switch (selectedSubTab) {
+                    0 => _KeypadSection(
+                      enabled: !isInCall,
+                      dialedNumber: dialedNumber,
 
-                const SizedBox(width: 16),
+                      onKeyPress: onKeyPress,
+                      onBackspace: onBackspace,
+                      onCallPressed: onCallPressed,
+                    ),
+                    1 => _RecentsSection(
+                      enabled: !isInCall,
+                      recentCalls: recentCalls,
 
-                // Subtle vertical divider
-                Container(
-                  width: 1,
-                  color: Colors.white.withValues(alpha: 0.06),
-                ),
-
-                const SizedBox(width: 16),
-
-                // 3. Recent Calls List
-                Expanded(
-                  flex: 4,
-                  child: _RecentsSection(
-                    recentCalls: recentCalls,
-                    onSelectContact: onSelectContact,
-                  ),
+                      onSelectContact: onSelectContact,
+                    ),
+                    _ => const SizedBox.shrink(),
+                  },
                 ),
               ],
             ),
@@ -383,18 +376,13 @@ class _SubNavTabs extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onTabSelected;
 
-  const _SubNavTabs({
-    required this.selectedIndex,
-    required this.onTabSelected,
-  });
+  const _SubNavTabs({required this.selectedIndex, required this.onTabSelected});
 
   @override
   Widget build(BuildContext context) {
     final items = [
       (Icons.dialpad_rounded, 'Dialer'),
       (Icons.access_time_rounded, 'Recent Calls'),
-      (Icons.person_outline_rounded, 'Contacts'),
-      (Icons.voicemail_rounded, 'Voicemail'),
     ];
 
     return Column(
@@ -429,51 +417,56 @@ class _SubNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            color: selected
-                ? const Color(0xFF0D2338)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected
-                  ? const Color(0xFF00A3FF).withValues(alpha: 0.3)
-                  : Colors.transparent,
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFF0D2338) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
                 color: selected
-                    ? const Color(0xFF00A3FF)
-                    : Colors.white.withValues(alpha: 0.45),
-                size: 18,
+                    ? const Color(0xFF00A3FF).withValues(alpha: 0.3)
+                    : Colors.transparent,
+                width: 1,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: selected
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.55),
-                    fontSize: 13,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: selected
+                      ? const Color(0xFF00A3FF)
+                      : Colors.white.withValues(alpha: 0.45),
+                  size: 18,
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: selected
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.55),
+                      fontSize: 13,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -486,12 +479,14 @@ class _SubNavItem extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _KeypadSection extends StatelessWidget {
+  final bool enabled;
   final String dialedNumber;
   final ValueChanged<String> onKeyPress;
   final VoidCallback onBackspace;
   final VoidCallback onCallPressed;
 
   const _KeypadSection({
+    required this.enabled,
     required this.dialedNumber,
     required this.onKeyPress,
     required this.onBackspace,
@@ -514,6 +509,7 @@ class _KeypadSection extends StatelessWidget {
       ('0', '+'),
       ('#', ''),
     ];
+    final canCall = enabled && dialedNumber.trim().isNotEmpty;
 
     return Column(
       children: [
@@ -548,14 +544,18 @@ class _KeypadSection extends StatelessWidget {
               ),
               if (dialedNumber.isNotEmpty)
                 IconButton(
-                  onPressed: onBackspace,
+                  onPressed: enabled ? onBackspace : null,
+                  tooltip: 'Delete last digit',
                   icon: Icon(
                     Icons.backspace_outlined,
                     color: Colors.white.withValues(alpha: 0.6),
                     size: 18,
                   ),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
                 ),
             ],
           ),
@@ -581,7 +581,9 @@ class _KeypadSection extends StatelessWidget {
                             _KeypadButton(
                               digit: keys[row * 3 + col].$1,
                               letters: keys[row * 3 + col].$2,
-                              onTap: () => onKeyPress(keys[row * 3 + col].$1),
+                              onTap: enabled
+                                  ? () => onKeyPress(keys[row * 3 + col].$1)
+                                  : null,
                             ),
                           ],
                         ],
@@ -593,34 +595,44 @@ class _KeypadSection extends StatelessWidget {
               const SizedBox(width: 12),
 
               // Glowing Call Button
-              GestureDetector(
-                onTap: onCallPressed,
-                child: Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF00C6FF),
-                        Color(0xFF0072FF),
-                      ],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00A3FF).withValues(alpha: 0.45),
-                        blurRadius: 18,
-                        spreadRadius: 2,
+              Semantics(
+                button: true,
+                enabled: canCall,
+                label: 'Start demo call',
+                onTap: canCall ? onCallPressed : null,
+                excludeSemantics: true,
+                child: GestureDetector(
+                  key: const ValueKey('phone-call-button'),
+                  onTap: canCall ? onCallPressed : null,
+                  child: Opacity(
+                    opacity: canCall ? 1 : 0.35,
+                    child: Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF00C6FF), Color(0xFF0072FF)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF00A3FF,
+                            ).withValues(alpha: 0.45),
+                            blurRadius: 18,
+                            spreadRadius: 2,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.phone_rounded,
-                      color: Colors.white,
-                      size: 26,
+                      child: const Center(
+                        child: Icon(
+                          Icons.phone_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -636,7 +648,7 @@ class _KeypadSection extends StatelessWidget {
 class _KeypadButton extends StatelessWidget {
   final String digit;
   final String letters;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _KeypadButton({
     required this.digit,
@@ -646,45 +658,52 @@ class _KeypadButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(28),
-        child: Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.04),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.06),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                digit,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  height: 1.1,
-                ),
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: letters.isEmpty ? digit : '$digit, $letters',
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(28),
+          child: Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.04),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.06),
+                width: 1,
               ),
-              if (letters.isNotEmpty)
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
                 Text(
-                  letters,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4),
-                    fontSize: 8,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.5,
+                  digit,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    height: 1.1,
                   ),
                 ),
-            ],
+                if (letters.isNotEmpty)
+                  Text(
+                    letters,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      fontSize: 8,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -717,10 +736,12 @@ class _RecentCallItem {
 }
 
 class _RecentsSection extends StatelessWidget {
+  final bool enabled;
   final List<_RecentCallItem> recentCalls;
   final ValueChanged<_RecentCallItem> onSelectContact;
 
   const _RecentsSection({
+    required this.enabled,
     required this.recentCalls,
     required this.onSelectContact,
   });
@@ -741,22 +762,13 @@ class _RecentsSection extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            Row(
-              children: [
-                Text(
-                  'All',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: Colors.white.withValues(alpha: 0.5),
-                  size: 16,
-                ),
-              ],
+            const Text(
+              'All calls',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -771,7 +783,7 @@ class _RecentsSection extends StatelessWidget {
               final item = recentCalls[index];
               return _RecentCallTile(
                 item: item,
-                onTap: () => onSelectContact(item),
+                onTap: enabled ? () => onSelectContact(item) : null,
               );
             },
           ),
@@ -783,12 +795,9 @@ class _RecentsSection extends StatelessWidget {
 
 class _RecentCallTile extends StatelessWidget {
   final _RecentCallItem item;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
-  const _RecentCallTile({
-    required this.item,
-    required this.onTap,
-  });
+  const _RecentCallTile({required this.item, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -814,98 +823,109 @@ class _RecentCallTile extends StatelessWidget {
         break;
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-          child: Row(
-            children: [
-              // Initial Letter Avatar (per user requirement)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF1E212D),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    width: 1,
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: '${item.name}, ${item.typeLabel}, ${item.time}',
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            child: Row(
+              children: [
+                // Initial Letter Avatar (per user requirement)
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF1E212D),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: item.type == _CallType.work
+                        ? const Icon(
+                            Icons.headset_rounded,
+                            color: Colors.white70,
+                            size: 16,
+                          )
+                        : Text(
+                            item.initial,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
-                child: Center(
-                  child: item.type == _CallType.work
-                      ? const Icon(Icons.headset_rounded, color: Colors.white70, size: 16)
-                      : Text(
-                          item.initial,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
+
+                const SizedBox(width: 10),
+
+                // Name and type
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(typeIcon, color: typeColor, size: 12),
+                          const SizedBox(width: 4),
+                          Text(
+                            item.typeLabel,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.45),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              const SizedBox(width: 10),
-
-              // Name and type
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Time and chevron
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      item.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                      item.time,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Icon(typeIcon, color: typeColor, size: 12),
-                        const SizedBox(width: 4),
-                        Text(
-                          item.typeLabel,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.45),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
-              ),
-
-              // Time and chevron
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    item.time,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.45),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: Colors.white.withValues(alpha: 0.25),
-                size: 16,
-              ),
-            ],
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white.withValues(alpha: 0.25),
+                  size: 16,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -915,6 +935,7 @@ class _RecentCallTile extends StatelessWidget {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Right Card: Connected Device & In-Call HUD
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _RightDeviceCard extends StatelessWidget {
@@ -924,7 +945,8 @@ class _RightDeviceCard extends StatelessWidget {
   final String callerName;
   final String callerNumber;
   final String callerInitial;
-  final VoidCallback onToggleMute;
+  final bool canStartCall;
+  final VoidCallback? onToggleMute;
   final VoidCallback onEndCall;
   final VoidCallback onStartCall;
 
@@ -935,6 +957,7 @@ class _RightDeviceCard extends StatelessWidget {
     required this.callerName,
     required this.callerNumber,
     required this.callerInitial,
+    required this.canStartCall,
     required this.onToggleMute,
     required this.onEndCall,
     required this.onStartCall,
@@ -946,10 +969,7 @@ class _RightDeviceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF13131A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0x22FFFFFF),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0x22FFFFFF), width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
       child: Column(
@@ -983,15 +1003,15 @@ class _RightDeviceCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Connected',
+                        'Demo device',
                         style: TextStyle(
-                          color: Color(0xFF00C8FF),
+                          color: Color(0xFFFFC857),
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const Text(
-                        'Xiaomi 17',
+                        'Prototype handset',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -1007,7 +1027,7 @@ class _RightDeviceCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 2),
                           Text(
-                            'Bluetooth',
+                            'Demo Bluetooth',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.45),
                               fontSize: 10,
@@ -1049,9 +1069,7 @@ class _RightDeviceCard extends StatelessWidget {
                 // Smartphone Silhouette (Left)
                 const Expanded(
                   flex: 5,
-                  child: Center(
-                    child: _SmartphoneSilhouette(),
-                  ),
+                  child: Center(child: _SmartphoneSilhouette()),
                 ),
 
                 const SizedBox(width: 16),
@@ -1066,6 +1084,7 @@ class _RightDeviceCard extends StatelessWidget {
                     callerName: callerName,
                     callerNumber: callerNumber,
                     callerInitial: callerInitial,
+                    canStartCall: canStartCall,
                     onToggleMute: onToggleMute,
                     onEndCall: onEndCall,
                     onStartCall: onStartCall,
@@ -1094,10 +1113,7 @@ class _SmartphoneSilhouette extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(26),
-          border: Border.all(
-            color: const Color(0xFF384052),
-            width: 2.5,
-          ),
+          border: Border.all(color: const Color(0xFF384052), width: 2.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.7),
@@ -1120,9 +1136,7 @@ class _SmartphoneSilhouette extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               // Abstract Wallpaper Background with sleek blue curves
-              CustomPaint(
-                painter: _PhoneWallpaperPainter(),
-              ),
+              CustomPaint(painter: _PhoneWallpaperPainter()),
 
               // Dynamic Island / Camera Notch at top
               Align(
@@ -1210,10 +1224,7 @@ class _PhoneWallpaperPainter extends CustomPainter {
       ..shader = const RadialGradient(
         center: Alignment(0.0, 0.4),
         radius: 1.1,
-        colors: [
-          Color(0xFF002F5A),
-          Color(0xFF030712),
-        ],
+        colors: [Color(0xFF002F5A), Color(0xFF030712)],
       ).createShader(rect);
     canvas.drawRect(rect, bgPaint);
 
@@ -1276,7 +1287,8 @@ class _InCallPanel extends StatelessWidget {
   final String callerName;
   final String callerNumber;
   final String callerInitial;
-  final VoidCallback onToggleMute;
+  final bool canStartCall;
+  final VoidCallback? onToggleMute;
   final VoidCallback onEndCall;
   final VoidCallback onStartCall;
 
@@ -1287,6 +1299,7 @@ class _InCallPanel extends StatelessWidget {
     required this.callerName,
     required this.callerNumber,
     required this.callerInitial,
+    required this.canStartCall,
     required this.onToggleMute,
     required this.onEndCall,
     required this.onStartCall,
@@ -1310,11 +1323,7 @@ class _InCallPanel extends StatelessWidget {
             ),
           ),
           child: const Center(
-            child: Icon(
-              Icons.person_rounded,
-              color: Colors.white70,
-              size: 32,
-            ),
+            child: Icon(Icons.person_rounded, color: Colors.white70, size: 32),
           ),
         ),
 
@@ -1322,7 +1331,7 @@ class _InCallPanel extends StatelessWidget {
 
         // Caller Name
         Text(
-          callerName,
+          isInCall ? callerName : 'No active call',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
@@ -1337,7 +1346,9 @@ class _InCallPanel extends StatelessWidget {
 
         // Caller details
         Text(
-          'Mobile  $callerNumber',
+          isInCall
+              ? 'Mobile  $callerNumber'
+              : 'Enter a number to start a demo call',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.5),
             fontSize: 11,
@@ -1350,7 +1361,7 @@ class _InCallPanel extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        // Status indicator (Incoming call / Active call / Call ended)
+        // Status indicator
         if (isInCall)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1369,12 +1380,16 @@ class _InCallPanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                'Incoming call',
-                style: const TextStyle(
-                  color: Color(0xFF00E676),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+              Flexible(
+                child: Text(
+                  'Active demo call',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF00E676),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1402,7 +1417,7 @@ class _InCallPanel extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'Call ended',
+                'Ready to call',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 12,
@@ -1420,6 +1435,7 @@ class _InCallPanel extends StatelessWidget {
           children: [
             // Mute Button
             _ActionButton(
+              key: const ValueKey('call-mute'),
               icon: isMuted ? Icons.mic_off_rounded : Icons.mic_none_rounded,
               label: isMuted ? 'Muted' : 'Mute',
               active: isMuted,
@@ -1430,10 +1446,10 @@ class _InCallPanel extends StatelessWidget {
 
             // Keypad button
             _ActionButton(
+              key: const ValueKey('in-call-keypad'),
               icon: Icons.dialpad_rounded,
               label: 'Keypad',
               active: false,
-              onTap: () {},
             ),
 
             const SizedBox(width: 12),
@@ -1451,7 +1467,7 @@ class _InCallPanel extends StatelessWidget {
                 icon: Icons.phone_rounded,
                 label: 'Call',
                 isSuccess: true,
-                onTap: onStartCall,
+                onTap: canStartCall ? onStartCall : null,
               ),
           ],
         ),
@@ -1466,24 +1482,30 @@ class _ActionButton extends StatelessWidget {
   final bool active;
   final bool isDestructive;
   final bool isSuccess;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _ActionButton({
+    super.key,
     required this.icon,
     required this.label,
     this.active = false,
     this.isDestructive = false,
     this.isSuccess = false,
-    required this.onTap,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
     Color bgColor;
     Color iconColor;
     Color borderColor;
 
-    if (isDestructive) {
+    if (!enabled) {
+      bgColor = Colors.white.withValues(alpha: 0.02);
+      iconColor = Colors.white24;
+      borderColor = Colors.white.withValues(alpha: 0.05);
+    } else if (isDestructive) {
       bgColor = const Color(0xFFD32F2F).withValues(alpha: 0.2);
       iconColor = const Color(0xFFFF5252);
       borderColor = const Color(0xFFD32F2F).withValues(alpha: 0.5);
@@ -1501,37 +1523,48 @@ class _ActionButton extends StatelessWidget {
       borderColor = Colors.white.withValues(alpha: 0.08);
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: 54,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: borderColor, width: 1),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: iconColor, size: 20),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isDestructive
-                      ? const Color(0xFFFF5252)
-                      : isSuccess
-                          ? const Color(0xFF00E676)
-                          : Colors.white.withValues(alpha: 0.65),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      toggled: active ? active : null,
+      label: enabled ? label : '$label — unavailable in prototype',
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: 54,
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor, width: 1),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: iconColor, size: 20),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: !enabled
+                        ? Colors.white24
+                        : isDestructive
+                        ? const Color(0xFFFF5252)
+                        : isSuccess
+                        ? const Color(0xFF00E676)
+                        : Colors.white.withValues(alpha: 0.65),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

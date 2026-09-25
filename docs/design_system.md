@@ -1,541 +1,212 @@
 # SkyUI Design System
 
-Version: 0.1 Alpha
+Package version: `0.3.0-alpha+1`
 
----
+Status: prototype visual language and design requirements
 
-# Purpose
+## Purpose
 
-This document defines the visual language of SkyUI.
+This document defines the intended SkyUI visual language, interaction rules, and validation requirements. It is not evidence of physical-display, driver-workload, accessibility, or performance compliance.
 
-Every interface inside SkyUI must follow these rules.
+The current implementation is partially tokenized. Inline colors, typography, spacing, and radii remain known debt.
 
-Consistency is more important than creativity.
+## Design philosophy
 
----
+SkyUI is an automotive-styled HMI prototype with a premium, calm, technical direction. It is intended to feel like a cockpit interface rather than a conventional mobile application, but that intention has not been validated on a vehicle display.
 
-# Design Philosophy
+Design qualities:
 
-SkyUI is designed for a premium automobile.
+- calm;
+- legible;
+- restrained;
+- hierarchy-driven;
+- consistent;
+- explicit about system state.
 
-It should feel:
+## Current evidence boundary
 
-- Modern
-- Premium
-- Minimal
-- Calm
-- Driver Focused
-- Elegant
+The only current layout and browser smoke baseline is 1680×720 landscape. It is not validation of:
 
-The interface must never feel like a mobile application.
+- physical panel dimensions or DPI;
+- ultrawide or compact vehicle resolutions;
+- portrait fallback;
+- text scaling;
+- RTL or long localized strings;
+- sunlight, night mode, viewing angle, or panel gamma;
+- driver distraction or workload.
 
-Think:
+## Color roles
 
-Luxury vehicle
+Use semantic roles rather than treating one accent as universally dominant.
 
-not
+- Background: near-black application shell.
+- Surface: slightly lighter card surface.
+- Primary: blue selection and primary action.
+- Secondary: cyan information and active-state emphasis.
+- Route/map emphasis: orange.
+- Success: green status.
+- Warning: yellow or amber status.
+- Error/destructive: red status.
+- Disabled: low-contrast neutral with an explicit reason.
 
-Android tablet.
+Status colors must not be the only carrier of meaning. Pair them with text, icon, shape, or state semantics.
 
----
+The current token palette is represented by `lib/core/theme/colors.dart`, but many screens still use inline values.
 
-# Visual Identity
+## Typography
 
-Keywords
+Typography should be readable, restrained, and hierarchy-driven.
 
-Premium
+Target roles:
 
-Minimal
+- display: major page or cockpit title;
+- headline: important module heading;
+- title: section or card heading;
+- body: normal information;
+- label: concise state or control label.
 
-Luxury
+Current limitations:
 
-Dark
+- much of the UI uses inline `TextStyle` values;
+- several secondary labels are 8–12 logical pixels and are not optically validated;
+- Roboto is requested by name, but fallback-font licensing and offline packaging are unresolved;
+- text scale, RTL, localization, and screen-reader behavior are not validated.
 
-Soft
+Do not decrease critical text size to force a fixed layout. Adjust the layout or define a validated responsive profile.
 
-Elegant
+## Layout
 
-Technical
+At the current 1680×720 baseline, the shell contains:
 
-Driver First
-
----
-
-# Color Palette
-
-## Primary Background
-
-Very Dark
-
-Almost Black
-
----
-
-## Secondary Background
-
-Slightly lighter than the primary surface.
-
-Used for cards.
-
----
-
-## Accent Color
-
-Veltron Yellow
-
-This is the only strong accent color.
-
-Use it for:
-
-- Active navigation
-- Selected items
-- Progress bars
-- Highlights
-
-Never overuse it.
-
----
-
-## Text Colors
-
-Primary
-
-White
-
-Secondary
-
-Light Gray
-
-Disabled
-
-Dark Gray
-
----
-
-## Status Colors
-
-Success
-
-Green
-
-Warning
-
-Orange
-
-Error
-
-Red
-
-Information
-
-Blue
-
-Use status colors only for status.
-
-Never for decoration.
-
----
-
-# Typography
-
-Typography should feel automotive.
-
-Clean.
-
-Readable.
-
-No decorative fonts.
-
-Hierarchy
-
-Display
-
-Page Titles
-
-Section Titles
-
-Body
-
-Caption
-
-Small Labels
-
----
-
-# Layout Philosophy
-
-Every page follows:
-
+```text
 Header
+└── Sidebar + content
+    └── Climate bar
+```
 
-↓
+The fixed 90 dp sidebar and 84 dp header are implementation details, not a responsive guarantee. The 7:4:5 dashboard grid is a prototype baseline for later display validation.
 
-Content
+Every modified layout should document its supported viewport and its parked/driving policy.
 
-↓
+## Spacing and tokens
 
-Optional Bottom Panel
+Preferred spacing tokens are:
 
-Sidebar always remains visible.
+- 4;
+- 8;
+- 12;
+- 16;
+- 24;
+- 32;
+- 48;
+- 64.
 
----
+Existing code contains additional values and should be migrated incrementally rather than mass-rewritten. New and modified shared values should use tokens where practical.
 
-# Spacing System
+## Radius and elevation
 
-Use consistent spacing.
+Cards use medium radius, controls use restrained radius, and dialogs may use larger radius. Avoid both sharp and excessively rounded forms.
 
-Allowed spacing values:
+Prefer soft borders, subtle gradients, and limited highlights over aggressive shadows. Do not add elevation effects without checking contrast and target-GPU cost.
 
-4
+## Motion
 
-8
+Motion should be subtle and purposeful.
 
-12
+Preferred durations:
 
-16
+- fast: 150 ms;
+- normal: 250 ms;
+- slow: 400 ms;
+- current large screen transition: 350 ms.
 
-24
+The current Home transition uses 350 ms. Validate motion on the target display and respect reduced-motion settings when that capability is integrated. Decorative continuous animations must not be assumed safe for a moving vehicle.
 
-32
+## Navigation and information hierarchy
 
-48
+Navigation should prioritize the next critical maneuver, current speed/limit, route context, and critical warnings when real sources exist.
 
-64
+Current screen layout is a design intent, not a validated driver-attention result. Future validation must measure glance time, recognition, workload, and recovery from blocked or unavailable actions.
 
-Avoid random values.
+## Touch and physical ergonomics
 
----
+- 48 dp is a programmatic minimum, not proof of physical target suitability.
+- Touch areas must remain separated and must not overlap.
+- Primary controls should be larger where vehicle vibration or gloves require it.
+- Disabled controls must expose a reason in Semantics or tooltip text.
+- Physical millimeters, gloves, wet fingers, vibration, and target hardware remain unverified.
 
-# Corner Radius
+## Accessibility
 
-Cards
+Maintain readable contrast, visible focus, keyboard traversal, and clear semantics.
 
-Medium
+Before release, validate:
 
-Buttons
+- screen readers;
+- keyboard and physical buttons;
+- rotary and steering-wheel input where applicable;
+- text scale 1.3, 1.5, and 2.0;
+- RTL and localization;
+- reduced motion;
+- color contrast and non-color status cues;
+- focus visibility and restoration;
+- dynamic content announcements.
 
-Medium
+The current Semantics improvements are a foundation, not an accessibility certification.
 
-Dialogs
+## Images and custom painting
 
-Large
+Current imagery is primarily a static vehicle PNG and custom-painted maps. There is no live weather, map, album-art, or camera source.
 
-Avoid sharp corners.
+Images should be high quality, appropriately decoded for the target DPR, and labeled as fixtures when they represent vehicle or environmental state.
 
-Avoid extreme roundness.
+## Glass, blur, and gradients
 
----
+Glass effects are allowed when they support hierarchy and do not obscure critical information.
 
-# Elevation
+Multiple `BackdropFilter` layers exist in expanded Navigation. GPU and raster cost must be measured on the intended automotive hardware before production approval. Never blur an entire safety-relevant interface.
 
-SkyUI uses soft elevation.
+Gradients are visual styling, not a substitute for contrast or state communication.
 
-Never use aggressive shadows.
+## Component rules
 
-Instead use:
+Every reusable component belongs under `lib/widgets/`. Reuse should replace duplication when the abstraction has a clear responsibility; do not create a generic abstraction for one-off behavior without justification.
 
-Soft borders
+Interactive components should define:
 
-Subtle gradients
+- label;
+- enabled/disabled state;
+- selected/toggled state where relevant;
+- unavailable reason;
+- minimum hit target;
+- keyboard/focus behavior;
+- simulation or source status where relevant.
 
-Soft highlights
-
----
-
-# Animations
-
-Animations should feel smooth.
-
-Never flashy.
-
-Recommended durations:
-
-Fast
-
-150ms
-
-Normal
-
-250ms
-
-Large
-
-350ms
-
-Transitions should be subtle.
-
----
-
-# Sidebar
-
-Sidebar is always visible.
-
-Contains:
-
-Logo
-
-Navigation
-
-Settings
-
-Navigation icons remain centered.
-
-Only one item is active.
-
----
-
-# Header
-
-Header contains:
-
-Brand
-
-System Status
-
-Clock
-
-Connectivity
-
-Bluetooth
-
-Battery
-
-WiFi
-
-Notifications
-
-Header should remain minimal.
-
----
-
-# Cards
-
-Cards are the foundation of the interface.
-
-Every card should contain:
-
-Title
-
-Content
-
-Optional Actions
-
-Optional Status
-
-Cards should never feel crowded.
-
----
-
-# Buttons
-
-Buttons should be simple.
-
-Primary
-
-Accent
-
-Secondary
-
-Dark
-
-Danger
-
-Red
-
-Disabled
-
-Gray
-
-Avoid excessive borders.
-
----
-
-# Icons
-
-Icons should be:
-
-Simple
-
-Thin
-
-Modern
-
-Consistent
-
-Do not mix icon styles.
-
----
-
-# Images
-
-Images should be high quality.
-
-Use:
-
-Vehicle renders
-
-Maps
-
-Album covers
-
-Weather
-
-Avoid low resolution images.
-
----
-
-# Vehicle Images
-
-Vehicle renders should always be:
-
-High resolution
-
-Transparent background
-
-Centered
-
-Never stretched.
-
----
-
-# Navigation
-
-Navigation should require minimal driver attention.
-
-Large touch targets.
-
-Simple hierarchy.
-
-Minimal interaction.
-
----
-
-# Information Density
-
-Show only necessary information.
-
-Hide advanced information until requested.
-
-Never overload the user.
-
----
-
-# Responsiveness
-
-SkyUI must support:
-
-Desktop
-
-Vehicle Displays
-
-Ultrawide Displays
-
-Future Android Automotive Displays
-
-Components should scale naturally.
-
----
-
-# Accessibility
-
-Maintain readable contrast.
-
-Large touch areas.
-
-Readable typography.
-
-Avoid tiny icons.
-
----
-
-# Glass Effects
-
-Allowed.
-
-Should remain subtle.
-
-Never blur the entire interface.
-
----
-
-# Gradients
-
-Gradients are allowed.
-
-Prefer image backgrounds over expensive runtime effects during development.
-
-Heavy visual effects can be introduced later if performance allows.
-
----
-
-# Component Rules
-
-Every reusable component belongs inside widgets/.
-
-Never duplicate components.
-
-If used more than once:
-
-Extract.
-
----
-
-# Screen Rules
+## Screen rules
 
 Every screen should answer:
 
-Where am I?
+- Where am I?
+- What is important?
+- What can I do?
+- What is unavailable?
+- Which values are simulated or stale?
 
-What is important?
+The final answer must not be hidden behind a decorative affordance.
 
-What can I do?
+## Design don'ts
 
-Everything else is secondary.
+Never:
 
----
+- present a fixture as live vehicle data;
+- use a control that silently does nothing;
+- use status color as the only state signal;
+- hardcode a safety-critical limit without an approved source;
+- claim responsive coverage from one viewport;
+- use blur or motion as a substitute for hierarchy;
+- mix icon styles or create visual clutter;
+- use a debug mode as a vehicle trust source.
 
-# Design Don'ts
+## Design goals
 
-Never use bright backgrounds.
-
-Never create clutter.
-
-Never overuse yellow.
-
-Never mix icon packs.
-
-Never create giant buttons.
-
-Never use random spacing.
-
-Never use random font sizes.
-
-Never invent colors.
-
-Never hardcode UI values.
-
----
-
-# Design Goals
-
-The interface should feel:
-
-Fast
-
-Premium
-
-Comfortable
-
-Confident
-
-Modern
-
-Effortless
-
-The user should focus on driving.
-
-The interface should quietly assist.
-
----
-
-End of document.
+The intended goals are calm, legible, efficient, and low-distraction. Actual driver workload, distraction risk, optical legibility, and physical ergonomics must be validated on the target platform before these are presented as achieved qualities.

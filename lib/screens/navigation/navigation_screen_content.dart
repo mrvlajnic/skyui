@@ -135,15 +135,9 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   // Radar Pulse Animation
   late final AnimationController _pulseController;
 
-  // Flowing Route Dashes Animation
-  late final AnimationController _flowController;
-
   // ── Navigation Preferences ────────────────────────────────────────────────
-  double _zoomLevel = 1.0;
   bool _isVoiceMuted = false;
   bool _isTrafficEnabled = true;
-  bool _is3DView = false;
-  int _routeTypeIndex = 0; // 0: Fastest, 1: Eco, 2: Shortest
 
   @override
   void initState() {
@@ -166,12 +160,6 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       duration: const Duration(milliseconds: 2000),
     )..repeat();
 
-    // Setup flowing route trail
-    _flowController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
-
     _targetPuckPos = _destinations[_selectedDestIndex].coordinates;
   }
 
@@ -179,7 +167,6 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   void dispose() {
     _travelController.dispose();
     _pulseController.dispose();
-    _flowController.dispose();
     super.dispose();
   }
 
@@ -204,12 +191,12 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     final dx = 2 * invT * (p1.dx - p0.dx) + 2 * t * (p2.dx - p1.dx);
     final dy = 2 * invT * (p1.dy - p0.dy) + 2 * t * (p2.dy - p1.dy);
 
-    setState(() {
+    if (dx != 0 || dy != 0) {
       _currentPuckPos = Offset(currentX, currentY);
-      if (dx != 0 || dy != 0) {
-        _puckHeading = math.atan2(dy, dx) + math.pi / 2;
-      }
-    });
+      _puckHeading = math.atan2(dy, dx) + math.pi / 2;
+    } else {
+      _currentPuckPos = Offset(currentX, currentY);
+    }
   }
 
   /// Triggered when the user selects a destination or taps a waypoint
@@ -226,23 +213,6 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     _travelController.forward(from: 0.0);
   }
 
-  /// Custom destination picked by tapping anywhere directly on the map
-  void _onMapTap(Offset localNormalizedPos) {
-    setState(() {
-      _startPuckPos = _currentPuckPos;
-      _targetPuckPos = localNormalizedPos;
-    });
-
-    _travelController.stop();
-    _travelController.forward(from: 0.0);
-  }
-
-  void _recenterOnVehicle() {
-    setState(() {
-      _zoomLevel = 1.0;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final activeDest = _destinations[_selectedDestIndex];
@@ -256,42 +226,21 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Interactive Map Canvas ─────────────────────────────────────────
-          GestureDetector(
-            onTapDown: (details) {
-              final box = context.findRenderObject() as RenderBox?;
-              if (box != null) {
-                final local = box.globalToLocal(details.globalPosition);
-                final norm = Offset(
-                  (local.dx / box.size.width).clamp(0.05, 0.95),
-                  (local.dy / box.size.height).clamp(0.05, 0.95),
-                );
-                _onMapTap(norm);
-              }
+          AnimatedBuilder(
+            animation: Listenable.merge([_pulseController, _travelAnimation]),
+            builder: (context, child) {
+              return CustomPaint(
+                painter: _VectorMapPainter(
+                  puckPosition: _currentPuckPos,
+                  targetPosition: _targetPuckPos,
+                  puckHeading: _puckHeading,
+                  radarPulseProgress: _pulseController.value,
+                  destinations: _destinations,
+                  selectedDestIndex: _selectedDestIndex,
+                  isTrafficEnabled: _isTrafficEnabled,
+                ),
+              );
             },
-            child: AnimatedBuilder(
-              animation: Listenable.merge([
-                _pulseController,
-                _flowController,
-                _travelAnimation,
-              ]),
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: _VectorMapPainter(
-                    puckPosition: _currentPuckPos,
-                    targetPosition: _targetPuckPos,
-                    puckHeading: _puckHeading,
-                    radarPulseProgress: _pulseController.value,
-                    routeFlowProgress: _flowController.value,
-                    destinations: _destinations,
-                    selectedDestIndex: _selectedDestIndex,
-                    zoomLevel: _zoomLevel,
-                    isTrafficEnabled: _isTrafficEnabled,
-                    is3DView: _is3DView,
-                  ),
-                );
-              },
-            ),
           ),
 
           // ── Top Bar: Destination Card + Close Button ───────────────────────
@@ -305,7 +254,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
                 Expanded(
                   child: _ActiveDestinationCard(
                     destination: activeDest,
-                    onNavigate: () => _navigateToDestination(_selectedDestIndex),
+                    onNavigate: () =>
+                        _navigateToDestination(_selectedDestIndex),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -323,7 +273,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
               instruction: activeDest.nextManeuver,
               distance: activeDest.maneuverDistance,
               isVoiceMuted: _isVoiceMuted,
-              onToggleVoice: () => setState(() => _isVoiceMuted = !_isVoiceMuted),
+              onToggleVoice: () =>
+                  setState(() => _isVoiceMuted = !_isVoiceMuted),
             ),
           ),
 
@@ -357,14 +308,9 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
             right: 16,
             top: 106,
             child: _MapControlDeck(
-              zoomLevel: _zoomLevel,
               isTrafficEnabled: _isTrafficEnabled,
-              is3DView: _is3DView,
-              onZoomIn: () => setState(() => _zoomLevel = (_zoomLevel + 0.15).clamp(0.7, 1.6)),
-              onZoomOut: () => setState(() => _zoomLevel = (_zoomLevel - 0.15).clamp(0.7, 1.6)),
-              onRecenter: _recenterOnVehicle,
-              onToggleTraffic: () => setState(() => _isTrafficEnabled = !_isTrafficEnabled),
-              onToggle3D: () => setState(() => _is3DView = !_is3DView),
+              onToggleTraffic: () =>
+                  setState(() => _isTrafficEnabled = !_isTrafficEnabled),
             ),
           ),
 
@@ -379,16 +325,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
               distanceRemaining: '${activeDest.distanceKm} km',
               durationRemaining: '${activeDest.durationMinutes} min',
               batteryOnArrival: '${activeDest.batteryArrivalPercent}%',
-              routeType: _routeTypeIndex == 0
-                  ? 'Fastest'
-                  : _routeTypeIndex == 1
-                      ? 'Eco'
-                      : 'Shortest',
-              onToggleRouteType: () {
-                setState(() {
-                  _routeTypeIndex = (_routeTypeIndex + 1) % 3;
-                });
-              },
+              routeType: 'Demo route',
             ),
           ),
         ],
@@ -406,24 +343,18 @@ class _VectorMapPainter extends CustomPainter {
   final Offset targetPosition;
   final double puckHeading;
   final double radarPulseProgress;
-  final double routeFlowProgress;
   final List<NavDestination> destinations;
   final int selectedDestIndex;
-  final double zoomLevel;
   final bool isTrafficEnabled;
-  final bool is3DView;
 
   _VectorMapPainter({
     required this.puckPosition,
     required this.targetPosition,
     required this.puckHeading,
     required this.radarPulseProgress,
-    required this.routeFlowProgress,
     required this.destinations,
     required this.selectedDestIndex,
-    required this.zoomLevel,
     required this.isTrafficEnabled,
-    required this.is3DView,
   });
 
   @override
@@ -468,10 +399,7 @@ class _VectorMapPainter extends CustomPainter {
 
     final riverPaint = Paint()
       ..shader = const LinearGradient(
-        colors: [
-          Color(0xFF0B192E),
-          Color(0xFF0E233E),
-        ],
+        colors: [Color(0xFF0B192E), Color(0xFF0E233E)],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawPath(riverPath, riverPaint);
 
@@ -486,13 +414,48 @@ class _VectorMapPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final cityBlocks = [
-      Rect.fromLTWH(size.width * 0.06, size.height * 0.12, size.width * 0.16, size.height * 0.14),
-      Rect.fromLTWH(size.width * 0.26, size.height * 0.08, size.width * 0.18, size.height * 0.12),
-      Rect.fromLTWH(size.width * 0.52, size.height * 0.10, size.width * 0.22, size.height * 0.16),
-      Rect.fromLTWH(size.width * 0.08, size.height * 0.70, size.width * 0.20, size.height * 0.18),
-      Rect.fromLTWH(size.width * 0.34, size.height * 0.74, size.width * 0.16, size.height * 0.15),
-      Rect.fromLTWH(size.width * 0.64, size.height * 0.68, size.width * 0.26, size.height * 0.20),
-      Rect.fromLTWH(size.width * 0.78, size.height * 0.32, size.width * 0.16, size.height * 0.18),
+      Rect.fromLTWH(
+        size.width * 0.06,
+        size.height * 0.12,
+        size.width * 0.16,
+        size.height * 0.14,
+      ),
+      Rect.fromLTWH(
+        size.width * 0.26,
+        size.height * 0.08,
+        size.width * 0.18,
+        size.height * 0.12,
+      ),
+      Rect.fromLTWH(
+        size.width * 0.52,
+        size.height * 0.10,
+        size.width * 0.22,
+        size.height * 0.16,
+      ),
+      Rect.fromLTWH(
+        size.width * 0.08,
+        size.height * 0.70,
+        size.width * 0.20,
+        size.height * 0.18,
+      ),
+      Rect.fromLTWH(
+        size.width * 0.34,
+        size.height * 0.74,
+        size.width * 0.16,
+        size.height * 0.15,
+      ),
+      Rect.fromLTWH(
+        size.width * 0.64,
+        size.height * 0.68,
+        size.width * 0.26,
+        size.height * 0.20,
+      ),
+      Rect.fromLTWH(
+        size.width * 0.78,
+        size.height * 0.32,
+        size.width * 0.16,
+        size.height * 0.18,
+      ),
     ];
 
     for (final rect in cityBlocks) {
@@ -514,11 +477,31 @@ class _VectorMapPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     // Secondary streets
-    canvas.drawLine(Offset(0, size.height * 0.30), Offset(size.width, size.height * 0.30), streetPaint);
-    canvas.drawLine(Offset(0, size.height * 0.72), Offset(size.width, size.height * 0.72), streetPaint);
-    canvas.drawLine(Offset(size.width * 0.25, 0), Offset(size.width * 0.25, size.height), streetPaint);
-    canvas.drawLine(Offset(size.width * 0.50, 0), Offset(size.width * 0.50, size.height), streetPaint);
-    canvas.drawLine(Offset(size.width * 0.76, 0), Offset(size.width * 0.76, size.height), streetPaint);
+    canvas.drawLine(
+      Offset(0, size.height * 0.30),
+      Offset(size.width, size.height * 0.30),
+      streetPaint,
+    );
+    canvas.drawLine(
+      Offset(0, size.height * 0.72),
+      Offset(size.width, size.height * 0.72),
+      streetPaint,
+    );
+    canvas.drawLine(
+      Offset(size.width * 0.25, 0),
+      Offset(size.width * 0.25, size.height),
+      streetPaint,
+    );
+    canvas.drawLine(
+      Offset(size.width * 0.50, 0),
+      Offset(size.width * 0.50, size.height),
+      streetPaint,
+    );
+    canvas.drawLine(
+      Offset(size.width * 0.76, 0),
+      Offset(size.width * 0.76, size.height),
+      streetPaint,
+    );
 
     // Primary Expressway / Highway Curve
     final highwayPath = Path();
@@ -554,8 +537,14 @@ class _VectorMapPainter extends CustomPainter {
     }
 
     // ── Active Navigation Route (Multi-Layer Neon Trail) ─────────────────────
-    final startPt = Offset(puckPosition.dx * size.width, puckPosition.dy * size.height);
-    final targetPt = Offset(targetPosition.dx * size.width, targetPosition.dy * size.height);
+    final startPt = Offset(
+      puckPosition.dx * size.width,
+      puckPosition.dy * size.height,
+    );
+    final targetPt = Offset(
+      targetPosition.dx * size.width,
+      targetPosition.dy * size.height,
+    );
 
     final midControl = Offset(
       (startPt.dx + targetPt.dx) / 2 + (targetPt.dy - startPt.dy) * 0.2,
@@ -564,7 +553,12 @@ class _VectorMapPainter extends CustomPainter {
 
     final routePath = Path();
     routePath.moveTo(startPt.dx, startPt.dy);
-    routePath.quadraticBezierTo(midControl.dx, midControl.dy, targetPt.dx, targetPt.dy);
+    routePath.quadraticBezierTo(
+      midControl.dx,
+      midControl.dy,
+      targetPt.dx,
+      targetPt.dy,
+    );
 
     // Outer route halo glow
     final glowPaint = Paint()
@@ -593,7 +587,10 @@ class _VectorMapPainter extends CustomPainter {
     // ── Destination Waypoint Markers ─────────────────────────────────────────
     for (int i = 0; i < destinations.length; i++) {
       final dest = destinations[i];
-      final pt = Offset(dest.coordinates.dx * size.width, dest.coordinates.dy * size.height);
+      final pt = Offset(
+        dest.coordinates.dx * size.width,
+        dest.coordinates.dy * size.height,
+      );
       final isSelected = i == selectedDestIndex;
 
       _drawWaypointPin(canvas, pt, isSelected, dest.title);
@@ -603,7 +600,12 @@ class _VectorMapPainter extends CustomPainter {
     _drawVehiclePuck(canvas, startPt, puckHeading, radarPulseProgress);
   }
 
-  void _drawWaypointPin(Canvas canvas, Offset point, bool isSelected, String label) {
+  void _drawWaypointPin(
+    Canvas canvas,
+    Offset point,
+    bool isSelected,
+    String label,
+  ) {
     if (isSelected) {
       // Glow ring around selected destination
       final glowPaint = Paint()
@@ -626,7 +628,10 @@ class _VectorMapPainter extends CustomPainter {
         width: 100,
         height: 22,
       );
-      final tagRRect = RRect.fromRectAndRadius(tagRect, const Radius.circular(6));
+      final tagRRect = RRect.fromRectAndRadius(
+        tagRect,
+        const Radius.circular(6),
+      );
 
       final tagBg = Paint()..color = const Color(0xFF10121C);
       final tagBorder = Paint()
@@ -704,11 +709,8 @@ class _VectorMapPainter extends CustomPainter {
         oldDelegate.targetPosition != targetPosition ||
         oldDelegate.puckHeading != puckHeading ||
         oldDelegate.radarPulseProgress != radarPulseProgress ||
-        oldDelegate.routeFlowProgress != routeFlowProgress ||
         oldDelegate.selectedDestIndex != selectedDestIndex ||
-        oldDelegate.zoomLevel != zoomLevel ||
-        oldDelegate.isTrafficEnabled != isTrafficEnabled ||
-        oldDelegate.is3DView != is3DView;
+        oldDelegate.isTrafficEnabled != isTrafficEnabled;
   }
 }
 
@@ -818,7 +820,10 @@ class _ActiveDestinationCard extends StatelessWidget {
               GestureDetector(
                 onTap: onNavigate,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFF8A00),
                     borderRadius: BorderRadius.circular(8),
@@ -832,7 +837,11 @@ class _ActiveDestinationCard extends StatelessWidget {
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.near_me_rounded, color: Colors.white, size: 16),
+                      Icon(
+                        Icons.near_me_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                       SizedBox(width: 6),
                       Text(
                         'Recalculate',
@@ -934,23 +943,39 @@ class _TurnGuidanceBanner extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: 20),
-              GestureDetector(
+              Semantics(
+                button: true,
+                toggled: isVoiceMuted,
+                label: isVoiceMuted
+                    ? 'Voice guidance muted'
+                    : 'Voice guidance on',
                 onTap: onToggleVoice,
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isVoiceMuted
-                        ? Icons.volume_off_rounded
-                        : Icons.volume_up_rounded,
-                    color: isVoiceMuted
-                        ? Colors.white.withValues(alpha: 0.3)
-                        : Colors.white.withValues(alpha: 0.8),
-                    size: 16,
+                excludeSemantics: true,
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Center(
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        onTap: onToggleVoice,
+                        customBorder: const CircleBorder(),
+                        child: SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: Icon(
+                            isVoiceMuted
+                                ? Icons.volume_off_rounded
+                                : Icons.volume_up_rounded,
+                            color: isVoiceMuted
+                                ? Colors.white.withValues(alpha: 0.3)
+                                : Colors.white.withValues(alpha: 0.8),
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1044,24 +1069,12 @@ class _DestinationChip extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _MapControlDeck extends StatelessWidget {
-  final double zoomLevel;
   final bool isTrafficEnabled;
-  final bool is3DView;
-  final VoidCallback onZoomIn;
-  final VoidCallback onZoomOut;
-  final VoidCallback onRecenter;
   final VoidCallback onToggleTraffic;
-  final VoidCallback onToggle3D;
 
   const _MapControlDeck({
-    required this.zoomLevel,
     required this.isTrafficEnabled,
-    required this.is3DView,
-    required this.onZoomIn,
-    required this.onZoomOut,
-    required this.onRecenter,
     required this.onToggleTraffic,
-    required this.onToggle3D,
   });
 
   @override
@@ -1083,34 +1096,30 @@ class _MapControlDeck extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _ControlIconButton(
+              const _ControlIconButton(
                 icon: Icons.my_location_rounded,
-                tooltip: 'Recenter',
-                onTap: onRecenter,
+                tooltip: 'Recenter — unavailable in prototype',
               ),
-              _DividerLine(),
-              _ControlIconButton(
+              const _DividerLine(),
+              const _ControlIconButton(
                 icon: Icons.add_rounded,
-                tooltip: 'Zoom in',
-                onTap: onZoomIn,
+                tooltip: 'Zoom in — unavailable in prototype',
               ),
-              _ControlIconButton(
+              const _ControlIconButton(
                 icon: Icons.remove_rounded,
-                tooltip: 'Zoom out',
-                onTap: onZoomOut,
+                tooltip: 'Zoom out — unavailable in prototype',
               ),
-              _DividerLine(),
+              const _DividerLine(),
               _ControlIconButton(
                 icon: Icons.traffic_rounded,
                 active: isTrafficEnabled,
+                isToggle: true,
                 tooltip: 'Traffic',
                 onTap: onToggleTraffic,
               ),
-              _ControlIconButton(
+              const _ControlIconButton(
                 icon: Icons.view_in_ar_rounded,
-                active: is3DView,
-                tooltip: '3D View',
-                onTap: onToggle3D,
+                tooltip: '3D view — unavailable in prototype',
               ),
             ],
           ),
@@ -1124,33 +1133,57 @@ class _ControlIconButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final bool active;
-  final VoidCallback onTap;
+  final bool isToggle;
+  final VoidCallback? onTap;
 
   const _ControlIconButton({
     required this.icon,
     required this.tooltip,
     this.active = false,
-    required this.onTap,
+    this.isToggle = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final enabled = onTap != null;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      toggled: isToggle ? active : null,
+      label: tooltip,
       onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        margin: const EdgeInsets.symmetric(vertical: 2),
-        decoration: BoxDecoration(
-          color: active
-              ? const Color(0xFFFF8A00).withValues(alpha: 0.2)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          color: active ? const Color(0xFFFF8A00) : Colors.white70,
-          size: 18,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: tooltip,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Center(
+            child: Material(
+              color: active
+                  ? const Color(0xFFFF8A00).withValues(alpha: 0.2)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Icon(
+                    icon,
+                    color: active
+                        ? const Color(0xFFFF8A00)
+                        : enabled
+                        ? Colors.white70
+                        : Colors.white24,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -1158,6 +1191,8 @@ class _ControlIconButton extends StatelessWidget {
 }
 
 class _DividerLine extends StatelessWidget {
+  const _DividerLine();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1180,7 +1215,6 @@ class _TripTelemetryBar extends StatelessWidget {
   final String durationRemaining;
   final String batteryOnArrival;
   final String routeType;
-  final VoidCallback onToggleRouteType;
 
   const _TripTelemetryBar({
     required this.speedKmh,
@@ -1189,7 +1223,6 @@ class _TripTelemetryBar extends StatelessWidget {
     required this.durationRemaining,
     required this.batteryOnArrival,
     required this.routeType,
-    required this.onToggleRouteType,
   });
 
   @override
@@ -1242,7 +1275,10 @@ class _TripTelemetryBar extends StatelessWidget {
                     height: 26,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFFF5252), width: 2),
+                      border: Border.all(
+                        color: const Color(0xFFFF5252),
+                        width: 2,
+                      ),
                       color: Colors.white,
                     ),
                     child: Center(
@@ -1290,32 +1326,33 @@ class _TripTelemetryBar extends StatelessWidget {
               _TelemetryDivider(),
 
               // Route mode toggle
-              GestureDetector(
-                onTap: onToggleRouteType,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.alt_route_rounded, color: Color(0xFFFF8A00), size: 16),
-                    const SizedBox(height: 4),
-                    Text(
-                      routeType,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.alt_route_rounded,
+                    color: Color(0xFFFF8A00),
+                    size: 16,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    routeType,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Tap to change',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w400,
-                      ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Simulated',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.55),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w400,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),

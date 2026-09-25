@@ -1,102 +1,179 @@
 # SkyUI Module Catalog
 
-**Version:** `v0.3.0-alpha`  
-**System:** Veltron OS Automotive Cockpit
+Package version: `0.3.0-alpha+1`
 
----
+Status: current UI prototype inventory
 
-## 1. System Overview
+## System overview
 
-SkyUI is organized into decoupled, highly cohesive modules. Each module is responsible for its own domain, state, and presentation layers without tight coupling to adjacent screens.
+SkyUI is a dashboard shell with reusable cards and three large stateful prototype screens. The modules are not yet decoupled domain applications and do not have a shared session/service layer.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                          Header                             │
-├───────────┬─────────────────────────────────────────────────┤
-│           │                   Home Screen                   │
-│           │  ┌──────────────┬──────────────┬─────────────┐  │
-│           │  │   Vehicle    │    Media     │ Navigation  │  │
-│  Sidebar  │  │     Card     ├──────────────┤    Card     │  │
-│ (Sliding) │  │              │    Phone     │  (Expand)   │  │
-│           │  └──────────────┴──────────────┴─────────────┘  │
-│           ├─────────────────────────────────────────────────┤
-│           │                 Climate Bar                     │
-│           ├─────────────────────────────────────────────────┤
-│           │  Expanded Apps: Media (3-Way) | Phone | Nav     │
-└───────────┴─────────────────────────────────────────────────┘
+```text
+Header
+└── HomeScreen
+    ├── Sidebar
+    ├── VehicleCard
+    ├── MediaCard
+    ├── PhoneCard
+    ├── NavigationCard
+    ├── ClimateBar
+    └── One coordinated expanded module
+        ├── NavigationScreenContent
+        ├── MediaScreenContent
+        └── PhoneScreen
 ```
 
----
+All displayed vehicle, device, route, speed, trip, climate, and diagnostic values are local fixtures unless explicitly marked otherwise.
 
-## 2. Implemented Modules
+## 1. Header
 
-### 2.1 Sidebar (`lib/widgets/sidebar/`)
-- **Purpose:** Primary vertical navigation rail for driver quick-access.
-- **Components:**
-  - `sidebar.dart`: Main container anchored to the left of the cockpit.
-  - `sidebar_logo.dart`: Veltron brand insignia and home anchor.
-  - `sidebar_item.dart`: Navigational touch targets with active indicator bars and icon states.
-  - **Dynamic Sliding Indicator:** Integrated continuous animated cursor (`Curves.easeInOutCubic`) that glides vertically between buttons on tab selection.
+Path: `lib/widgets/header/`
 
-### 2.2 System Header (`lib/widgets/header/`)
-- **Purpose:** Always-on status and telemetry strip.
-- **Components:**
-  - `header.dart`: Top system bar with clock, exterior temperature, and battery levels.
-  - `status_icon.dart`: Cellular (LTE/5G), Wi-Fi, and Bluetooth connectivity icons.
+Current behavior:
 
-### 2.3 Vehicle Card (`lib/widgets/cards/vehicle_card.dart`)
-- **Purpose:** Central vehicle telemetry and quick drive modes.
-- **Features:**
-  - Ambient greeting and driving readiness indicator.
-  - 3D vehicle perspective render.
-  - Battery capacity gauge (76%) with color-coded safety margins.
-  - Calculated driving range in kilometers (385 km).
-  - Security status (Door lock / unlock indicator).
-  - Quick action buttons: Search, Fast Charging, Climate Shortcuts, Driver Profile.
+- Veltron brand text.
+- Fixed demo time `10:42`.
+- Simulated Bluetooth, cellular, and Wi-Fi semantics.
+- Debug-only parked/driving toggle linked to `DriveModeService`.
+- No live clock, network service, vehicle signal, or telemetry source.
 
-### 2.4 Media Hub (`lib/widgets/cards/media_card.dart` & `lib/screens/media/`)
-- **Purpose:** In-cabin audio and streaming entertainment control.
-- **Features:**
-  - **Compact State:** Stylized vinyl disc illustration, current track metadata, transport controls, and dual-timestamp progress bar.
-  - **Expanded 3-Section Studio:**
-    - **Section 1 (Library & Queue):** Source pills (*Veltron Sounds*, *Spotify*, *Radio DAB+*, *Bluetooth*), search filter, interactive track queue with animated mini equalizer bars, and system audio telemetry.
-    - **Section 2 (Now Playing Hero Stage):** Continuous spinning vinyl record animation, 24-band audio spectrum waveform visualizer, sound stage presets (*Meridian 3D*, *Driver Focus*, *All Seats*), timeline scrubber, transport controls, and volume slider.
-    - **Section 3 (Anchored Navigation):** Preserves the dashboard Navigation Card in its exact right-hand position with zero occlusion, preserving driver road awareness.
+## 2. Sidebar
 
-### 2.5 Telephony & Communications (`lib/widgets/cards/phone_card.dart` & `lib/screens/phone/`)
-- **Purpose:** Hands-free mobile device pairing and communication hub.
-- **Features:**
-  - **Compact State:** Paired smartphone telemetry, 4-bar cellular connection meter, battery gauge, and call/message triggers.
-  - **Expanded Cockpit:**
-    - **Left Column:** Searchable contact directory, category tabs (*All*, *Favorites*, *Recents*, *Missed*), alphabet letter avatars, and direct dial buttons.
-    - **Right Column:** Stylized automotive smartphone silhouette frame, paired Bluetooth status, 12-key DTMF keypad dialer with live number display, call action trigger, and quick toggles (*Voicemail*, *Mute*, *Speaker*).
+Path: `lib/widgets/sidebar/`
 
-### 2.6 Interactive Navigation Engine (`lib/widgets/cards/navigation_card.dart` & `lib/screens/navigation/`)
-- **Purpose:** Turn-by-turn guidance, destination search, and live map view.
-- **Features:**
-  - **Compact State:** Embedded canvas map with glowing cyan route preview, next turn preview, and trip ETA.
-  - **Animated Expansion:** Seamless transition scaling the navigation card across the full content deck.
-  - **Full-Screen HUD & Tools:**
-    - Regulatory speed limit circle (80 km/h) paired with live vehicle speed (65 km/h).
-    - Turn-by-turn instruction banner ("Turn right onto Veltron Way in 300m") and destination arrival telemetry.
-    - Category search chips (*Supercharger*, *Coffee*, *Parking*, *Saved*).
-    - Floating viewport controls: Recenter map, map layers, 2D/3D tilt, zoom in/out.
-    - Alternative route waypoints (Fastest Route vs. Eco Route).
+Current destinations:
 
-### 2.7 Climate Control Panel (`lib/widgets/climate/climate_bar.dart`)
-- **Purpose:** Cabin environmental control and thermal management.
-- **Features:**
-  - Aerodynamic custom-clipped border with signature red racing accent line.
-  - Independent dual-zone temperature control for driver and passenger (0.5° increments).
-  - 3-stage seat heater levels with active LED indicator dots.
-  - 4-speed fan control with automated temperature stabilization mode.
-  - Center trip diagnostic summary: trip energy efficiency, tire status, and trip odometer.
+- Home;
+- Navigation;
+- Media;
+- Phone;
+- Vehicle — disabled because the screen does not exist;
+- Settings — disabled because the screen does not exist.
 
----
+The selected item has a local active background, border, icon color, and indicator bar. There is no verified global sliding cursor between items.
 
-## 3. Upcoming Modules (Phase 2 & Phase 3)
+The current 90 dp rail and 56 dp item containers are implementation details at the 1680×720 baseline, not physical automotive measurements.
 
-- **CAN Bus / OBD-II Telemetry Service:** Real-time automotive sensor bridge.
-- **AI Voice Assistant:** Voice-activated natural language interface.
-- **Driver Profiles & Biometrics:** Cloud sync of seat position, mirrors, and audio preferences.
-- **OTA Update Client:** Seamless firmware delta streaming over LTE/Wi-Fi.
+## 3. Vehicle card
+
+Path: `lib/widgets/cards/vehicle_card.dart`
+
+Current behavior:
+
+- Static vehicle render.
+- `DEMO DATA` label.
+- Simulated greeting, weather, battery, range, and door state.
+- Disabled Search, Charging, Climate, and Driver Profile actions with unavailable semantics.
+- No CAN/OBD gateway, signal timestamp, freshness, validity, fault, or command authorization.
+
+The values are not a safety assessment or a connected vehicle state.
+
+## 4. Media
+
+Paths:
+
+- `lib/widgets/cards/media_card.dart`
+- `lib/screens/media/media_screen_content.dart`
+
+Compact card:
+
+- opens the expanded Media module;
+- displays fixture track metadata and transport artwork;
+- does not expose independent transport actions;
+- progress is local and not synchronized with expanded playback.
+
+Expanded Media:
+
+- source chips update only a local source index;
+- queue selection and playback controls update widget state;
+- playback position advances only while the local timer is active;
+- source names, FLAC/Dolby labels, speaker count, and equalizer visuals are simulated;
+- no stream, decoder, audio HAL, source telemetry, or speaker-health service is connected;
+- Media state is reset when the overlay is disposed;
+- Media browsing is hidden while the debug `driving` state is active.
+
+The Navigation card remains geometrically visible in the current 1680×720 Media layout. Driver-awareness and distraction benefits have not been optically or behaviorally validated.
+
+## 5. Phone
+
+Paths:
+
+- `lib/widgets/cards/phone_card.dart`
+- `lib/screens/phone/phone_screen.dart`
+
+Current behavior:
+
+- compact card shows a synthetic prototype handset and no active call;
+- Dialer and synthetic Recent Calls tabs render different content;
+- selecting a recent fills the number and returns to the Dialer;
+- an explicit Call action starts a local demo-call state machine;
+- numeric keypad is number entry, not DTMF;
+- Mute is local state and enabled only during the active demo call;
+- active call blocks sidebar and Back until End is used;
+- Contacts, Voicemail, telephony, carrier state, contacts provider, Bluetooth integration, DTMF, Speaker, and in-call keypad are not implemented;
+- call state is not persistent across app lifecycle or a future route architecture.
+
+Fixtures use synthetic names and reserved demo numbers.
+
+## 6. Navigation
+
+Paths:
+
+- `lib/widgets/cards/navigation_card.dart`
+- `lib/screens/navigation/navigation_screen_content.dart`
+
+Current behavior:
+
+- custom-painted map with fixture destinations;
+- destination selection animates the puck toward the selected fixture;
+- maneuver, speed, limit, ETA, distance, and arrival values are fixtures;
+- Traffic toggles a painted visual layer, not live traffic;
+- Recalculate replays the selected fixture destination, not a routing calculation;
+- Zoom, Recenter, and 3D controls are disabled because no map-camera model exists;
+- free map tap was removed because it changed only a hidden target;
+- no GPS, road graph, map provider, route engine, live traffic, or vehicle signal source exists.
+
+The route/status area explicitly labels the route as simulated.
+
+## 7. Climate
+
+Path: `lib/widgets/climate/climate_bar.dart`
+
+Current behavior:
+
+- local temperature, fan, and seat-heat visual state;
+- no HVAC command path;
+- no validated min/max range or quantization contract;
+- no automatic regulation, stale sensor handling, CAN fault, or vehicle safety behavior;
+- center trip/efficiency/tire/trip values are fixtures, not diagnostics.
+
+The current `AUTO` presentation is not connected to a climate-control algorithm.
+
+## Current state boundaries
+
+| Concern | Owner | Limitation |
+| :--- | :--- | :--- |
+| Dashboard expansion | `HomeScreen` | Local overlay state |
+| Media playback | `MediaScreenContent` | Lost on overlay teardown |
+| Demo call | `PhoneScreen` | Not a durable call session |
+| Navigation selection | `NavigationScreenContent` | Local fixture state |
+| Climate | `ClimateBar` and child state | No service boundary |
+| Drive mode | `DriveModeService` | Debug/demo notifier only |
+
+## Planned capabilities
+
+These are not current modules or integrations:
+
+- central driver interaction policy;
+- persistent call, media, navigation, and climate sessions;
+- CAN/OBD/LIN/AVB and vehicle gateway;
+- GPS and map/traffic provider;
+- Bluetooth, telephony, contacts, DTMF, and carrier services;
+- audio HAL and stream/decoder services;
+- HVAC, charging, and diagnostics;
+- AI/voice assistant;
+- profiles and cloud sync;
+- OTA/update security;
+- backend, telemetry, crash reporting, and analytics.
+
+See `docs/roadmap.md` and `docs/automotive_hmi_audit.md` for gates and blockers.

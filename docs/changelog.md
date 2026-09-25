@@ -1,85 +1,87 @@
 # Changelog
 
-All notable changes to the **SkyUI** (Veltron OS) project will be documented in this file.
+All notable changes to SkyUI are documented here. The format follows Keep a Changelog, and package versioning follows Semantic Versioning where applicable.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## Unreleased — HMI audit hardening
 
----
+Status: prototype-only; no signed or approved vehicle release artifact.
 
-## [v0.3.0-alpha] - 2026-09-07
+### Added
 
-### 🚀 Added
-- **Dedicated Music & Media Studio (`lib/screens/media/media_screen_content.dart`):**
-  - **Ergonomic 3-Section Ultrawide Architecture:** Screen splits into Section 1 (Library & Queue), Section 2 (Now Playing Hero Stage), and Section 3 (**Anchored Navigation Card** preserved in its exact dashboard position for driver safety).
-  - **Multi-Source Audio Selector:** Seamless toggling between *Veltron Sounds*, *Spotify*, *Radio DAB+*, and *Bluetooth*.
-  - **Live Dynamic Tracklist & Queue:** Interactive song list with real-time animated equalizer spectrum bars on the active track, durations, and tap-to-play.
-  - **Rotating Vinyl Record Visualizer:** 360° rotating disc with realistic light grooves, album art label, and Veltron center badge, synchronized to play/pause state.
-  - **24-Band Audio Spectrum Waveform:** Dynamic multi-frequency audio waveform bars responding during playback.
-  - **In-Cabin Sound Stage Presets:** Instant acoustic profiling for *Meridian 3D*, *Driver Focus*, and *All Seats*.
-  - **High-Res Audio Telemetry:** Real-time format badge (*FLAC 96kHz / 24-bit*) and audio system diagnostics.
-  - **Full Audio Transport Controls:** Scrubber slider with elapsed/total timestamps, Shuffle, Previous, glowing Play/Pause button, Next, Repeat, and Volume slider with Mute toggle.
-- **Dedicated Phone & Telephony Cockpit (`lib/screens/phone/phone_screen_content.dart`):**
-  - **Dual-Pane Cockpit Layout:** Fluid 350ms cubic expansion from `PhoneCard` into a dedicated communications station.
-  - **Contact Directory & Filter Matrix:** Search input, category pills (*All*, *Favorites*, *Recents*, *Missed*), alphabet letter avatars, and direct dial buttons.
-  - **Automotive Smartphone Silhouette Frame:** Realistic smartphone bezel displaying paired device connectivity ("Connected via Bluetooth 5.3", 5G signal, 89% battery).
-  - **DTMF Keypad Dialer:** 12-key automotive touch dialer (1-9, 0, *, # with sub-letters), live number buffer display with backspace, glowing green Call button, and quick toggles (*Voicemail*, *Mute*, *Speaker*).
-- **Advanced Navigation & GPS HUD Upgrade (`lib/screens/navigation/navigation_screen_content.dart`):**
-  - **Speed Limit Sign HUD:** Prominent regulatory speed sign (80 km/h) beside real-time vehicle speed telemetry (65 km/h).
-  - **Destination Category Chips:** Quick search shortcuts (*Supercharger*, *Coffee*, *Parking*, *Saved*).
-  - **Floating Viewport Controls:** Recenter map button, layer switcher (Traffic/Satellite/3D), 2D/3D tilt toggle, and Zoom (+/-) buttons.
-  - **Multi-Route Waypoint Options:** Toggle between Fastest Route (14.2 km · 24 min) and Eco Route (16.1 km · 28 min).
-- **Smooth Animated Sidebar Selector Indicator (`lib/widgets/sidebar/sidebar.dart`, `sidebar_item.dart`):**
-  - Upgraded vertical navigation rail with an animated sliding cursor (`Curves.easeInOutCubic`) that glides fluidly to the selected icon.
-- **Tri-Directional Expansion Coordinator (`lib/screens/home/home_screen.dart`):**
-  - Unified multi-overlay system managing independent transitions for Navigation, Phone, and Media.
-  - Specialized partial-width expansion for Media that anchors the Navigation Card without visual obstruction or fading.
+- Automotive HMI audit covering UX, architecture, performance, security, release blockers, and unverified target-platform checks.
+- Unified expanded-module transition coordinator with latest-request-wins behavior.
+- System Back handling for expanded prototype modules.
+- Active demo-call navigation guard, including a race-safe Phone reopen during module exit.
+- Synthetic Phone fixtures and explicit demo-call confirmation.
+- Semantics labels, enabled/disabled states, unavailable reasons, and 48 dp hit areas for key controls.
+- Disabled Vehicle/Settings destinations, Vehicle quick actions, and unsupported map camera controls.
+- CSP-compatible web bootstrap with local CanvasKit and a hash-based launcher build stamp.
+- Regression tests for rapid navigation, system Back, call locking, call-exit races, unavailable destinations, and media timer behavior.
 
----
+### Changed
 
-## [v0.2.0-alpha] - 2026-09-07
+- Header connectivity and clock values are explicitly simulated.
+- Vehicle card exposes a `DEMO DATA` label.
+- Phone tabs now show only implemented Dialer and Recent Calls content.
+- Recent-call selection fills a number and requires a separate Call action.
+- Navigation no longer accepts free map taps that changed only a hidden fixture target.
+- Navigation route/status UI is marked simulated; unsupported camera controls are disabled.
+- Media playback timer stops while paused and waveform rendering uses a CustomPainter.
+- `AppTheme` is connected to the application and base dark color tokens are aligned.
+- Android backup is disabled for the prototype.
+- Local launcher binds only to loopback, validates Host headers, adds security headers, and always runs the documented CSP-compatible build command.
 
-### 🚀 Added
-- **21:9 Ultrawide Layout Engine:** Configured dynamic proportions (7:4:5 ratio) for ultra-wide panoramic automotive displays.
-- **Interactive Navigation Overlay:** Smooth cubic ease transition (350ms) expanding compact navigation into a full-screen view.
-- **Turn-by-Turn Guidance Banner:** Visual maneuver arrows, distance-to-turn notifications, and destination ETA card.
-- **Full-Screen Map Canvas:** Custom vector painter featuring stylized city blocks, grid matrix, and glowing orange route trail.
-- **Aerodynamic Dual-Zone Climate Panel:**
-  - Custom canvas clipped chassis with slanted aerodynamic edge and red racing accent line.
-  - Independent driver and passenger temperature adjustment in 0.5° increments.
-  - 3-stage heated seat controller with active LED indicators.
-  - 4-speed fan speed selector with automatic regulation mode.
-  - Center trip efficiency telemetry (efficiency percentage, tire pressure, trip miles).
-- **Vehicle Telemetry Card:**
-  - Real-time battery status bar (76%).
-  - Range estimation display (385 km).
-  - Power lock status indicator.
-  - Direct vehicle quick actions (Search, Charging, Climate, Driver Profile).
-- **Connected Media Player:**
-  - Vinyl disc visualizer with subtle radial lighting and borders.
-  - Playback transport controls (Play/Pause, Skip Next/Previous).
-  - Time-remaining progress scrubber.
-- **Telephony & Connectivity Card:**
-  - Paired smartphone indicator ("Marko's iPhone").
-  - Dynamic 4-bar cellular signal strength meter and phone battery level gauge.
-  - Quick action dials for phone and messaging.
-- **Standalone 21:9 App Launcher (`run_app.bat` / `run_app.py`):**
-  - Instant local server with automated borderless Chrome/Edge window launch (1680x720).
-  - Zero browser bars or tabs for true embedded cockpit simulation.
-- **Official Alpha Terms of Service (`docs/terms_of_service.md`):** Complete automotive and experimental software disclaimers.
+### Verification
 
-### 🔄 Changed
-- Refactored `HomeScreen` to coordinate overlay state and simultaneous fade-out of adjacent dashboard cards.
-- Polished color palette tokens according to the Veltron Automotive Dark Design System.
-- Updated `README.md` with current milestones, feature breakdown, and release badges.
+- `flutter analyze` passes.
+- Nine Flutter tests pass.
+- `python -m py_compile run_app.py` passes.
+- CSP-compatible web release build passes.
+- Loopback Host validation and security-header smoke test pass.
+- Headless Chrome renders the 1680×720 dashboard under the configured CSP.
 
----
+### Open blockers
 
-## [v0.1.0-alpha] - 2026-09-01
+- Placeholder application identity and Android debug signing.
+- No approved driver interaction policy for connected-vehicle use.
+- No durable media, call, navigation, or climate session services.
+- No signal provenance, freshness, validity, or fault contract.
+- No target-display, physical touch, accessibility, performance, lifecycle, or thermal validation.
+- No backend, CAN/HAL, OTA, TARA/HARA, or production compliance integration.
+- Web fallback fonts may still use `fonts.gstatic.com`; fully offline operation is not claimed.
 
-### 🚀 Added
-- Initial project architecture and modular Flutter directory structure.
-- Veltron Dark theme foundation (`colors.dart`, `spacing.dart`, `radius.dart`, `text_styles.dart`).
-- Top system status header bar with clock, weather, and connection icons.
-- Persistent left vertical sidebar navigation rail with Veltron brand mark.
-- Desktop preview capability.
+## v0.3.0-alpha — 2026-09-07
+
+Historical alpha UI milestone. This section describes the prototype presentation direction, not current integrations or release readiness.
+
+### Added
+
+- Expanded Navigation, Media, and Phone cockpit presentation surfaces.
+- Custom-painted map and local destination animation.
+- Local media queue, playback, volume, and visualizer state.
+- Local numeric phone keypad, synthetic recents, and simulated call presentation.
+- Dual-zone climate presentation and simulated trip summary.
+- Fixed 1680×720 dashboard baseline and local browser launcher.
+
+### Limitations recorded by the current audit
+
+- Media and Phone state is widget-local and not a persistent service.
+- Phone has no telephony, DTMF, contacts provider, carrier, or Bluetooth integration.
+- Navigation has no GPS, map provider, routing engine, or live traffic.
+- Climate has no HVAC integration or automatic regulation.
+- Vehicle, route, speed, climate, connectivity, and diagnostic values are fixtures.
+- The alpha artifact is not production-signed or vehicle-approved.
+
+## v0.2.0-alpha — 2026-09-07
+
+Historical UI milestone.
+
+- Added 21:9 layout exploration and overlay transitions.
+- Added custom map, climate, vehicle-card, media-card, and phone-card presentation prototypes.
+- Added a local Python web launcher.
+- Added initial alpha prototype notice; it was not a complete legal or release agreement.
+
+## v0.1.0-alpha — 2026-09-01
+
+- Initial Flutter project scaffolding and dark theme foundation.
+- Initial dashboard shell, header, sidebar, and desktop preview capability.

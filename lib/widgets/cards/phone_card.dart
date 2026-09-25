@@ -13,99 +13,105 @@ class PhoneCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF13131A),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0x22FFFFFF),
-            width: 1,
-          ),
+          border: Border.all(color: const Color(0x22FFFFFF), width: 1),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'PHONE',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'PHONE',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.5),
-                    borderRadius: BorderRadius.circular(6),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          width: 10,
+                          height: 2,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.4),
+                              width: 1,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(top: 4),
-                        width: 10,
-                        height: 2,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(1),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Prototype handset',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 4),
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1),
-                          shape: BoxShape.circle,
+                        const SizedBox(height: 4),
+                        Text(
+                          'Demo device · no active call',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
+                  const _IndicatorRow(),
+                ],
+              ),
+              const Spacer(),
+              const Center(
+                child: Text(
+                  'NO ACTIVE CALL',
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Marko's iPhone",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Connected',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const _IndicatorRow(),
-              ],
-            ),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _CircleButton(icon: Icons.phone),
-                const SizedBox(width: 24),
-                _CircleButton(icon: Icons.chat_bubble_outline),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -162,7 +168,9 @@ class _IndicatorRow extends StatelessWidget {
           height: 4,
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.5),
-            borderRadius: const BorderRadius.horizontal(right: Radius.circular(1)),
+            borderRadius: const BorderRadius.horizontal(
+              right: Radius.circular(1),
+            ),
           ),
         ),
       ],
@@ -186,31 +194,6 @@ class _SignalBar extends StatelessWidget {
             ? Colors.white.withValues(alpha: 0.8)
             : Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(1),
-      ),
-    );
-  }
-}
-
-class _CircleButton extends StatelessWidget {
-  final IconData icon;
-
-  const _CircleButton({required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: 0.05),
-      ),
-      child: Center(
-        child: Icon(
-          icon,
-          color: Colors.white.withValues(alpha: 0.8),
-          size: 20,
-        ),
       ),
     );
   }

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import '../../services/drive_mode_service.dart';
+
 class MediaTrack {
   final String title;
   final String artist;
@@ -116,6 +118,8 @@ class _MediaScreenContentState extends State<MediaScreenContent>
   void initState() {
     super.initState();
 
+    DriveModeService.instance.state.addListener(_onDriveModeChanged);
+
     _rotationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 14),
@@ -126,34 +130,46 @@ class _MediaScreenContentState extends State<MediaScreenContent>
       duration: const Duration(milliseconds: 1200),
     );
 
-    if (_isPlaying) {
-      _rotationController.repeat();
-      _waveController.repeat();
-    }
-
-    _startPlaybackTimer();
+    _syncPlaybackActivity();
   }
 
   @override
   void dispose() {
+    DriveModeService.instance.state.removeListener(_onDriveModeChanged);
     _playbackTimer?.cancel();
     _rotationController.dispose();
     _waveController.dispose();
     super.dispose();
   }
 
+  void _onDriveModeChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  void _syncPlaybackActivity() {
+    if (_isPlaying) {
+      _rotationController.repeat();
+      _waveController.repeat();
+      _startPlaybackTimer();
+    } else {
+      _playbackTimer?.cancel();
+      _rotationController.stop();
+      _waveController.stop();
+    }
+  }
+
   void _startPlaybackTimer() {
     _playbackTimer?.cancel();
     _playbackTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_isPlaying && mounted) {
+      if (!_isPlaying || !mounted) return;
+      final maxDuration = _queue[_currentTrackIndex].durationSeconds.toDouble();
+      if (_playbackPosition < maxDuration) {
         setState(() {
-          final maxDuration = _queue[_currentTrackIndex].durationSeconds.toDouble();
-          if (_playbackPosition < maxDuration) {
-            _playbackPosition += 1.0;
-          } else {
-            _playNext();
-          }
+          _playbackPosition += 1.0;
         });
+      } else {
+        _playNext();
       }
     });
   }
@@ -161,14 +177,8 @@ class _MediaScreenContentState extends State<MediaScreenContent>
   void _togglePlayPause() {
     setState(() {
       _isPlaying = !_isPlaying;
-      if (_isPlaying) {
-        _rotationController.repeat();
-        _waveController.repeat();
-      } else {
-        _rotationController.stop();
-        _waveController.stop();
-      }
     });
+    _syncPlaybackActivity();
   }
 
   void _playNext() {
@@ -190,14 +200,19 @@ class _MediaScreenContentState extends State<MediaScreenContent>
     });
   }
 
+  void _selectSource(int index) {
+    if (DriveModeService.instance.isDriving) return;
+    setState(() => _selectedSourceIndex = index);
+  }
+
   void _selectTrack(int index) {
+    if (DriveModeService.instance.isDriving) return;
     setState(() {
       _currentTrackIndex = index;
       _playbackPosition = 0.0;
       _isPlaying = true;
-      _rotationController.repeat();
-      _waveController.repeat();
     });
+    _syncPlaybackActivity();
   }
 
   String _formatTime(double seconds) {
@@ -210,27 +225,26 @@ class _MediaScreenContentState extends State<MediaScreenContent>
   @override
   Widget build(BuildContext context) {
     final currentTrack = _queue[_currentTrackIndex];
+    final isDriving = DriveModeService.instance.isDriving;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Left Card: Sources & Queue (Section 1) ───────────────────────────
-        Expanded(
-          flex: 10,
-          child: _LibraryQueueCard(
-            sources: _sources,
-            selectedSourceIndex: _selectedSourceIndex,
-            onSelectSource: (index) => setState(() => _selectedSourceIndex = index),
-            queue: _queue,
-            currentTrackIndex: _currentTrackIndex,
-            isPlaying: _isPlaying,
-            onSelectTrack: _selectTrack,
+        if (!isDriving) ...[
+          Expanded(
+            flex: 10,
+            child: _LibraryQueueCard(
+              sources: _sources,
+              selectedSourceIndex: _selectedSourceIndex,
+              onSelectSource: _selectSource,
+              queue: _queue,
+              currentTrackIndex: _currentTrackIndex,
+              isPlaying: _isPlaying,
+              onSelectTrack: _selectTrack,
+            ),
           ),
-        ),
-
-        const SizedBox(width: 20),
-
-        // ── Right Card: Now Playing Stage (Section 2) ────────────────────────
+          const SizedBox(width: 20),
+        ],
         Expanded(
           flex: 12,
           child: _NowPlayingHeroCard(
@@ -249,9 +263,11 @@ class _MediaScreenContentState extends State<MediaScreenContent>
             onNext: _playNext,
             onPrevious: _playPrevious,
             onToggleShuffle: () => setState(() => _isShuffle = !_isShuffle),
-            onToggleRepeat: () => setState(() => _repeatMode = (_repeatMode + 1) % 3),
+            onToggleRepeat: () =>
+                setState(() => _repeatMode = (_repeatMode + 1) % 3),
             onSeek: (val) => setState(() => _playbackPosition = val),
-            onSelectSoundStage: (index) => setState(() => _soundStageIndex = index),
+            onSelectSoundStage: (index) =>
+                setState(() => _soundStageIndex = index),
             onVolumeChange: (val) => setState(() {
               _volumeLevel = val;
               _isMuted = val == 0;
@@ -294,10 +310,7 @@ class _LibraryQueueCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF13131A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0x22FFFFFF),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0x22FFFFFF), width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Column(
@@ -324,27 +337,31 @@ class _LibraryQueueCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Media & Audio',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Media & Audio',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Meridian Surround 3D · 14 Speakers',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.45),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400,
+                    const SizedBox(height: 2),
+                    Text(
+                      'Meridian Surround 3D · 14 Speakers',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -353,37 +370,51 @@ class _LibraryQueueCard extends StatelessWidget {
 
           // ── Source Selection Chips ─────────────────────────────────────────
           SizedBox(
-            height: 36,
+            height: 48,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: sources.length,
               separatorBuilder: (context, index) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final isSelected = selectedSourceIndex == index;
-                return GestureDetector(
+                return Semantics(
+                  button: true,
+                  selected: isSelected,
+                  label: sources[index],
                   onTap: () => onSelectSource(index),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFF0D253D)
-                          : Colors.white.withValues(alpha: 0.03),
+                  excludeSemantics: true,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => onSelectSource(index),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isSelected
-                            ? const Color(0xFF00A3FF).withValues(alpha: 0.4)
-                            : Colors.white.withValues(alpha: 0.06),
-                        width: 1,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      sources[index],
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.white60,
-                        fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        constraints: const BoxConstraints(minHeight: 48),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF0D253D)
+                              : Colors.white.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFF00A3FF).withValues(alpha: 0.4)
+                                : Colors.white.withValues(alpha: 0.06),
+                            width: 1,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          sources[index],
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white60,
+                            fontSize: 12,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -464,7 +495,9 @@ class _LibraryQueueCard extends StatelessWidget {
                                     style: TextStyle(
                                       color: isCurrent
                                           ? const Color(0xFF00A3FF)
-                                          : Colors.white.withValues(alpha: 0.35),
+                                          : Colors.white.withValues(
+                                              alpha: 0.35,
+                                            ),
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -481,7 +514,9 @@ class _LibraryQueueCard extends StatelessWidget {
                                 Text(
                                   track.title,
                                   style: TextStyle(
-                                    color: isCurrent ? Colors.white : Colors.white70,
+                                    color: isCurrent
+                                        ? Colors.white
+                                        : Colors.white70,
                                     fontSize: 13,
                                     fontWeight: isCurrent
                                         ? FontWeight.w600
@@ -587,10 +622,7 @@ class _NowPlayingHeroCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF13131A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0x22FFFFFF),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0x22FFFFFF), width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
       child: Column(
@@ -601,7 +633,10 @@ class _NowPlayingHeroCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.04),
                   borderRadius: BorderRadius.circular(6),
@@ -631,23 +666,39 @@ class _NowPlayingHeroCard extends StatelessWidget {
               ),
 
               // Close button ('X')
-              GestureDetector(
-                onTap: onClose,
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      width: 1,
+              Semantics(
+                button: true,
+                label: 'Close media',
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Center(
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(10),
+                      child: InkWell(
+                        onTap: onClose,
+                        borderRadius: BorderRadius.circular(10),
+                        child: SizedBox(
+                          width: 34,
+                          height: 34,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                width: 1,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white70,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: const Icon(
-                    Icons.close_rounded,
-                    color: Colors.white70,
-                    size: 18,
                   ),
                 ),
               ),
@@ -714,26 +765,29 @@ class _NowPlayingHeroCard extends StatelessWidget {
                       const SizedBox(height: 16),
 
                       // Sound Stage Preset Chips
-                      Row(
-                        children: [
-                          _SoundStageChip(
-                            label: 'Meridian 3D',
-                            isSelected: soundStageIndex == 0,
-                            onTap: () => onSelectSoundStage(0),
-                          ),
-                          const SizedBox(width: 8),
-                          _SoundStageChip(
-                            label: 'Driver Focus',
-                            isSelected: soundStageIndex == 1,
-                            onTap: () => onSelectSoundStage(1),
-                          ),
-                          const SizedBox(width: 8),
-                          _SoundStageChip(
-                            label: 'All Seats',
-                            isSelected: soundStageIndex == 2,
-                            onTap: () => onSelectSoundStage(2),
-                          ),
-                        ],
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _SoundStageChip(
+                              label: 'Meridian 3D',
+                              isSelected: soundStageIndex == 0,
+                              onTap: () => onSelectSoundStage(0),
+                            ),
+                            const SizedBox(width: 8),
+                            _SoundStageChip(
+                              label: 'Driver Focus',
+                              isSelected: soundStageIndex == 1,
+                              onTap: () => onSelectSoundStage(1),
+                            ),
+                            const SizedBox(width: 8),
+                            _SoundStageChip(
+                              label: 'All Seats',
+                              isSelected: soundStageIndex == 2,
+                              onTap: () => onSelectSoundStage(2),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -750,8 +804,12 @@ class _NowPlayingHeroCard extends StatelessWidget {
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   trackHeight: 3,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 6,
+                  ),
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 12,
+                  ),
                   activeTrackColor: const Color(0xFF00C8FF),
                   inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
                   thumbColor: Colors.white,
@@ -835,14 +893,13 @@ class _NowPlayingHeroCard extends StatelessWidget {
                           gradient: const LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFF00C6FF),
-                              Color(0xFF0072FF),
-                            ],
+                            colors: [Color(0xFF00C6FF), Color(0xFF0072FF)],
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF00A3FF).withValues(alpha: 0.45),
+                              color: const Color(
+                                0xFF00A3FF,
+                              ).withValues(alpha: 0.45),
                               blurRadius: 16,
                               spreadRadius: 2,
                             ),
@@ -890,14 +947,22 @@ class _NowPlayingHeroCard extends StatelessWidget {
               // Volume slider with mute button
               Row(
                 children: [
-                  GestureDetector(
-                    onTap: onToggleMute,
-                    child: Icon(
+                  IconButton(
+                    onPressed: onToggleMute,
+                    tooltip: isMuted || volumeLevel == 0
+                        ? 'Unmute audio'
+                        : 'Mute audio',
+                    icon: Icon(
                       isMuted || volumeLevel == 0
                           ? Icons.volume_off_rounded
                           : Icons.volume_up_rounded,
                       color: Colors.white.withValues(alpha: 0.6),
                       size: 20,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
                     ),
                   ),
                   SizedBox(
@@ -905,8 +970,9 @@ class _NowPlayingHeroCard extends StatelessWidget {
                     child: SliderTheme(
                       data: SliderTheme.of(context).copyWith(
                         trackHeight: 2.5,
-                        thumbShape:
-                            const RoundSliderThumbShape(enabledThumbRadius: 4),
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 4,
+                        ),
                         activeTrackColor: Colors.white70,
                         inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
                         thumbColor: Colors.white,
@@ -937,10 +1003,7 @@ class _RotatingVinylDisc extends StatelessWidget {
   final AnimationController animation;
   final String albumLabel;
 
-  const _RotatingVinylDisc({
-    required this.animation,
-    required this.albumLabel,
-  });
+  const _RotatingVinylDisc({required this.animation, required this.albumLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -991,10 +1054,7 @@ class _RotatingVinylDisc extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const RadialGradient(
-                  colors: [
-                    Color(0xFF0072FF),
-                    Color(0xFF002244),
-                  ],
+                  colors: [Color(0xFF0072FF), Color(0xFF002244)],
                 ),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.4),
@@ -1002,11 +1062,7 @@ class _RotatingVinylDisc extends StatelessWidget {
                 ),
               ),
               child: const Center(
-                child: Icon(
-                  Icons.album_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
+                child: Icon(Icons.album_rounded, color: Colors.white, size: 22),
               ),
             ),
 
@@ -1062,34 +1118,66 @@ class _AudioSpectrumWaveform extends StatelessWidget {
     return AnimatedBuilder(
       animation: animation,
       builder: (context, child) {
-        final t = animation.value;
-
         return SizedBox(
           height: 32,
-          child: Row(
-            children: List.generate(24, (index) {
-              final wave = isPlaying
-                  ? (math.sin(t * 2 * math.pi + index * 0.45).abs() * 0.75 + 0.25)
-                  : 0.15;
-              final barHeight = 6.0 + wave * 24.0;
-
-              return Container(
-                width: 3.5,
-                height: barHeight,
-                margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                decoration: BoxDecoration(
-                  color: isPlaying
-                      ? const Color(0xFF00C8FF).withValues(
-                          alpha: (0.4 + (index / 24) * 0.6).clamp(0.0, 1.0))
-                      : Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              );
-            }),
+          width: double.infinity,
+          child: CustomPaint(
+            painter: _AudioSpectrumPainter(
+              progress: animation.value,
+              isPlaying: isPlaying,
+            ),
           ),
         );
       },
     );
+  }
+}
+
+class _AudioSpectrumPainter extends CustomPainter {
+  final double progress;
+  final bool isPlaying;
+
+  const _AudioSpectrumPainter({
+    required this.progress,
+    required this.isPlaying,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const barCount = 24;
+    const barWidth = 3.5;
+    final slotWidth = size.width / barCount;
+    final paint = Paint();
+
+    for (var index = 0; index < barCount; index++) {
+      final wave = isPlaying
+          ? (math.sin(progress * 2 * math.pi + index * 0.45).abs() * 0.75 +
+                0.25)
+          : 0.15;
+      final barHeight = 6.0 + wave * 24.0;
+      final left = index * slotWidth + (slotWidth - barWidth) / 2;
+      final rect = Rect.fromLTWH(
+        left,
+        (size.height - barHeight) / 2,
+        barWidth,
+        barHeight,
+      );
+      paint.color = isPlaying
+          ? const Color(0xFF00C8FF).withValues(
+              alpha: (0.4 + (index / barCount) * 0.6).clamp(0.0, 1.0),
+            )
+          : Colors.white24;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(2)),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AudioSpectrumPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.isPlaying != isPlaying;
   }
 }
 
@@ -1110,28 +1198,40 @@ class _SoundStageChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: label,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF0D253D)
-              : Colors.white.withValues(alpha: 0.03),
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF00A3FF).withValues(alpha: 0.4)
-                : Colors.white.withValues(alpha: 0.06),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? const Color(0xFF00C8FF) : Colors.white60,
-            fontSize: 10,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? const Color(0xFF0D253D)
+                  : Colors.white.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected
+                    ? const Color(0xFF00A3FF).withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.06),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFF00C8FF) : Colors.white60,
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
           ),
         ),
       ),

@@ -1,122 +1,106 @@
-# Veltron OS — SkyUI Terms of Service & Alpha Agreement
+# SkyUI Draft Prototype Notice
 
-**Product:** SkyUI Infotainment System (Veltron OS)  
-**Version:** `v0.3.0-alpha`  
-**Effective Date:** September 7, 2026  
-**Document Status:** Official Alpha Release Terms
+**Product:** SkyUI HMI Prototype
 
----
+**Package version:** `0.3.0-alpha+1`
 
-## 1. Acceptance of Terms
+**Document status:** Draft internal notice; not an official license, production agreement, vehicle approval, or legal certification.
 
-By downloading, installing, launching, compiling, or interacting with the **SkyUI** software repository, binaries, mockups, or source code (collectively, the "Software"), you ("User", "Tester", or "Developer") agree to be bound by the terms and conditions set forth in this Terms of Service & Alpha Agreement ("Agreement"). 
+## 1. Purpose and approval status
 
-If you do not agree with any part of these terms, do not download, install, build, or operate this Software.
+This document describes the technical and safety boundaries of the current SkyUI repository. It is provided for internal evaluation and requires review by the repository owner, legal counsel, safety engineering, security engineering, and vehicle-platform owners before external distribution.
 
----
+Repository access, compilation, or use does not by itself establish a commercial license, vehicle authorization, or permission to deploy artifacts.
 
-## 2. Alpha Stage Evaluation & Scope of License
+## 2. Current software status
 
-### 2.1 Experimental Status
-SkyUI is currently provided in an **Alpha preview state** (`v0.3.0-alpha`). The software is actively under development, and features, user interfaces, logic controllers, animations, and communication protocols are subject to change, redesign, or discontinuation at any time without notice.
+SkyUI is an automotive-styled Flutter HMI prototype and local cockpit simulator. It is not:
 
-### 2.2 Limited Evaluation License
-Veltron Cars grants authorized testers and developers a limited, non-exclusive, non-transferable, revocable license to use the Software solely for:
-- Internal evaluation, simulation, and prototyping;
-- UI/UX validation on desktop simulators and lab benches;
-- Feedback and bug reporting.
+- a vehicle controller;
+- a production infotainment platform;
+- a certified automotive HMI;
+- a safety-critical function;
+- a backend or telemetry service;
+- a fully offline runtime.
 
-Commercial deployment, public distribution, or installation into consumer-delivered production vehicles without explicit written authorization from Veltron Cars is strictly forbidden.
+All vehicle, phone, navigation, media, climate, connectivity, speed, route, trip, and diagnostic values are fixtures or local UI state unless explicitly marked otherwise.
 
----
+## 3. Permitted prototype evaluation
 
-## 3. Critical Automotive Safety & In-Vehicle Disclaimer
+Use is limited to internal development, desktop simulation, parked evaluation, UI review, and controlled non-road laboratory work that has separate owner approval.
 
-> [!CAUTION]
-> **READ CAREFULLY: AUTOMOTIVE SAFETY WARNING**
->
-> SkyUI is an **un-certified experimental software prototype**. It has NOT been certified according to automotive functional safety standards (including ISO 26262, ASIL ratings, UNECE cybersecurity standards, or Federal Motor Vehicle Safety Standards).
+The current artifact must not be used as:
 
-### 3.1 Prohibition on Unmonitored Public Road Operation
-- Under no circumstances should this software be utilized as the sole or primary driver interface during active vehicle operation on public roads or in hazardous driving environments.
-- The interface must never be used in a manner that obstructs primary driving instrumentation, cluster alerts, or safety-critical malfunction indicators (such as ABS, airbags, powertrain faults, or braking systems).
+- a live driving interface;
+- a primary or secondary cluster display;
+- a safety control;
+- a driver-monitoring aid;
+- a vehicle actuator gateway;
+- a source of vehicle authorization or trust.
 
-### 3.2 Driver Responsibility & Distraction Mitigation
-- The human operator of any vehicle containing this software retains **100% legal, civil, and criminal responsibility** for the safe operation of the vehicle, adherence to traffic laws, and monitoring of physical surroundings.
-- Visual elements, dynamic animations, and map interactions must never be operated while driving in any situation where full attention to the road is required.
+No monitoring arrangement, disclaimer, or independent observer makes live-road operation appropriate.
 
----
+## 4. Vehicle hardware and CAN testing
 
-## 4. Vehicle Hardware, CAN Bus & Electrical Testing
+No vehicle hardware connection is implemented or authorized by this notice. Any future HIL, CAN, OBD-II, LIN, Ethernet/AVB, or actuator testing requires a separately approved vehicle-specific plan covering electrical isolation, bus access, safety supervision, command authorization, rollback, incident response, and test authorization.
 
-### 4.1 Bus Architecture Caution
-Any future or experimental integration with vehicle hardware interfaces (including Controller Area Network (CAN Bus), OBD-II diagnostic ports, LIN buses, or Ethernet AVB) carries risk of electrical interference or bus collision.
+The UI must not be used as a direct raw-bus command path.
 
-### 4.2 Safe Test Environment
-All hardware-in-the-loop (HIL) or CAN-connected testing must be conducted exclusively:
-1. While the vehicle is stationary and parked with the parking brake engaged; or
-2. On isolated laboratory test benches and dynamometers under controlled engineering supervision.
+## 5. Safety and regulatory boundary
 
-Veltron Cars assumes no liability for vehicle battery drain, ECU bricking, or actuator interference caused by test builds.
+SkyUI has not been assessed or certified for ISO 26262, SOTIF, UNECE R155/R156, FMVSS, or another vehicle safety/cybersecurity regime. Formal compliance requires an approved scope, evidence, owners, and independent review.
 
----
+The UI must never replace primary driving instrumentation, warnings, braking, steering, airbags, ABS, powertrain-fault, or other safety-critical indications.
 
-## 5. Intellectual Property Rights
+## 6. Data, telemetry, and privacy
 
-### 5.1 Proprietary Ownership
-All rights, title, and interest in and to SkyUI, including but not limited to source code, algorithms, graphical assets, 3D vehicle renders, logo marks, sounds, color system tokens, and design language are the exclusive intellectual property of **Veltron Cars** and its licensors.
+The current Dart implementation collects and transmits no telemetry, analytics, crash reports, remote logs, vehicle signals, contacts, location, or backend data. Local UI state is not transmitted.
 
-### 5.2 Restrictions
-Except as expressly authorized under a separate bilateral agreement, you agree not to:
-- Reverse engineer, decompile, or disassemble proprietary binary components;
-- Remove or alter any copyright notices, watermarks, or version tags (`v0.2.0-alpha`);
-- Rebrand, repackage, or distribute modified copies under another commercial name.
+No future telemetry or diagnostic collection is authorized by this notice. Before implementation, the owner must document:
 
----
+- data inventory and purpose;
+- source and permissions;
+- consent or opt-in requirements;
+- recipients and processors;
+- retention and deletion;
+- redaction and security controls;
+- offline and degraded behavior;
+- vehicle and personal-data classification.
 
-## 6. Telemetry, Diagnostic Logs & Feedback
+Do not submit credentials, personal data, vehicle identifiers, location traces, or confidential information in feedback or source changes.
 
-### 6.1 Crash Reporting & Metrics
-Alpha builds of SkyUI may collect diagnostic telemetry, frame rates, exception traces, and simulated sensor events to assist engineering teams in stability and performance optimization.
+## 7. Release and signing status
 
-### 6.2 Feedback Assignment
-Any suggestions, bug reports, pull requests, performance benchmarks, or feature proposals submitted by you regarding the Software become the non-exclusive, royalty-free, perpetual property of Veltron Cars to integrate into future versions without compensation.
+Current development artifacts are not production-signed or approved for vehicle distribution.
 
----
+Android release configuration currently uses:
 
-## 7. Disclaimer of Warranties ("AS-IS")
+- placeholder namespace and application ID `com.example.skyui`;
+- debug signing configuration;
+- no approved update path or production key-management process.
 
-TO THE MAXIMUM EXTENT PERMITTED UNDER APPLICABLE LAW, THE SOFTWARE IS PROVIDED ON AN **"AS IS"** AND **"AS AVAILABLE"** BASIS, WITH ALL FAULTS AND DEFECTS.
+No APK, AAB, IPA, macOS bundle, Windows installer, Linux package, or web artifact should be represented as a production release until identity ownership, signing, provenance, legal classification, and update-path decisions are approved.
 
-VELTRON CARS EXPRESSLY DISCLAIMS ALL WARRANTIES, WHETHER STATUTORY, EXPRESS, OR IMPLIED, INCLUDING BUT NOT LIMITED TO:
-- WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR AUTOMOTIVE PURPOSE;
-- UNINTERRUPTED, BUG-FREE, OR LAG-FREE 60 FPS EXECUTION;
-- ACCURACY OR TIMELINESS OF NAVIGATION, ROUTE ESTIMATION, OR SENSOR TELEMETRY;
-- COMPATIBILITY WITH ALL VEHICLE HARDWARE OR OPERATING PLATFORMS.
+## 8. Local web launcher limitation
 
----
+The local launcher is a development web-app simulator, not a native embedded runtime. It builds a CSP-compatible local CanvasKit bundle, but Flutter fallback fonts may still use `https://fonts.gstatic.com`. Fully offline operation is not claimed until local fonts are bundled and a network trace confirms no external fetch.
 
-## 8. Limitation of Liability
+## 9. Warranty and liability boundary
 
-IN NO EVENT SHALL VELTRON CARS, ITS AFFILIATES, DIRECTORS, EMPLOYEES, OR CODE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, PUNITIVE, OR CONSEQUENTIAL DAMAGES (INCLUDING LOSS OF PROFITS, LOSS OF VEHICLE TELEMETRY, HARDWARE DAMAGE, VEHICLE ACCIDENTS, PERSONAL INJURY, OR REPAIR COSTS) ARISING OUT OF OR IN CONNECTION WITH THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+The software is provided for prototype evaluation as-is and without a warranty of fitness, vehicle safety, uninterrupted operation, accuracy, compatibility, or regulatory compliance. No 60 FPS, navigation accuracy, sensor validity, or production reliability claim is made.
 
----
+The repository owner must obtain legal review before publishing any warranty, liability, indemnity, license, or commercial-use terms. Nothing in this draft notice should be treated as a final legal instrument.
 
-## 9. Versioning & Modifications to Terms
+## 10. Intellectual property and repository controls
 
-- **Current Version Tag:** `v0.2.0-alpha`
-- Veltron Cars reserves the right to revise, update, or supersede these Terms of Service as the software advances toward Beta, Release Candidate (RC), and General Availability (GA).
-- Continued usage of the repository or compiled artifacts following published updates constitutes acceptance of the modified terms.
+Repository ownership, third-party asset rights, and restrictions on reverse engineering, redistribution, or commercial use must be confirmed by the owner and legal counsel. This draft does not create or replace a license.
 
----
+Do not remove copyright, security, provenance, or version notices from approved artifacts.
 
-## 10. Contact & Inquiries
+## 11. Versioning and changes
 
-For legal, automotive compliance, licensing, or corporate partnership inquiries regarding Veltron OS and SkyUI:
+This notice applies to package version `0.3.0-alpha+1` and the current prototype working tree. It must be updated when the deployment class, data behavior, signing identity, legal approval, or safety boundary changes.
 
-- **Ecosystem:** Veltron Automotive Systems
-- **Repository:** `https://github.com/VeltronCars/SkyUI`
-- **Engineering Team:** Infotainment & Digital Cockpit HMI Group
+## 12. Contact
 
----
-*Copyright © 2026 Veltron Cars. All rights reserved.*
+No verified legal entity address, privacy contact, security reporting address, or engineering escalation channel is currently documented. The repository owner must publish approved contact channels before external distribution.

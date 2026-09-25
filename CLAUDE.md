@@ -2,266 +2,153 @@
 
 # SkyUI
 
-## Project Overview
+## Project status
 
-SkyUI is an automotive infotainment interface I'm building for the Veltron ecosystem.
+SkyUI is an automotive-styled Flutter HMI prototype for the future Veltron ecosystem. It is not production software, a vehicle controller, a certified automotive HMI, or a security-validated platform.
 
-The goal is a modular, responsive UI for in-vehicle screens. It's a prototype, built incrementally — not production software yet.
+The current evidence boundary is a 1680×720 landscape simulator. Physical display, broader resolution, accessibility, performance, lifecycle, safety, security, hardware, and compliance behavior are unverified.
 
-This is not a mobile app. It's an automotive HMI (human-machine interface).
+## Current structure
 
----
-
-# Vision
-
-Long term, I want this to grow into a full automotive OS interface covering:
-
-- Home
-- Navigation
-- Media
-- Phone
-- Vehicle
-- Climate
-- Settings
-- OTA Updates
-- Diagnostics
-- AI Assistant
-- User Profiles
-
-It needs to stay modular as more of this gets built.
-
----
-
-# Tech Stack
-
-Framework:
-- Flutter
-
-Language:
-- Dart
-
-Architecture:
-- Modular UI
-
----
-
-# Current Project Structure
-
+```text
 lib/
+├── core/
+│   ├── icons/
+│   └── theme/
+├── screens/
+│   ├── home/
+│   ├── media/
+│   ├── navigation/
+│   └── phone/
+├── services/
+│   └── drive_mode_service.dart
+├── widgets/
+│   ├── cards/
+│   ├── climate/
+│   ├── header/
+│   └── sidebar/
+└── main.dart
 
-core/
-- animations/
-- constants/
-- icons/
-- theme/
-- utils/
+test/
+└── widget_test.dart
 
-models/
+web/
+└── flutter_bootstrap.js
+```
 
-screens/
-- home/
+There is no current `lib/models/` directory or shared media, call, navigation, climate, hardware, or backend service layer. `DriveModeService` is a debug/demo notifier, not a vehicle trust source.
 
-services/
+## Implemented prototype surface
 
-widgets/
-- header/
-- sidebar/
+- Header, sidebar, Home dashboard, cards, and climate strip.
+- Local Navigation, Media, and Phone prototype modules.
+- Coordinated single-module transitions and system Back handling.
+- Local fixture data and local state.
+- Disabled Vehicle and Settings destinations.
+- Disabled unavailable vehicle actions and unsupported map camera controls.
+- Debug-only parked/driving state that currently affects Media browsing.
+- Loopback web-app launcher with an enforced CSP-compatible build.
+- Widget, launcher, and headless-browser verification.
 
-main.dart
+Never describe these UI prototypes as integrated automotive applications.
 
----
-
-# Current Features
-
-Implemented:
-
-- Header
-- Sidebar
-- Home Screen
-- Responsive Layout
-- Theme System
-- Status Icons
-- Navigation Layout
-
----
-
-# Design Language
-
-Principles I'm following:
-
-- Minimal
-- Dark UI
-- Automotive-appropriate — built for a dashboard, not a phone
-- Responsive
-- Performance first
-
-Avoid clutter.
-
-Avoid unnecessary colors.
-
-Every screen should look like it belongs on a vehicle dashboard, not a phone screen.
-
----
-
-# UI Rules
+## Evidence and language rules
 
 Always:
 
-- Reuse widgets.
-- Keep widgets small.
-- Split large files.
-- Prefer composition over duplication.
-- Maintain spacing consistency.
+- Label vehicle, phone, navigation, media, climate, connectivity, speed, route, trip, and diagnostic values as simulated unless a documented source exists.
+- Expose unavailable controls as disabled with a reason in Semantics or tooltip text.
+- Distinguish design goals from verified capabilities.
+- Use `docs/automotive_hmi_audit.md` as the current readiness and blocker record.
 
 Never:
 
-- Put business logic inside widgets.
-- Create giant files.
-- Duplicate code.
+- Call the app automotive-grade, certified, production-safe, cyber-secure, 60 FPS validated, or fully offline without documented target-platform evidence and approval.
+- Use a debug widget state as a vehicle, safety, or trust source.
+- Claim responsiveness or frame-rate performance without a documented test matrix and target-device measurements.
+- Claim offline web operation while external fallback fonts are possible.
+- Distribute Android artifacts while placeholder identity or debug signing remains.
+- State that telemetry is collected; the current app implements no remote telemetry or backend.
 
----
+## UI rules
 
-# Folder Responsibilities
+- Reuse widgets and maintain spacing consistency.
+- Keep new and modified shared values token-based where practical.
+- Give interactive controls explicit enabled/disabled semantics.
+- Treat 48 dp as a programmatic minimum, not proof of physical target suitability.
+- Keep simulation labels visible or semantically exposed for safety-relevant fixtures.
+- State the parked/driving policy for new interactions.
+- Split large files at natural boundaries when they are next changed; do not perform an unapproved broad rewrite.
+- Prefer composition over duplication.
 
-core/
-Global utilities.
+Current large screen files and inline styles are known debt. Do not describe the design system as the sole runtime source of truth yet.
 
-models/
-Data models.
+## State and architecture
 
-services/
-Business logic and external integrations.
+The target direction is:
 
-screens/
-Entire application pages.
+```text
+UI → domain service/state → model/contract → data source
+```
 
-widgets/
-Reusable UI components.
+The current implementation is partial: Media, Phone, Navigation, and Climate keep state and transitions in widget `State` classes. Extract domain state naturally when those areas are modified. Do not add a global state framework or perform a large architectural rewrite without approval.
 
----
+Treat `docs/architecture.md` as target architecture plus a current-state record, not proof that all layers already exist.
 
-# Coding Style
+## Coding style
 
-Use readable code.
+- Use readable Dart and descriptive names.
+- Prefer typed callbacks and value types.
+- Keep functions short and widgets focused.
+- Avoid unnecessary comments.
+- Do not duplicate controls when a reusable component is justified.
+- Use platform and Flutter APIs already present in the project; do not add dependencies without a documented need.
 
-Prefer descriptive variable names.
+## Workflow
 
-Keep functions short.
+Before every task:
 
-Extract reusable widgets whenever possible.
-
-Avoid unnecessary comments.
-
-Write self-documenting code.
-
----
-
-# Architecture Rules
-
-Before modifying existing code:
-
-1. Understand the current implementation.
-2. Reuse existing widgets.
-3. Preserve architecture.
-4. Keep consistency.
-
-Never rewrite working code without reason.
-
----
-
-# Before Every Task
-
-Always:
-
-1. Read relevant files.
+1. Read relevant source, tests, and documentation.
 2. Explain the plan.
-3. Implement.
-4. Verify.
-5. Suggest improvements.
+3. Preserve existing user changes.
+4. Implement the smallest coherent change.
+5. Run relevant format, analyze, test, and build checks.
+6. Document assumptions and unverified behavior.
 
----
+For bug fixes, find the root cause and prevent recurrence without broad unrelated refactoring.
 
-# Refactoring Policy
+## Refactoring policy
 
 If a better architecture exists:
 
-DO NOT immediately rewrite the project.
+1. Explain the issue, advantages, disadvantages, and migration impact.
+2. Do not rewrite working code immediately.
+3. Wait for approval for broad structural changes.
 
-Instead:
+## Performance policy
 
-- explain the issue
-- explain advantages
-- explain disadvantages
-- wait for approval
+Measure before optimizing. Do not claim 60 FPS, stable input latency, low memory, thermal stability, or long-run behavior without profile traces on the intended automotive SoC.
 
----
+Prefer local `ValueNotifier` or child state when profiling demonstrates broad rebuilds. Avoid adding `RepaintBoundary` or removing blur effects speculatively; validate on the target GPU.
 
-# Error Handling
+## Release and security policy
 
-When fixing bugs:
+- Keep legal/privacy status synchronized with the draft prototype notice.
+- Do not produce a distributable Android release until identity ownership, production signing, artifact verification, and update-path decisions are approved.
+- Keep a reproducible clean-build, dependency, secret, license, vulnerability, SBOM, and provenance gate before external distribution.
+- Require TARA/HARA and explicit HMI/HAL/CAN trust boundaries before hardware integration.
+- Keep the UI out of direct raw CAN or safety-actuator command paths.
 
-Do not only patch the issue.
+## Documentation
 
-Find the root cause.
+Primary documents:
 
-Explain why it happened.
+- `docs/automotive_hmi_audit.md`
+- `docs/architecture.md`
+- `docs/design_system.md`
+- `docs/modules.md`
+- `docs/roadmap.md`
+- `docs/changelog.md`
+- `docs/terms_of_service.md`
 
-Prevent it from happening again.
-
----
-
-# Performance
-
-Prefer efficient widgets.
-
-Minimize rebuilds.
-
-Avoid unnecessary state updates.
-
-Think about scalability.
-
----
-
-# Communication
-
-When unsure:
-
-Ask.
-
-Never invent project requirements.
-
-Never remove functionality unless explicitly requested.
-
----
-
-# Development Workflow
-
-Priority:
-
-1. Correctness
-2. Architecture
-3. Readability
-4. Performance
-5. Optimization
-
----
-
-# Future Documentation
-
-Detailed documentation will be located inside:
-
-docs/
-
-Examples:
-
-docs/architecture.md
-
-docs/design_system.md
-
-docs/modules.md
-
-docs/roadmap.md
-
-docs/changelog.md
-
-CLAUDE.md should remain concise and should only contain project-wide rules.
+CLAUDE.md must remain concise and contain only project-wide rules.
