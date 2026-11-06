@@ -1,12 +1,12 @@
-# Veltron OS — SkyUI
+# Veltron Auto — SkyUI HMI Concept
 
 <p align="center">
   <img src="assets/images/logo.png" alt="SkyUI Logo" width="160"/>
 </p>
 
 <p align="center">
-  <strong>Automotive-Styled HMI Prototype for a Future Veltron Ecosystem</strong><br/>
-  Flutter cockpit simulator with local fixture data
+  <strong>Automotive-Grade HMI Concept Direction</strong><br/>
+  Veltron Auto V1 SportLine digital cockpit prototype
 </p>
 
 <p align="center">
@@ -21,6 +21,26 @@
 SkyUI is an internal Flutter HMI prototype for the future Veltron ecosystem. It provides a dark cockpit dashboard and local prototype Navigation, Media, Phone, Vehicle, and Climate experiences.
 
 All vehicle, phone, navigation, media, climate, connectivity, speed, route, trip, and diagnostic values are fixtures or local UI state unless explicitly identified as an implemented integration.
+
+## Screenshots
+
+Simulated 1680×720 baseline views of the running client prototype (`docs/screenshots/`):
+
+| Home dashboard | Navigation (simulated demo route) |
+| --- | --- |
+| ![Home dashboard](docs/screenshots/home.png) | ![Navigation](docs/screenshots/navigation.png) |
+| **Media & Audio** | **Phone dialer** |
+| ![Media](docs/screenshots/media.png) | ![Phone](docs/screenshots/phone.png) |
+
+## Veltron Auto context
+
+Veltron Auto is presented publicly as an independent automotive R&D studio based in Belgrade, Serbia, led by Boris Vlajnić, Founder and Automotive Design Director. Its stated focus is automotive design, UX, digital cockpit architecture, aerodynamics, propulsion concepts, and accessible performance.
+
+Public studio reference: [veltroncars.com](https://veltroncars.com).
+
+V1 SportLine is the studio's performance concept. SkyUI represents the HMI and digital-cockpit pillar of that concept: a driver-centered interface that connects information and control with the vehicle's intended character.
+
+The ambition is an automotive-grade design direction. That means the interface should be built to automotive standards and expectations; it does not mean that this prototype has passed automotive certification, safety assessment, or vehicle validation.
 
 > **Prototype boundary:** SkyUI is not a vehicle controller, production infotainment platform, certified automotive HMI, cybersecurity-assured release, or fully offline runtime. The only current evidence boundary is a 1680×720 landscape widget and headless-browser smoke test. Physical-display, resolution-matrix, accessibility, performance, lifecycle, safety, security, hardware, and compliance validation remain pending.
 

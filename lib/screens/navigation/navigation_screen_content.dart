@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 /// Comprehensive destination model with spatial and telemetry properties
@@ -229,15 +228,20 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
           AnimatedBuilder(
             animation: Listenable.merge([_pulseController, _travelAnimation]),
             builder: (context, child) {
-              return CustomPaint(
-                painter: _VectorMapPainter(
-                  puckPosition: _currentPuckPos,
-                  targetPosition: _targetPuckPos,
-                  puckHeading: _puckHeading,
-                  radarPulseProgress: _pulseController.value,
-                  destinations: _destinations,
-                  selectedDestIndex: _selectedDestIndex,
-                  isTrafficEnabled: _isTrafficEnabled,
+              // Isolate the continuously animating map from the rest of the
+              // screen: its radar-pulse repaints no longer invalidate the
+              // blur panels above, and vice versa.
+              return RepaintBoundary(
+                child: CustomPaint(
+                  painter: _VectorMapPainter(
+                    puckPosition: _currentPuckPos,
+                    targetPosition: _targetPuckPos,
+                    puckHeading: _puckHeading,
+                    radarPulseProgress: _pulseController.value,
+                    destinations: _destinations,
+                    selectedDestIndex: _selectedDestIndex,
+                    isTrafficEnabled: _isTrafficEnabled,
+                  ),
                 ),
               );
             },
@@ -357,22 +361,139 @@ class _VectorMapPainter extends CustomPainter {
     required this.isTrafficEnabled,
   });
 
+  // ── Cached paints ──────────────────────────────────────────────────────────
+  // The radar pulse repaints this painter continuously, so constant styles are
+  // allocated once instead of ~25 objects per frame (audit P-03).
+  static final Paint _bgPaint = Paint()..color = const Color(0xFF090B12);
+
+  static final Paint _gridPaint = Paint()
+    ..color = const Color(0x0AFFFFFF)
+    ..strokeWidth = 0.8;
+
+  static final Paint _riverPaint = Paint();
+  static Size? _riverShaderSize;
+  static Shader? _riverShader;
+
+  static final Paint _blockPaint = Paint()
+    ..color = const Color(0xFF131622)
+    ..style = PaintingStyle.fill;
+
+  static final Paint _blockBorderPaint = Paint()
+    ..color = const Color(0x08FFFFFF)
+    ..strokeWidth = 1.0
+    ..style = PaintingStyle.stroke;
+
+  static final Paint _highwayUnderlay = Paint()
+    ..color = const Color(0xFF1B1E2E)
+    ..strokeWidth = 18.0
+    ..strokeCap = StrokeCap.round
+    ..style = PaintingStyle.stroke;
+
+  static final Paint _streetPaint = Paint()
+    ..color = const Color(0xFF161926)
+    ..strokeWidth = 8.0
+    ..style = PaintingStyle.stroke;
+
+  static final Paint _trafficGreen = Paint()
+    ..color = const Color(0x5900E676)
+    ..strokeWidth = 3.0
+    ..style = PaintingStyle.stroke;
+
+  static final Paint _trafficSlow = Paint()
+    ..color = const Color(0x8CFFB300)
+    ..strokeWidth = 3.5
+    ..style = PaintingStyle.stroke;
+
+  static final Paint _routeGlow = Paint()
+    ..color = const Color(0x40FF8A00)
+    ..strokeWidth = 16.0
+    ..strokeCap = StrokeCap.round
+    ..style = PaintingStyle.stroke;
+
+  static final Paint _routeOutline = Paint()
+    ..color = const Color(0xB3FF8A00)
+    ..strokeWidth = 6.0
+    ..strokeCap = StrokeCap.round
+    ..style = PaintingStyle.stroke;
+
+  static final Paint _routeCore = Paint()
+    ..color = Colors.white
+    ..strokeWidth = 2.5
+    ..strokeCap = StrokeCap.round
+    ..style = PaintingStyle.stroke;
+
+  static final Paint _waypointGlow = Paint()
+    ..color = const Color(0x66FF8A00)
+    ..style = PaintingStyle.fill;
+
+  static final Paint _waypointPin = Paint()
+    ..color = const Color(0xFFFF8A00)
+    ..style = PaintingStyle.fill;
+
+  static final Paint _waypointCore = Paint()..color = Colors.white;
+
+  static final Paint _tagBg = Paint()..color = const Color(0xFF10121C);
+
+  static final Paint _tagBorder = Paint()
+    ..color = const Color(0xB3FF8A00)
+    ..strokeWidth = 1
+    ..style = PaintingStyle.stroke;
+
+  static final Paint _waypointIdleBg = Paint()..color = const Color(0xFF1E2234);
+
+  static final Paint _waypointIdleBorder = Paint()
+    ..color = const Color(0x4DFFFFFF)
+    ..strokeWidth = 1.5
+    ..style = PaintingStyle.stroke;
+
+  static final Paint _puckGlow = Paint()
+    ..color = const Color(0x4000E676)
+    ..style = PaintingStyle.fill;
+
+  static final Paint _puckBg = Paint()..color = const Color(0xFF00E676);
+
+  static final Paint _puckBorder = Paint()
+    ..color = Colors.white
+    ..strokeWidth = 2.5
+    ..style = PaintingStyle.stroke;
+
+  static final Paint _radarPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.0;
+
+  static final Paint _arrowPaint = Paint()..color = Colors.white;
+
+  static final Path _arrowPath = Path()
+    ..moveTo(0, -6)
+    ..lineTo(4, 4)
+    ..lineTo(0, 2)
+    ..lineTo(-4, 4)
+    ..close();
+
+  /// River gradient shader is size-dependent; cache it per size instead of
+  /// creating a new shader every paint.
+  static Shader _riverShaderFor(Size size) {
+    if (_riverShaderSize != size || _riverShader == null) {
+      _riverShaderSize = size;
+      _riverShader = const LinearGradient(
+        colors: [Color(0xFF0B192E), Color(0xFF0E233E)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    }
+    return _riverShader!;
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     // Background deep dark obsidian base
-    final bgPaint = Paint()..color = const Color(0xFF090B12);
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), _bgPaint);
 
     // Subtle grid mesh
-    final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.04)
-      ..strokeWidth = 0.8;
     const gridStep = 54.0;
     for (double x = 0; x < size.width; x += gridStep) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), _gridPaint);
     }
     for (double y = 0; y < size.height; y += gridStep) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), _gridPaint);
     }
 
     // ── Waterway / River Canal ──────────────────────────────────────────────
@@ -397,22 +518,10 @@ class _VectorMapPainter extends CustomPainter {
     );
     riverPath.close();
 
-    final riverPaint = Paint()
-      ..shader = const LinearGradient(
-        colors: [Color(0xFF0B192E), Color(0xFF0E233E)],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-    canvas.drawPath(riverPath, riverPaint);
+    _riverPaint.shader = _riverShaderFor(size);
+    canvas.drawPath(riverPath, _riverPaint);
 
     // ── City Blocks Matrix ──────────────────────────────────────────────────
-    final blockPaint = Paint()
-      ..color = const Color(0xFF131622)
-      ..style = PaintingStyle.fill;
-
-    final blockBorderPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.03)
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke;
-
     final cityBlocks = [
       Rect.fromLTWH(
         size.width * 0.06,
@@ -460,47 +569,36 @@ class _VectorMapPainter extends CustomPainter {
 
     for (final rect in cityBlocks) {
       final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
-      canvas.drawRRect(rrect, blockPaint);
-      canvas.drawRRect(rrect, blockBorderPaint);
+      canvas.drawRRect(rrect, _blockPaint);
+      canvas.drawRRect(rrect, _blockBorderPaint);
     }
 
     // ── Road Network ────────────────────────────────────────────────────────
-    final highwayUnderlay = Paint()
-      ..color = const Color(0xFF1B1E2E)
-      ..strokeWidth = 18.0
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    final streetPaint = Paint()
-      ..color = const Color(0xFF161926)
-      ..strokeWidth = 8.0
-      ..style = PaintingStyle.stroke;
-
     // Secondary streets
     canvas.drawLine(
       Offset(0, size.height * 0.30),
       Offset(size.width, size.height * 0.30),
-      streetPaint,
+      _streetPaint,
     );
     canvas.drawLine(
       Offset(0, size.height * 0.72),
       Offset(size.width, size.height * 0.72),
-      streetPaint,
+      _streetPaint,
     );
     canvas.drawLine(
       Offset(size.width * 0.25, 0),
       Offset(size.width * 0.25, size.height),
-      streetPaint,
+      _streetPaint,
     );
     canvas.drawLine(
       Offset(size.width * 0.50, 0),
       Offset(size.width * 0.50, size.height),
-      streetPaint,
+      _streetPaint,
     );
     canvas.drawLine(
       Offset(size.width * 0.76, 0),
       Offset(size.width * 0.76, size.height),
-      streetPaint,
+      _streetPaint,
     );
 
     // Primary Expressway / Highway Curve
@@ -514,26 +612,17 @@ class _VectorMapPainter extends CustomPainter {
       size.width,
       size.height * 0.20,
     );
-    canvas.drawPath(highwayPath, highwayUnderlay);
+    canvas.drawPath(highwayPath, _highwayUnderlay);
 
     // Live Traffic overlay (Green flow with slight amber slowdown)
     if (isTrafficEnabled) {
-      final trafficGreen = Paint()
-        ..color = const Color(0xFF00E676).withValues(alpha: 0.35)
-        ..strokeWidth = 3.0
-        ..style = PaintingStyle.stroke;
-      canvas.drawPath(highwayPath, trafficGreen);
+      canvas.drawPath(highwayPath, _trafficGreen);
 
       // Congestion segment
-      final trafficSlow = Paint()
-        ..color = const Color(0xFFFFB300).withValues(alpha: 0.55)
-        ..strokeWidth = 3.5
-        ..style = PaintingStyle.stroke;
-
       final slowPath = Path();
       slowPath.moveTo(size.width * 0.32, size.height * 0.65);
       slowPath.lineTo(size.width * 0.44, size.height * 0.45);
-      canvas.drawPath(slowPath, trafficSlow);
+      canvas.drawPath(slowPath, _trafficSlow);
     }
 
     // ── Active Navigation Route (Multi-Layer Neon Trail) ─────────────────────
@@ -561,28 +650,13 @@ class _VectorMapPainter extends CustomPainter {
     );
 
     // Outer route halo glow
-    final glowPaint = Paint()
-      ..color = const Color(0xFFFF8A00).withValues(alpha: 0.25)
-      ..strokeWidth = 16.0
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    canvas.drawPath(routePath, glowPaint);
+    canvas.drawPath(routePath, _routeGlow);
 
     // Secondary bright orange boundary
-    final routeOutline = Paint()
-      ..color = const Color(0xFFFF8A00).withValues(alpha: 0.7)
-      ..strokeWidth = 6.0
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    canvas.drawPath(routePath, routeOutline);
+    canvas.drawPath(routePath, _routeOutline);
 
     // Core bright neon route line
-    final routeCore = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    canvas.drawPath(routePath, routeCore);
+    canvas.drawPath(routePath, _routeCore);
 
     // ── Destination Waypoint Markers ─────────────────────────────────────────
     for (int i = 0; i < destinations.length; i++) {
@@ -608,19 +682,11 @@ class _VectorMapPainter extends CustomPainter {
   ) {
     if (isSelected) {
       // Glow ring around selected destination
-      final glowPaint = Paint()
-        ..color = const Color(0xFFFF8A00).withValues(alpha: 0.4)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(point, 18, glowPaint);
+      canvas.drawCircle(point, 18, _waypointGlow);
 
       // Pin core
-      final pinPaint = Paint()
-        ..color = const Color(0xFFFF8A00)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(point, 10, pinPaint);
-
-      final innerWhite = Paint()..color = Colors.white;
-      canvas.drawCircle(point, 4, innerWhite);
+      canvas.drawCircle(point, 10, _waypointPin);
+      canvas.drawCircle(point, 4, _waypointCore);
 
       // Destination Tag Card above pin
       final tagRect = Rect.fromCenter(
@@ -633,24 +699,12 @@ class _VectorMapPainter extends CustomPainter {
         const Radius.circular(6),
       );
 
-      final tagBg = Paint()..color = const Color(0xFF10121C);
-      final tagBorder = Paint()
-        ..color = const Color(0xFFFF8A00).withValues(alpha: 0.7)
-        ..strokeWidth = 1
-        ..style = PaintingStyle.stroke;
-
-      canvas.drawRRect(tagRRect, tagBg);
-      canvas.drawRRect(tagRRect, tagBorder);
+      canvas.drawRRect(tagRRect, _tagBg);
+      canvas.drawRRect(tagRRect, _tagBorder);
     } else {
       // Unselected subtle waypoint
-      final bg = Paint()..color = const Color(0xFF1E2234);
-      final border = Paint()
-        ..color = Colors.white.withValues(alpha: 0.3)
-        ..strokeWidth = 1.5
-        ..style = PaintingStyle.stroke;
-
-      canvas.drawCircle(point, 7, bg);
-      canvas.drawCircle(point, 7, border);
+      canvas.drawCircle(point, 7, _waypointIdleBg);
+      canvas.drawCircle(point, 7, _waypointIdleBorder);
     }
   }
 
@@ -664,42 +718,21 @@ class _VectorMapPainter extends CustomPainter {
     final radarRadius = 14.0 + (radarProgress * 28.0);
     final radarOpacity = (1.0 - radarProgress).clamp(0.0, 1.0) * 0.45;
 
-    final radarPaint = Paint()
-      ..color = const Color(0xFF00E676).withValues(alpha: radarOpacity)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    canvas.drawCircle(position, radarRadius, radarPaint);
+    _radarPaint.color = const Color(0xFF00E676).withValues(alpha: radarOpacity);
+    canvas.drawCircle(position, radarRadius, _radarPaint);
 
     // 2. Outer glowing disc
-    final glowPaint = Paint()
-      ..color = const Color(0xFF00E676).withValues(alpha: 0.25)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(position, 18, glowPaint);
+    canvas.drawCircle(position, 18, _puckGlow);
 
     // 3. Central Puck
-    final puckBg = Paint()..color = const Color(0xFF00E676);
-    canvas.drawCircle(position, 11, puckBg);
-
-    final puckBorder = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke;
-    canvas.drawCircle(position, 11, puckBorder);
+    canvas.drawCircle(position, 11, _puckBg);
+    canvas.drawCircle(position, 11, _puckBorder);
 
     // 4. Directional Heading Arrowhead
     canvas.save();
     canvas.translate(position.dx, position.dy);
     canvas.rotate(heading);
-
-    final arrowPath = Path();
-    arrowPath.moveTo(0, -6);
-    arrowPath.lineTo(4, 4);
-    arrowPath.lineTo(0, 2);
-    arrowPath.lineTo(-4, 4);
-    arrowPath.close();
-
-    final arrowPaint = Paint()..color = Colors.white;
-    canvas.drawPath(arrowPath, arrowPaint);
+    canvas.drawPath(_arrowPath, _arrowPaint);
     canvas.restore();
   }
 
@@ -731,132 +764,125 @@ class _ActiveDestinationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.12),
-              width: 1,
-            ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.12),
+            width: 1,
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF8A00).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: const Color(0xFFFF8A00).withValues(alpha: 0.4),
-                    width: 1,
-                  ),
-                ),
-                child: Icon(
-                  destination.categoryIcon,
-                  color: const Color(0xFFFF8A00),
-                  size: 20,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF8A00).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0xFFFF8A00).withValues(alpha: 0.4),
+                  width: 1,
                 ),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      destination.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              child: Icon(
+                destination.categoryIcon,
+                color: const Color(0xFFFF8A00),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    destination.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Text(
-                          '${destination.distanceKm} km',
-                          style: const TextStyle(
-                            color: Color(0xFFFF8A00),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Text(
+                        '${destination.distanceKm} km',
+                        style: const TextStyle(
+                          color: Color(0xFFFF8A00),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '·  ${destination.durationMinutes} min',
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '·  ${destination.durationMinutes} min',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.65),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          destination.street,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.65),
-                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.4),
+                            fontSize: 12,
                             fontWeight: FontWeight.w400,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            destination.street,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.4),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            GestureDetector(
+              onTap: onNavigate,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF8A00),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF8A00).withValues(alpha: 0.4),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.near_me_rounded, color: Colors.white, size: 16),
+                    SizedBox(width: 6),
+                    Text(
+                      'Recalculate',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: onNavigate,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF8A00),
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFF8A00).withValues(alpha: 0.4),
-                        blurRadius: 10,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.near_me_rounded,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        'Recalculate',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -886,101 +912,98 @@ class _TurnGuidanceBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFFFF8A00).withValues(alpha: 0.35),
-              width: 1,
-            ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.84),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFFFF8A00).withValues(alpha: 0.35),
+            width: 1,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF8A00).withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFFFF8A00).withValues(alpha: 0.4),
-                    width: 1,
-                  ),
-                ),
-                child: Icon(
-                  maneuverIcon,
-                  color: const Color(0xFFFF8A00),
-                  size: 24,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF8A00).withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFFFF8A00).withValues(alpha: 0.4),
+                  width: 1,
                 ),
               ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    instruction,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    distance,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.55),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+              child: Icon(
+                maneuverIcon,
+                color: const Color(0xFFFF8A00),
+                size: 24,
               ),
-              const SizedBox(width: 20),
-              Semantics(
-                button: true,
-                toggled: isVoiceMuted,
-                label: isVoiceMuted
-                    ? 'Voice guidance muted'
-                    : 'Voice guidance on',
-                onTap: onToggleVoice,
-                excludeSemantics: true,
-                child: SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: Center(
-                    child: Material(
-                      color: Colors.white.withValues(alpha: 0.06),
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        onTap: onToggleVoice,
-                        customBorder: const CircleBorder(),
-                        child: SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Icon(
-                            isVoiceMuted
-                                ? Icons.volume_off_rounded
-                                : Icons.volume_up_rounded,
-                            color: isVoiceMuted
-                                ? Colors.white.withValues(alpha: 0.3)
-                                : Colors.white.withValues(alpha: 0.8),
-                            size: 16,
-                          ),
+            ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  instruction,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  distance,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 20),
+            Semantics(
+              button: true,
+              toggled: isVoiceMuted,
+              label: isVoiceMuted
+                  ? 'Voice guidance muted'
+                  : 'Voice guidance on',
+              onTap: onToggleVoice,
+              excludeSemantics: true,
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: Material(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: onToggleVoice,
+                      customBorder: const CircleBorder(),
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: Icon(
+                          isVoiceMuted
+                              ? Icons.volume_off_rounded
+                              : Icons.volume_up_rounded,
+                          color: isVoiceMuted
+                              ? Colors.white.withValues(alpha: 0.3)
+                              : Colors.white.withValues(alpha: 0.8),
+                          size: 16,
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1008,55 +1031,52 @@ class _DestinationChip extends StatelessWidget {
       onTap: onTap,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF241C10)
+                : Colors.black.withValues(alpha: 0.78),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
               color: isSelected
-                  ? const Color(0xFF241C10)
-                  : Colors.black.withValues(alpha: 0.65),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isSelected
-                    ? const Color(0xFFFF8A00).withValues(alpha: 0.7)
-                    : Colors.white.withValues(alpha: 0.1),
-                width: 1,
-              ),
+                  ? const Color(0xFFFF8A00).withValues(alpha: 0.7)
+                  : Colors.white.withValues(alpha: 0.1),
+              width: 1,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  destination.categoryIcon,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                destination.categoryIcon,
+                color: isSelected
+                    ? const Color(0xFFFF8A00)
+                    : Colors.white.withValues(alpha: 0.6),
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                destination.title,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white70,
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${destination.distanceKm} km',
+                style: TextStyle(
                   color: isSelected
                       ? const Color(0xFFFF8A00)
-                      : Colors.white.withValues(alpha: 0.6),
-                  size: 16,
+                      : Colors.white.withValues(alpha: 0.4),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  destination.title,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.white70,
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${destination.distanceKm} km',
-                  style: TextStyle(
-                    color: isSelected
-                        ? const Color(0xFFFF8A00)
-                        : Colors.white.withValues(alpha: 0.4),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1081,48 +1101,45 @@ class _MapControlDeck extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.12),
-              width: 1,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.84),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.12),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const _ControlIconButton(
+              icon: Icons.my_location_rounded,
+              tooltip: 'Recenter — unavailable in prototype',
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const _ControlIconButton(
-                icon: Icons.my_location_rounded,
-                tooltip: 'Recenter — unavailable in prototype',
-              ),
-              const _DividerLine(),
-              const _ControlIconButton(
-                icon: Icons.add_rounded,
-                tooltip: 'Zoom in — unavailable in prototype',
-              ),
-              const _ControlIconButton(
-                icon: Icons.remove_rounded,
-                tooltip: 'Zoom out — unavailable in prototype',
-              ),
-              const _DividerLine(),
-              _ControlIconButton(
-                icon: Icons.traffic_rounded,
-                active: isTrafficEnabled,
-                isToggle: true,
-                tooltip: 'Traffic',
-                onTap: onToggleTraffic,
-              ),
-              const _ControlIconButton(
-                icon: Icons.view_in_ar_rounded,
-                tooltip: '3D view — unavailable in prototype',
-              ),
-            ],
-          ),
+            const _DividerLine(),
+            const _ControlIconButton(
+              icon: Icons.add_rounded,
+              tooltip: 'Zoom in — unavailable in prototype',
+            ),
+            const _ControlIconButton(
+              icon: Icons.remove_rounded,
+              tooltip: 'Zoom out — unavailable in prototype',
+            ),
+            const _DividerLine(),
+            _ControlIconButton(
+              icon: Icons.traffic_rounded,
+              active: isTrafficEnabled,
+              isToggle: true,
+              tooltip: 'Traffic',
+              onTap: onToggleTraffic,
+            ),
+            const _ControlIconButton(
+              icon: Icons.view_in_ar_rounded,
+              tooltip: '3D view — unavailable in prototype',
+            ),
+          ],
         ),
       ),
     );
@@ -1229,133 +1246,130 @@ class _TripTelemetryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.10),
-              width: 1,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.10),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // Speed & Speed Limit Sign
+            Row(
+              children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$speedKmh',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'km/h',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFFF5252),
+                      width: 2,
+                    ),
+                    color: Colors.white,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$speedLimitKmh',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              // Speed & Speed Limit Sign
-              Row(
-                children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '$speedKmh',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'km/h',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.45),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
+
+            _TelemetryDivider(),
+
+            // Distance remaining
+            _TelemetryItem(
+              icon: Icons.straighten_rounded,
+              label: 'Distance',
+              value: distanceRemaining,
+            ),
+
+            _TelemetryDivider(),
+
+            // Duration remaining / ETA
+            _TelemetryItem(
+              icon: Icons.timer_outlined,
+              label: 'Duration',
+              value: durationRemaining,
+            ),
+
+            _TelemetryDivider(),
+
+            // Battery on arrival
+            _TelemetryItem(
+              icon: Icons.battery_charging_full_rounded,
+              iconColor: const Color(0xFF00E676),
+              label: 'Battery Arrival',
+              value: batteryOnArrival,
+            ),
+
+            _TelemetryDivider(),
+
+            // Route mode toggle
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.alt_route_rounded,
+                  color: Color(0xFFFF8A00),
+                  size: 16,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  routeType,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFFF5252),
-                        width: 2,
-                      ),
-                      color: Colors.white,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '$speedLimitKmh',
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Simulated',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w400,
                   ),
-                ],
-              ),
-
-              _TelemetryDivider(),
-
-              // Distance remaining
-              _TelemetryItem(
-                icon: Icons.straighten_rounded,
-                label: 'Distance',
-                value: distanceRemaining,
-              ),
-
-              _TelemetryDivider(),
-
-              // Duration remaining / ETA
-              _TelemetryItem(
-                icon: Icons.timer_outlined,
-                label: 'Duration',
-                value: durationRemaining,
-              ),
-
-              _TelemetryDivider(),
-
-              // Battery on arrival
-              _TelemetryItem(
-                icon: Icons.battery_charging_full_rounded,
-                iconColor: const Color(0xFF00E676),
-                label: 'Battery Arrival',
-                value: batteryOnArrival,
-              ),
-
-              _TelemetryDivider(),
-
-              // Route mode toggle
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.alt_route_rounded,
-                    color: Color(0xFFFF8A00),
-                    size: 16,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    routeType,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Simulated',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.55),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -1430,25 +1444,18 @@ class _HeaderCloseButton extends StatelessWidget {
       onTap: onClose,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.72),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.12),
-                width: 1,
-              ),
-            ),
-            child: const Icon(
-              Icons.close_rounded,
-              color: Colors.white,
-              size: 20,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.84),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.12),
+              width: 1,
             ),
           ),
+          child: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
         ),
       ),
     );

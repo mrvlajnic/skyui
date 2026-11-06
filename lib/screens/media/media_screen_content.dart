@@ -20,6 +20,13 @@ class MediaTrack {
   });
 }
 
+String _formatMediaTime(double seconds) {
+  final int sec = seconds.toInt();
+  final int m = sec ~/ 60;
+  final int s = sec % 60;
+  return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+}
+
 /// Automotive Music & Sound Experience for Veltron OS (SkyUI)
 ///
 /// Designed to occupy Sections 1 & 2 of the 21:9 ultrawide cockpit layout,
@@ -102,7 +109,9 @@ class _MediaScreenContentState extends State<MediaScreenContent>
   int _repeatMode = 1; // 0: off, 1: all, 2: one
   int _soundStageIndex = 0; // 0: Meridian 3D, 1: Driver Focus, 2: All Cabin
 
-  double _playbackPosition = 135.0; // in seconds (02:15)
+  final ValueNotifier<double> _playbackPosition = ValueNotifier<double>(
+    135.0, // in seconds (02:15)
+  );
   double _volumeLevel = 0.75;
   bool _isMuted = false;
 
@@ -137,6 +146,7 @@ class _MediaScreenContentState extends State<MediaScreenContent>
   void dispose() {
     DriveModeService.instance.state.removeListener(_onDriveModeChanged);
     _playbackTimer?.cancel();
+    _playbackPosition.dispose();
     _rotationController.dispose();
     _waveController.dispose();
     super.dispose();
@@ -164,10 +174,8 @@ class _MediaScreenContentState extends State<MediaScreenContent>
     _playbackTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!_isPlaying || !mounted) return;
       final maxDuration = _queue[_currentTrackIndex].durationSeconds.toDouble();
-      if (_playbackPosition < maxDuration) {
-        setState(() {
-          _playbackPosition += 1.0;
-        });
+      if (_playbackPosition.value < maxDuration) {
+        _playbackPosition.value += 1.0;
       } else {
         _playNext();
       }
@@ -184,20 +192,21 @@ class _MediaScreenContentState extends State<MediaScreenContent>
   void _playNext() {
     setState(() {
       _currentTrackIndex = (_currentTrackIndex + 1) % _queue.length;
-      _playbackPosition = 0.0;
     });
+    _playbackPosition.value = 0.0;
   }
 
   void _playPrevious() {
+    if (_playbackPosition.value > 5.0) {
+      _playbackPosition.value = 0.0;
+      return;
+    }
+
     setState(() {
-      if (_playbackPosition > 5.0) {
-        _playbackPosition = 0.0;
-      } else {
-        _currentTrackIndex =
-            (_currentTrackIndex - 1 + _queue.length) % _queue.length;
-        _playbackPosition = 0.0;
-      }
+      _currentTrackIndex =
+          (_currentTrackIndex - 1 + _queue.length) % _queue.length;
     });
+    _playbackPosition.value = 0.0;
   }
 
   void _selectSource(int index) {
@@ -209,17 +218,10 @@ class _MediaScreenContentState extends State<MediaScreenContent>
     if (DriveModeService.instance.isDriving) return;
     setState(() {
       _currentTrackIndex = index;
-      _playbackPosition = 0.0;
       _isPlaying = true;
     });
+    _playbackPosition.value = 0.0;
     _syncPlaybackActivity();
-  }
-
-  String _formatTime(double seconds) {
-    final int sec = seconds.toInt();
-    final int m = sec ~/ 60;
-    final int s = sec % 60;
-    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -258,14 +260,13 @@ class _MediaScreenContentState extends State<MediaScreenContent>
             isMuted: _isMuted,
             rotationAnimation: _rotationController,
             waveAnimation: _waveController,
-            formattedElapsed: _formatTime(_playbackPosition),
             onTogglePlay: _togglePlayPause,
             onNext: _playNext,
             onPrevious: _playPrevious,
             onToggleShuffle: () => setState(() => _isShuffle = !_isShuffle),
             onToggleRepeat: () =>
                 setState(() => _repeatMode = (_repeatMode + 1) % 3),
-            onSeek: (val) => setState(() => _playbackPosition = val),
+            onSeek: (val) => _playbackPosition.value = val,
             onSelectSoundStage: (index) =>
                 setState(() => _soundStageIndex = index),
             onVolumeChange: (val) => setState(() {
@@ -569,7 +570,6 @@ class _LibraryQueueCard extends StatelessWidget {
 
 class _NowPlayingHeroCard extends StatelessWidget {
   final MediaTrack currentTrack;
-  final double playbackPosition;
   final bool isPlaying;
   final bool isShuffle;
   final int repeatMode;
@@ -578,7 +578,7 @@ class _NowPlayingHeroCard extends StatelessWidget {
   final bool isMuted;
   final AnimationController rotationAnimation;
   final AnimationController waveAnimation;
-  final String formattedElapsed;
+  final ValueNotifier<double> playbackPosition;
   final VoidCallback onTogglePlay;
   final VoidCallback onNext;
   final VoidCallback onPrevious;
@@ -592,7 +592,6 @@ class _NowPlayingHeroCard extends StatelessWidget {
 
   const _NowPlayingHeroCard({
     required this.currentTrack,
-    required this.playbackPosition,
     required this.isPlaying,
     required this.isShuffle,
     required this.repeatMode,
@@ -601,7 +600,7 @@ class _NowPlayingHeroCard extends StatelessWidget {
     required this.isMuted,
     required this.rotationAnimation,
     required this.waveAnimation,
-    required this.formattedElapsed,
+    required this.playbackPosition,
     required this.onTogglePlay,
     required this.onNext,
     required this.onPrevious,
@@ -801,49 +800,63 @@ class _NowPlayingHeroCard extends StatelessWidget {
           // ── Timeline Progress Scrubber ─────────────────────────────────────
           Column(
             children: [
-              SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  trackHeight: 3,
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 6,
-                  ),
-                  overlayShape: const RoundSliderOverlayShape(
-                    overlayRadius: 12,
-                  ),
-                  activeTrackColor: const Color(0xFF00C8FF),
-                  inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
-                  thumbColor: Colors.white,
-                ),
-                child: Slider(
-                  value: playbackPosition.clamp(0.0, maxDuration),
-                  min: 0.0,
-                  max: maxDuration,
-                  onChanged: onSeek,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      formattedElapsed,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w400,
+              // Only the scrubber thumb/elapsed text rebuild each second.
+              ValueListenableBuilder<double>(
+                valueListenable: playbackPosition,
+                builder: (context, position, child) {
+                  return Column(
+                    children: [
+                      SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 3,
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 6,
+                          ),
+                          overlayShape: const RoundSliderOverlayShape(
+                            overlayRadius: 12,
+                          ),
+                          activeTrackColor: const Color(0xFF00C8FF),
+                          inactiveTrackColor:
+                              Colors.white.withValues(alpha: 0.1),
+                          thumbColor: Colors.white,
+                        ),
+                        child: Slider(
+                          value: position.clamp(0.0, maxDuration),
+                          min: 0.0,
+                          max: maxDuration,
+                          onChanged: onSeek,
+                        ),
                       ),
-                    ),
-                    Text(
-                      currentTrack.duration,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w400,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _formatMediaTime(position),
+                              style: TextStyle(
+                                color:
+                                    Colors.white.withValues(alpha: 0.5),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                            Text(
+                              currentTrack.duration,
+                              style: TextStyle(
+                                color:
+                                    Colors.white.withValues(alpha: 0.5),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -1012,70 +1025,75 @@ class _RotatingVinylDisc extends StatelessWidget {
       builder: (context, child) {
         return Transform.rotate(
           angle: animation.value * 2 * math.pi,
-          child: child,
+          // Repaint boundary keeps the static vinyl decoration rasterized;
+          // only the outer transform matrix changes each frame.
+          child: RepaintBoundary(child: child!),
         );
       },
-      child: Container(
-        width: 140,
-        height: 140,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: const Color(0xFF0D0F14),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.25),
-            width: 2,
+      child: RepaintBoundary(
+        child: Container(
+          width: 140,
+          height: 140,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color(0xFF0D0F14),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.25),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.8),
+                blurRadius: 20,
+                spreadRadius: 4,
+              ),
+              BoxShadow(
+                color: Color(0xFF00A3FF).withValues(alpha: 0.2),
+                blurRadius: 24,
+                spreadRadius: -4,
+              ),
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.8),
-              blurRadius: 20,
-              spreadRadius: 4,
-            ),
-            BoxShadow(
-              color: const Color(0xFF00A3FF).withValues(alpha: 0.2),
-              blurRadius: 24,
-              spreadRadius: -4,
-            ),
-          ],
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Vinyl grooves simulation
-            CustomPaint(
-              size: const Size(140, 140),
-              painter: _VinylGroovesPainter(),
-            ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Vinyl grooves simulation
+              CustomPaint(
+                size: Size(140, 140),
+                painter: _VinylGroovesPainter(),
+              ),
 
-            // Center Label Disc
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const RadialGradient(
-                  colors: [Color(0xFF0072FF), Color(0xFF002244)],
+              // Center Label Disc
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [Color(0xFF0072FF), Color(0xFF002244)],
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
                 ),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.4),
-                  width: 1.5,
+                child: Center(
+                  child: Icon(Icons.album_rounded,
+                      color: Colors.white, size: 22),
                 ),
               ),
-              child: const Center(
-                child: Icon(Icons.album_rounded, color: Colors.white, size: 22),
-              ),
-            ),
 
-            // Center spindle hole
-            Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
-                color: Color(0xFF07090F),
-                shape: BoxShape.circle,
+              // Center spindle hole
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Color(0xFF07090F),
+                  shape: BoxShape.circle,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1137,17 +1155,28 @@ class _AudioSpectrumPainter extends CustomPainter {
   final double progress;
   final bool isPlaying;
 
-  const _AudioSpectrumPainter({
+  // Pre-built paints so each frame reuses instances instead of allocating
+  // 24 Paint + 24 RRect objects per paint cycle. Visual output is unchanged.
+  final List<Paint> _playingPaints;
+  final Paint _idlePaint;
+
+  _AudioSpectrumPainter({
     required this.progress,
     required this.isPlaying,
-  });
+  })  : _playingPaints = List.generate(
+          24,
+          (index) => Paint()
+            ..color = const Color(0xFF00C8FF).withValues(
+                  alpha: (0.4 + (index / 24) * 0.6).clamp(0.0, 1.0),
+                ),
+        ),
+        _idlePaint = Paint()..color = Colors.white24;
 
   @override
   void paint(Canvas canvas, Size size) {
     const barCount = 24;
     const barWidth = 3.5;
     final slotWidth = size.width / barCount;
-    final paint = Paint();
 
     for (var index = 0; index < barCount; index++) {
       final wave = isPlaying
@@ -1162,14 +1191,9 @@ class _AudioSpectrumPainter extends CustomPainter {
         barWidth,
         barHeight,
       );
-      paint.color = isPlaying
-          ? const Color(0xFF00C8FF).withValues(
-              alpha: (0.4 + (index / barCount) * 0.6).clamp(0.0, 1.0),
-            )
-          : Colors.white24;
       canvas.drawRRect(
         RRect.fromRectAndRadius(rect, const Radius.circular(2)),
-        paint,
+        isPlaying ? _playingPaints[index] : _idlePaint,
       );
     }
   }

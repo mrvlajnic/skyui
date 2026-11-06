@@ -4,9 +4,9 @@
 
 ## Project status
 
-SkyUI is an automotive-styled Flutter HMI prototype for the future Veltron ecosystem. It is not production software, a vehicle controller, a certified automotive HMI, or a security-validated platform.
+SkyUI is the HMI and digital-cockpit concept for the Veltron Auto V1 SportLine direction. Veltron Auto is an independent automotive R&D studio in Belgrade, Serbia, led by Boris Vlajnić; SkyUI supports that studio's V1 SportLine concept and its stated focus on driver-centered design, UX, and engineering.
 
-The current evidence boundary is a 1680×720 landscape simulator. Physical display, broader resolution, accessibility, performance, lifecycle, safety, security, hardware, and compliance behavior are unverified.
+The project has an automotive-grade design and engineering direction. It is not production software, a vehicle controller, a certified automotive HMI, or a security-validated platform. The current evidence boundary is a 1680×720 landscape simulator. Physical display, broader resolution, accessibility, performance, lifecycle, safety, security, hardware, and compliance behavior are unverified.
 
 ## Current structure
 
@@ -63,7 +63,7 @@ Always:
 
 Never:
 
-- Call the app automotive-grade, certified, production-safe, cyber-secure, 60 FPS validated, or fully offline without documented target-platform evidence and approval.
+- Use `automotive-grade` only for the documented design/engineering direction; never present it as certified, production-safe, cyber-secure, 60 FPS validated, or fully offline without target-platform evidence and approval.
 - Use a debug widget state as a vehicle, safety, or trust source.
 - Claim responsiveness or frame-rate performance without a documented test matrix and target-device measurements.
 - Claim offline web operation while external fallback fonts are possible.

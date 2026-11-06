@@ -16,6 +16,12 @@ class PhoneScreen extends StatefulWidget {
   State<PhoneScreen> createState() => _PhoneScreenState();
 }
 
+String _formatCallDuration(int totalSeconds) {
+  final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+  final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+  return '$minutes:$seconds';
+}
+
 class _PhoneScreenState extends State<PhoneScreen> {
   int _selectedSubTab = 0;
   String _dialedNumber = '';
@@ -23,7 +29,7 @@ class _PhoneScreenState extends State<PhoneScreen> {
   // Active call state
   bool _isInCall = false;
   bool _isMuted = false;
-  int _callDurationSeconds = 0;
+  final ValueNotifier<int> _callDurationSeconds = ValueNotifier<int>(0);
   Timer? _callTimer;
 
   // Active contact info
@@ -69,6 +75,7 @@ class _PhoneScreenState extends State<PhoneScreen> {
   @override
   void dispose() {
     _callTimer?.cancel();
+    _callDurationSeconds.dispose();
     super.dispose();
   }
 
@@ -76,9 +83,7 @@ class _PhoneScreenState extends State<PhoneScreen> {
     _callTimer?.cancel();
     _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_isInCall && mounted) {
-        setState(() {
-          _callDurationSeconds++;
-        });
+        _callDurationSeconds.value++;
       }
     });
   }
@@ -110,7 +115,7 @@ class _PhoneScreenState extends State<PhoneScreen> {
       _activeCallerInitial = number.replaceAll('+', '').isNotEmpty
           ? number.replaceAll('+', '')[0].toUpperCase()
           : 'P';
-      _callDurationSeconds = 0;
+      _callDurationSeconds.value = 0;
     });
     _startCallTimer();
     widget.onCallStateChanged?.call(true);
@@ -130,12 +135,6 @@ class _PhoneScreenState extends State<PhoneScreen> {
       _dialedNumber = item.number;
       _selectedSubTab = 0;
     });
-  }
-
-  String _formatCallDuration(int totalSeconds) {
-    final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
-    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
   }
 
   @override
@@ -169,7 +168,7 @@ class _PhoneScreenState extends State<PhoneScreen> {
           child: _RightDeviceCard(
             isInCall: _isInCall,
             isMuted: _isMuted,
-            callDuration: _formatCallDuration(_callDurationSeconds),
+            callDurationNotifier: _callDurationSeconds,
             callerName: _activeCallerName,
             callerNumber: _activeCallerNumber,
             callerInitial: _activeCallerInitial,
@@ -668,12 +667,12 @@ class _KeypadButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(12),
           child: Container(
-            width: 52,
+            width: 84,
             height: 52,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(12),
               color: Colors.white.withValues(alpha: 0.04),
               border: Border.all(
                 color: Colors.white.withValues(alpha: 0.06),
@@ -941,7 +940,7 @@ class _RecentCallTile extends StatelessWidget {
 class _RightDeviceCard extends StatelessWidget {
   final bool isInCall;
   final bool isMuted;
-  final String callDuration;
+  final ValueNotifier<int> callDurationNotifier;
   final String callerName;
   final String callerNumber;
   final String callerInitial;
@@ -953,7 +952,7 @@ class _RightDeviceCard extends StatelessWidget {
   const _RightDeviceCard({
     required this.isInCall,
     required this.isMuted,
-    required this.callDuration,
+    required this.callDurationNotifier,
     required this.callerName,
     required this.callerNumber,
     required this.callerInitial,
@@ -1080,7 +1079,7 @@ class _RightDeviceCard extends StatelessWidget {
                   child: _InCallPanel(
                     isInCall: isInCall,
                     isMuted: isMuted,
-                    callDuration: callDuration,
+                    callDurationNotifier: callDurationNotifier,
                     callerName: callerName,
                     callerNumber: callerNumber,
                     callerInitial: callerInitial,
@@ -1283,7 +1282,7 @@ class _PhoneWallpaperPainter extends CustomPainter {
 class _InCallPanel extends StatelessWidget {
   final bool isInCall;
   final bool isMuted;
-  final String callDuration;
+  final ValueNotifier<int> callDurationNotifier;
   final String callerName;
   final String callerNumber;
   final String callerInitial;
@@ -1295,7 +1294,7 @@ class _InCallPanel extends StatelessWidget {
   const _InCallPanel({
     required this.isInCall,
     required this.isMuted,
-    required this.callDuration,
+    required this.callDurationNotifier,
     required this.callerName,
     required this.callerNumber,
     required this.callerInitial,
@@ -1393,13 +1392,18 @@ class _InCallPanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                callDuration,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                ),
+              ValueListenableBuilder<int>(
+                valueListenable: callDurationNotifier,
+                builder: (context, seconds, child) {
+                  return Text(
+                    _formatCallDuration(seconds),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  );
+                },
               ),
             ],
           )

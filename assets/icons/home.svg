@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!-- Veltron sidebar "Home". Recreated from the user's reference crop
+       (2026-11-06): rounded-stroke outline house with a soft apex and a
+       bottom-center door notch. Rendered in-app by SkyIcons.home
+       (lib/core/icons/sky_icons.dart) via lib/core/icons/sky_icon.dart. -->
+  <path
+    d="M4.5 10.5 12 3.9l7.5 6.6v8a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-8Z"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M9.5 20.5v-5.1a1.4 1.4 0 0 1 1.4-1.4h2.2a1.4 1.4 0 0 1 1.4 1.4v5.1"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

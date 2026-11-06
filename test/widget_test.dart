@@ -327,4 +327,27 @@ void main() {
     await tester.pump();
     expect(driveMode.isDriving, isFalse);
   });
+
+  testWidgets('Preloader reveals the app after boot', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1680, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const SkyUIApp(showPreloader: true));
+
+    expect(find.byKey(const ValueKey('app-preloader')), findsOneWidget);
+    expect(find.byType(SafeArea), findsOneWidget);
+
+    // The boot ticker starts on the frame after the post-frame callback.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1600));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('app-preloader')), findsNothing);
+    expect(find.text('PARKED'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

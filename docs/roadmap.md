@@ -2,7 +2,7 @@
 
 Package version: `0.3.0-alpha+1`
 
-Status: prototype hardening before any vehicle connection
+Status: Veltron Auto V1 SportLine HMI concept hardening before any vehicle connection
 
 ## Roadmap policy
 

@@ -1,0 +1,23 @@
+{
+"A4_gauges_screen_on": {
+    "name": "A4_gauges_screen",
+    "mapTo": "A4_gauges_screen",
+    "class": "Material",
+    "persistentId": "e5a59033-f6c6-4fe7-8e18-fe3b619122e8",
+    "Stages": [
+      {
+        "colorMap": "@A4_gauges_screen",
+        "emissive": true,
+        "specularMap": "vehicles/common/null.dds",
+        "useAnisotropic": true
+      },
+      {},
+      {},
+      {}
+    ],
+    "materialTag0": "elgorilla",
+    "materialTag1": "vehicle",
+    "translucent": true,
+    "translucentBlendOp": "AddAlpha"
+  },
+}

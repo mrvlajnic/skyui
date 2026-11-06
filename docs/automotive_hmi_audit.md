@@ -6,6 +6,12 @@ Verzija audita: `0.3.0-alpha+1`
 
 Konkretna komponenta: Flutter UI / lokalni web simulator
 
+## Veltron Auto kontekst
+
+Veltron Auto je nezavisan automotive R&D studio u Beogradu, predvođen Borisom Vlajnićem, Founder and Automotive Design Director. V1 SportLine je njegov performance concept, a SkyUI predstavlja HMI/digital-cockpit pravac te koncepcije.
+
+Cilj je automotive-grade design i engineering direction. Ovaj audit ne pretvara taj cilj u tvrdnju da je trenutni prototip certificiran ili validiran na vozilu.
+
 ## Zaključak
 
 SkyUI je dovoljno funkcionalan kao interni, mock-based HMI prototip za cockpit simulator na landscape baseline-u 1680×720. Nije spreman za povezivanje na vozilo, distribuciju vozačima ili bilo kakvu bezbednosnu tvrdnju. Trenutni kod nema backend, remote telemetry, crash reporting, analytics ili cloud sync.

@@ -649,6 +649,13 @@ class _NavCardOverlay extends StatelessWidget {
       onTap: navigationExpanded ? null : onTap,
       child: AnimatedBuilder(
         animation: expandProgress,
+        // Built once per parent rebuild instead of once per animation tick.
+        // Rebuilding the whole module here caused the visible hitch at the
+        // end of the expansion.
+        child: FadeTransition(
+          opacity: navContentOpacity,
+          child: NavigationScreenContent(onClose: onClose),
+        ),
         builder: (context, child) {
           return Stack(
             fit: StackFit.expand,
@@ -660,11 +667,7 @@ class _NavCardOverlay extends StatelessWidget {
               ),
 
               // ── Full-screen navigation content (fades in) ─────────────────
-              if (navContentOpacity.value > 0)
-                FadeTransition(
-                  opacity: navContentOpacity,
-                  child: NavigationScreenContent(onClose: onClose),
-                ),
+              if (navContentOpacity.value > 0) child!,
             ],
           );
         },
@@ -703,6 +706,15 @@ class _PhoneCardOverlay extends StatelessWidget {
       onTap: phoneExpanded ? null : onTap,
       child: AnimatedBuilder(
         animation: expandProgress,
+        // Same child-caching as the nav overlay: never rebuild the module
+        // subtree from an animation tick.
+        child: FadeTransition(
+          opacity: phoneContentOpacity,
+          child: PhoneScreen(
+            onClose: onClose,
+            onCallStateChanged: onCallStateChanged,
+          ),
+        ),
         builder: (context, child) {
           return Stack(
             fit: StackFit.expand,
@@ -714,14 +726,7 @@ class _PhoneCardOverlay extends StatelessWidget {
               ),
 
               // ── Full-screen PhoneScreen content (fades in) ─────────────────
-              if (phoneContentOpacity.value > 0 || keepContentMounted)
-                FadeTransition(
-                  opacity: phoneContentOpacity,
-                  child: PhoneScreen(
-                    onClose: onClose,
-                    onCallStateChanged: onCallStateChanged,
-                  ),
-                ),
+              if (phoneContentOpacity.value > 0 || keepContentMounted) child!,
             ],
           );
         },
@@ -756,6 +761,11 @@ class _MediaCardOverlay extends StatelessWidget {
       onTap: mediaExpanded ? null : onTap,
       child: AnimatedBuilder(
         animation: expandProgress,
+        // Same child-caching as the nav overlay.
+        child: FadeTransition(
+          opacity: mediaContentOpacity,
+          child: MediaScreenContent(onClose: onClose),
+        ),
         builder: (context, child) {
           return Stack(
             fit: StackFit.expand,
@@ -767,11 +777,7 @@ class _MediaCardOverlay extends StatelessWidget {
               ),
 
               // ── Full Sections 1 & 2 MediaScreenContent (fades in) ─────────
-              if (mediaContentOpacity.value > 0)
-                FadeTransition(
-                  opacity: mediaContentOpacity,
-                  child: MediaScreenContent(onClose: onClose),
-                ),
+              if (mediaContentOpacity.value > 0) child!,
             ],
           );
         },

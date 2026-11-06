@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!-- Veltron sidebar "Navigation": tilted paper plane with spine fold.
+       Rendered in-app by SkyIcons.navigation (lib/core/icons/sky_icons.dart). -->
+  <path
+    d="M20.4 3.6L3.6 9.8L10.2 14.2L14.2 20.4ZM20.4 3.6L10.2 14.2"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

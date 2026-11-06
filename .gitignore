@@ -1,3 +1,13 @@
+# Audi A4 B9 MMI reference screenshots (external research material, not committed)
+docs/reference/audi-a4-b9-mmi/images/
+
+# Local generated video/reporting artifacts (not committed)
+.opencode/
+brag-output/
+brag-output-*/
+my-video/
+docs/brag/
+
 # Miscellaneous
 *.class
 *.log

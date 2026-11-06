@@ -1,6 +1,6 @@
 # SkyUI Draft Prototype Notice
 
-**Product:** SkyUI HMI Prototype
+**Product:** SkyUI HMI Concept for Veltron Auto V1 SportLine
 
 **Package version:** `0.3.0-alpha+1`
 
@@ -103,4 +103,6 @@ This notice applies to package version `0.3.0-alpha+1` and the current prototype
 
 ## 12. Contact
 
-No verified legal entity address, privacy contact, security reporting address, or engineering escalation channel is currently documented. The repository owner must publish approved contact channels before external distribution.
+The public Veltron Auto studio contact listed on `veltroncars.com` is `office@veltroncars.com`.
+
+A separate legal entity address, privacy contact, security reporting address, and engineering escalation channel still require owner confirmation before external distribution. Do not use the public studio address as a substitute for an approved safety or security incident channel.

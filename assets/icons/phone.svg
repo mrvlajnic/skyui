@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!-- Veltron sidebar "Phone": handset outline scaled 0.85 about the center.
+       Rendered in-app by SkyIcons.phone (lib/core/icons/sky_icons.dart). -->
+  <path
+    d="M20.5 16.18L20.5 18.73A1.7 1.7 0 0 1 18.65 20.43A16.82 16.82 0 0 1 11.31 17.82A16.58 16.58 0 0 1 6.21 12.72A16.82 16.82 0 0 1 3.6 5.35A1.7 1.7 0 0 1 5.29 3.5L7.84 3.5A1.7 1.7 0 0 1 9.54 4.96A10.91 10.91 0 0 0 10.14 7.35A1.7 1.7 0 0 1 9.76 9.14L8.68 10.22A13.6 13.6 0 0 0 13.78 15.32L14.86 14.24A1.7 1.7 0 0 1 16.65 13.86A10.91 10.91 0 0 0 19.04 14.46A1.7 1.7 0 0 1 20.5 16.18Z"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+</svg>

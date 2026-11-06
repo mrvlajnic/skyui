@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to SkyUI are documented here. The format follows Keep a Changelog, and package versioning follows Semantic Versioning where applicable.
+All notable changes to the Veltron Auto SkyUI HMI concept are documented here. The format follows Keep a Changelog, and package versioning follows Semantic Versioning where applicable.
 
 ## Unreleased — HMI audit hardening
 

@@ -1,0 +1,44 @@
+<html ng-app="gaugesScreen">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    if(typeof elgorilla !== 'undefined') {
+    }
+    else{ //for vueService
+      var elgorilla = {}
+      elgorilla.sendEngineLua = function(){}
+    }
+  </script>
+  <!-- Vue START -->
+  <script src="/ui/lib/ext/vue3/vue.global.prod.js"></script>
+  <script src="/ui/lib/ext/vue-i18n-next/vue-i18n.global.prod.js"></script>
+  <script src="/ui/lib/ext/tiny-emitter/tinyemitter.js"></script>
+  <script src="/ui/lib/int/vueService.js"></script>
+  <!-- Vue END -->
+  <script src="/ui/lib/ext/angular/angular.js"></script>
+  <script src="gauges_screen.js"></script>
+  <link type="text/css" rel="stylesheet" href="gauges_screen.css">
+</head>
+
+<body ng-controller="GaugesScreenController as gaugeCtrl">
+  <div class="gauge">
+    <div class="center-screen">
+      <div class="speed" style="position: absolute; top: 98px; left: 230px">
+        <div class="speedVal">{{data.speedVal}}</div>
+        <div class="speedUnit">{{data.speedUnit}}</div>
+      </div>
+      <div class="temp" style="position: absolute; top: 223px; left: 310px">{{data.temp}}</div>
+      <div class="time" style="position: absolute; top: 223px; left: 120px">{{data.time}}</div>
+      <div class="consumption">
+        <div class="consumptionVal" style="position: absolute; top: 176px; left: 45px">{{data.consumptionVal}}</div>
+        <div class="consumptionUnit" style="position: absolute; top: 176px; left: 195px">{{data.consumptionUnit}}</div>
+      </div>
+      <div class="odo" style="position: absolute; top: 180px; left: 320px">{{data.odo}}</div>
+    </div>
+    <div class="gear-screen" style="position: absolute; top: 224px; left: 230px">
+      <div >{{data.gear}}</div>
+    </div>
+    <div style="right: 25px; bottom: 22px; position: absolute;" ng-include="'gauges_screen.svg'" onload="svgLoaded()"></div>
+</body>
+
+</html>

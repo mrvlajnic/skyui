@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/drive_mode_service.dart';
+import '../common/veltron_logo.dart';
 
 class Header extends StatelessWidget {
   const Header({super.key});
@@ -21,18 +22,7 @@ class Header extends StatelessWidget {
             left: 28,
             top: 0,
             bottom: 0,
-            child: Center(
-              child: Text(
-                'V',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 32,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -2,
-                  decoration: TextDecoration.none,
-                ),
-              ),
-            ),
+            child: Center(child: VeltronLogo(size: 30)),
           ),
           Center(
             child: Text(

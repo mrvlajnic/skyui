@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Veltron">
+  <!--
+    Veltron mark: two metallic ribbons forming a sharp V.
+    Source-of-truth geometry; the Dart painter in
+    lib/widgets/common/veltron_logo.dart mirrors these coordinates.
+  -->
+  <defs>
+    <linearGradient id="leftArm" gradientUnits="userSpaceOnUse" x1="24" y1="12" x2="46" y2="91">
+      <stop offset="0" stop-color="#B9BEC8"/>
+      <stop offset="0.5" stop-color="#F8F9FB"/>
+      <stop offset="1" stop-color="#5C6169"/>
+    </linearGradient>
+    <linearGradient id="rightArm" gradientUnits="userSpaceOnUse" x1="70" y1="16" x2="46" y2="91">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.55" stop-color="#D2D5DC"/>
+      <stop offset="1" stop-color="#454952"/>
+    </linearGradient>
+  </defs>
+  <!-- left ribbon (raised cap, tilted) -->
+  <path d="M8 20 L42 10 L46 91 Z" fill="url(#leftArm)"/>
+  <!-- right ribbon (taller, forward-leaning) -->
+  <path d="M47 12 L90 24 L46 91 Z" fill="url(#rightArm)"/>
+  <!-- junction crease: depth knot where both ribbons meet -->
+  <path d="M46 91 L44.5 66 L47.2 66 Z" fill="#000000" opacity="0.30"/>
+</svg>

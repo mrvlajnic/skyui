@@ -2,7 +2,13 @@
 
 Package version: `0.3.0-alpha+1`
 
-Status: partial prototype architecture with a target layered direction
+Status: partial Veltron Auto V1 SportLine HMI concept architecture with a target layered direction
+
+## Veltron Auto context
+
+Veltron Auto is an independent automotive R&D studio in Belgrade, Serbia, led by Boris Vlajnić. V1 SportLine is its performance concept. SkyUI is the HMI and digital-cockpit pillar of that concept.
+
+The target is an automotive-grade design and engineering direction. The current code is a prototype UI and does not represent a certified vehicle platform.
 
 ## Purpose
 

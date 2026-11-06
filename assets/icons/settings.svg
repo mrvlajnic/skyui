@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!-- Veltron sidebar "Settings": 8-tooth gear with one tooth at 12 o'clock.
+       Rendered in-app by SkyIcons.settings (lib/core/icons/sky_icons.dart). -->
+  <path
+    d="M10.4 4.47L10.78 2.07L13.22 2.07L13.6 4.47L16.19 5.54L18.16 4.12L19.88 5.84L18.46 7.81L19.53 10.4L21.93 10.78L21.93 13.22L19.53 13.6L18.46 16.19L19.88 18.16L18.16 19.88L16.19 18.46L13.6 19.53L13.22 21.93L10.78 21.93L10.4 19.53L7.81 18.46L5.84 19.88L4.12 18.16L5.54 16.19L4.47 13.6L2.07 13.22L2.07 10.78L4.47 10.4L5.54 7.81L4.12 5.84L5.84 4.12L7.81 5.54Z"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <circle cx="12" cy="12" r="3.4" stroke="currentColor" stroke-width="2"/>
+</svg>

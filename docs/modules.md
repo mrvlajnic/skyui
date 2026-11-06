@@ -2,7 +2,7 @@
 
 Package version: `0.3.0-alpha+1`
 
-Status: current UI prototype inventory
+Status: Veltron Auto V1 SportLine HMI concept inventory
 
 ## System overview
 
@@ -50,9 +50,11 @@ Current destinations:
 - Vehicle — disabled because the screen does not exist;
 - Settings — disabled because the screen does not exist.
 
-The selected item has a local active background, border, icon color, and indicator bar. There is no verified global sliding cursor between items.
+The selected item uses a subtle neutral rounded highlight behind a bright icon; there is no edge bar, border, glow, or accent color. There is no verified global sliding cursor between items.
 
-The current 90 dp rail and 56 dp item containers are implementation details at the 1680×720 baseline, not physical automotive measurements.
+Sidebar icons are custom stroke SVG recreations from `assets/icons/*.svg`, rendered through the `SkyIcons` pack (`lib/core/icons/`) rather than Material or Phosphor glyphs.
+
+The current 108 dp rail and adaptive 64–80 dp item rows are implementation details at the 1680×720 baseline, not physical automotive measurements. Labels are exposed through tooltip and Semantics rather than rendered in the rail.
 
 ## 3. Vehicle card
 

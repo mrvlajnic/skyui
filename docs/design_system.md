@@ -2,7 +2,7 @@
 
 Package version: `0.3.0-alpha+1`
 
-Status: prototype visual language and design requirements
+Status: Veltron Auto automotive-grade design direction and prototype requirements
 
 ## Purpose
 
@@ -12,7 +12,7 @@ The current implementation is partially tokenized. Inline colors, typography, sp
 
 ## Design philosophy
 
-SkyUI is an automotive-styled HMI prototype with a premium, calm, technical direction. It is intended to feel like a cockpit interface rather than a conventional mobile application, but that intention has not been validated on a vehicle display.
+SkyUI is the HMI design pillar of the Veltron Auto V1 SportLine concept. It has an automotive-grade design direction and is intended to feel like a cockpit interface rather than a conventional mobile application, but that intention has not been validated on a vehicle display.
 
 Design qualities:
 
@@ -84,7 +84,7 @@ Header
     └── Climate bar
 ```
 
-The fixed 90 dp sidebar and 84 dp header are implementation details, not a responsive guarantee. The 7:4:5 dashboard grid is a prototype baseline for later display validation.
+The fixed 108 dp sidebar and 84 dp header are implementation details, not a responsive guarantee. The 7:4:5 dashboard grid is a prototype baseline for later display validation.
 
 Every modified layout should document its supported viewport and its parked/driving policy.
 
