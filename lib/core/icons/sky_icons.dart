@@ -24,8 +24,13 @@ class SkyIcons {
   /// (`assets/icons/phone.svg`): handset outline.
   static const SkyIconData phone = SkyIconData.svg(_phonePath, filled: true);
 
-  /// Recreated 1:1 from `assets/icons/vehicle.svg`: front-view car.
-  static const SkyIconData vehicle = SkyIconData.svg(_vehiclePath);
+  /// Converted 1:1 from the user-supplied filled vehicle glyph
+  /// (`assets/icons/vehicle.svg`): front-view car with round
+  /// headlights and grille.
+  static const SkyIconData vehicle = SkyIconData.svg(
+    _vehiclePath,
+    filled: true,
+  );
 
   /// Converted 1:1 from the user-supplied filled settings glyph
   /// (`assets/icons/settings.svg`): gear with a center hub.
@@ -196,58 +201,107 @@ void _phonePath(Path path) {
   path.close();
 }
 
+/// Filled vehicle glyph, converted 1:1 from the user-supplied
+/// symbol source (94x74 viewBox, background-cell rect dropped; sub-
+/// paths with original winding). Same coordinates as
+/// assets/icons/vehicle.svg.
 void _vehiclePath(Path path) {
-  // Front-view car: rounded-roof body with a windshield line, headlights
-  // inside, wheels tucked under the floor.
-  path.moveTo(7.9, 9.6);
-  path.lineTo(16.1, 9.6);
-  path.arcToPoint(
-    const Offset(19.6, 13.1),
-    radius: const Radius.circular(3.5),
-    clockwise: true,
-  );
-  path.lineTo(19.6, 18.8);
-  path.arcToPoint(
-    const Offset(18.4, 20),
-    radius: const Radius.circular(1.2),
-    clockwise: true,
-  );
-  path.lineTo(5.6, 20);
-  path.arcToPoint(
-    const Offset(4.4, 18.8),
-    radius: const Radius.circular(1.2),
-    clockwise: true,
-  );
-  path.lineTo(4.4, 13.1);
-  path.arcToPoint(
-    const Offset(7.9, 9.6),
-    radius: const Radius.circular(3.5),
-    clockwise: true,
-  );
+  path.moveTo(17.59, 4.51);
+  path.cubicTo(18.09, 4.93, 18.81, 5.96, 19.19, 6.80);
+  path.cubicTo(19.84, 8.17, 20.03, 8.29, 20.95, 8.10);
+  path.cubicTo(22.13, 7.87, 22.70, 8.44, 22.24, 9.43);
+  path.cubicTo(22.09, 9.77, 21.98, 12.17, 21.94, 14.77);
+  path.cubicTo(21.90, 19.91, 21.79, 20.18, 19.54, 20.18);
+  path.cubicTo(18.39, 20.18, 17.13, 19.38, 17.13, 18.62);
+  path.cubicTo(17.13, 18.43, 14.89, 18.27, 11.99, 18.27);
+  path.cubicTo(7.41, 18.27, 6.80, 18.35, 6.58, 18.96);
+  path.cubicTo(6.23, 19.88, 5.70, 20.18, 4.29, 20.18);
+  path.cubicTo(2.11, 20.18, 1.81, 19.46, 1.92, 14.50);
+  path.cubicTo(1.96, 12.06, 1.89, 9.77, 1.70, 9.35);
+  path.cubicTo(1.31, 8.52, 2.11, 7.94, 3.22, 8.21);
+  path.cubicTo(3.83, 8.36, 4.14, 8.02, 4.82, 6.53);
+  path.cubicTo(5.28, 5.50, 6.08, 4.47, 6.54, 4.25);
+  path.cubicTo(7.03, 4.02, 9.51, 3.83, 12.03, 3.83);
+  path.cubicTo(16.03, 3.79, 16.79, 3.90, 17.59, 4.51);
   path.close();
-  path.moveTo(6, 13.6);
-  path.lineTo(18, 13.6);
-  path.moveTo(6.6, 16.6);
-  path.lineTo(8.6, 16.6);
-  path.moveTo(15.4, 16.6);
-  path.lineTo(17.4, 16.6);
-  path.addRRect(
-    RRect.fromRectAndRadius(
-      const Rect.fromLTWH(6.2, 19.55, 2.6, 1.9),
-      const Radius.circular(0.8),
-    ),
-  );
-  path.addRRect(
-    RRect.fromRectAndRadius(
-      const Rect.fromLTWH(15.2, 19.55, 2.6, 1.9),
-      const Radius.circular(0.8),
-    ),
-  );
+  path.moveTo(6.77, 5.58);
+  path.cubicTo(5.89, 6.61, 4.94, 8.63, 5.20, 8.90);
+  path.cubicTo(5.51, 9.16, 19.04, 9.20, 19.04, 8.93);
+  path.cubicTo(19.04, 8.52, 17.82, 6.27, 17.21, 5.58);
+  path.cubicTo(16.72, 5.05, 15.95, 4.93, 11.99, 4.93);
+  path.cubicTo(8.02, 4.93, 7.26, 5.05, 6.77, 5.58);
+  path.close();
+  path.moveTo(3.37, 11.26);
+  path.cubicTo(3.18, 11.83, 3.07, 13.78, 3.11, 15.57);
+  path.lineTo(3.22, 18.85);
+  path.lineTo(4.33, 18.96);
+  path.cubicTo(5.32, 19.07, 5.39, 19.00, 5.16, 18.12);
+  path.lineTo(4.94, 17.13);
+  path.lineTo(11.99, 17.13);
+  path.cubicTo(18.47, 17.13, 19.88, 17.32, 18.66, 18.08);
+  path.cubicTo(18.05, 18.46, 18.62, 19.04, 19.65, 19.04);
+  path.lineTo(20.60, 19.04);
+  path.lineTo(20.49, 14.73);
+  path.lineTo(20.38, 10.46);
+  path.lineTo(12.06, 10.34);
+  path.lineTo(3.79, 10.27);
+  path.lineTo(3.37, 11.26);
+  path.close();
+  path.moveTo(7.76, 12.63);
+  path.cubicTo(8.29, 13.51, 7.64, 14.61, 6.50, 14.77);
+  path.cubicTo(4.90, 15.00, 3.94, 13.32, 5.01, 12.25);
+  path.cubicTo(5.66, 11.60, 7.22, 11.83, 7.76, 12.63);
+  path.close();
+  path.moveTo(19.12, 12.75);
+  path.cubicTo(19.65, 13.97, 18.96, 14.84, 17.48, 14.84);
+  path.cubicTo(16.14, 14.84, 15.38, 13.70, 15.99, 12.56);
+  path.cubicTo(16.60, 11.41, 18.55, 11.53, 19.12, 12.75);
+  path.close();
+  path.moveTo(14.85, 13.32);
+  path.cubicTo(14.85, 13.55, 13.63, 13.70, 11.99, 13.70);
+  path.cubicTo(10.35, 13.70, 9.13, 13.55, 9.13, 13.32);
+  path.cubicTo(9.13, 13.09, 10.35, 12.94, 11.99, 12.94);
+  path.cubicTo(13.63, 12.94, 14.85, 13.09, 14.85, 13.32);
+  path.close();
+  path.moveTo(7.03, 16.37);
+  path.cubicTo(6.92, 16.56, 6.46, 16.75, 6.08, 16.75);
+  path.cubicTo(5.70, 16.75, 5.24, 16.56, 5.13, 16.37);
+  path.cubicTo(4.97, 16.14, 5.39, 15.99, 6.08, 15.99);
+  path.cubicTo(6.77, 15.99, 7.19, 16.14, 7.03, 16.37);
+  path.close();
+  path.moveTo(15.23, 16.37);
+  path.cubicTo(15.23, 16.60, 13.89, 16.75, 11.99, 16.75);
+  path.cubicTo(10.08, 16.75, 8.75, 16.60, 8.75, 16.37);
+  path.cubicTo(8.75, 16.14, 10.08, 15.99, 11.99, 15.99);
+  path.cubicTo(13.89, 15.99, 15.23, 16.14, 15.23, 16.37);
+  path.close();
+  path.moveTo(19.04, 16.37);
+  path.cubicTo(19.04, 16.56, 18.62, 16.75, 18.13, 16.75);
+  path.cubicTo(17.59, 16.75, 17.06, 16.56, 16.94, 16.37);
+  path.cubicTo(16.79, 16.14, 17.21, 15.99, 17.86, 15.99);
+  path.cubicTo(18.51, 15.99, 19.04, 16.14, 19.04, 16.37);
+  path.close();
+  path.moveTo(5.70, 13.32);
+  path.cubicTo(5.70, 13.89, 5.89, 14.08, 6.38, 14.00);
+  path.cubicTo(6.73, 13.93, 7.03, 13.62, 7.03, 13.32);
+  path.cubicTo(7.03, 13.01, 6.73, 12.71, 6.38, 12.63);
+  path.cubicTo(5.89, 12.56, 5.70, 12.75, 5.70, 13.32);
+  path.close();
+  path.moveTo(16.91, 12.98);
+  path.cubicTo(16.52, 13.62, 17.40, 14.35, 17.94, 13.81);
+  path.cubicTo(18.39, 13.36, 18.09, 12.56, 17.52, 12.56);
+  path.cubicTo(17.33, 12.56, 17.06, 12.75, 16.91, 12.98);
+  path.close();
 }
 
 /// Filled settings glyph, converted 1:1 from the user-supplied
 /// symbol source (71x89 viewBox, background-cell rect dropped; four
 /// closed sub-paths). Same coordinates as assets/icons/settings.svg.
+/// Filled settings glyph, converted 1:1 from the user-supplied
+/// symbol source (71x89 viewBox, background-cell rect dropped; four
+/// closed sub-paths, original winding preserved so the center ring
+/// and channel punches match the source). Coordinates as
+/// assets/icons/settings.svg.
 void _settingsPath(Path path) {
   path.moveTo(14.29, 3.03);
   path.cubicTo(14.90, 4.58, 15.43, 4.75, 17.11, 3.97);
@@ -298,9 +352,9 @@ void _settingsPath(Path path) {
   path.cubicTo(12.69, 2.42, 10.98, 2.42, 10.61, 3.85);
   path.close();
   path.moveTo(13.39, 8.55);
-  path.cubicTo(11.47, 7.81, 9.88, 8.38, 8.73, 10.26);
-  path.cubicTo(6.48, 13.90, 11.63, 17.70, 14.70, 14.63);
-  path.cubicTo(16.54, 12.79, 15.80, 9.44, 13.39, 8.55);
+  path.cubicTo(15.80, 9.44, 16.54, 12.79, 14.70, 14.63);
+  path.cubicTo(11.63, 17.70, 6.48, 13.90, 8.73, 10.26);
+  path.cubicTo(9.88, 8.38, 11.47, 7.81, 13.39, 8.55);
   path.close();
   path.moveTo(10.77, 9.89);
   path.cubicTo(9.96, 10.30, 9.75, 10.71, 9.75, 12.02);
