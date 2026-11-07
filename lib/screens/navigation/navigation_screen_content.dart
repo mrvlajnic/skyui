@@ -273,92 +273,30 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
           // ── Map background: real OSM tiles, simulated fallback ─────────────
           _mapBody(),
 
-          // ── Top Bar: Destination Card + Close Button ───────────────────────
+          // ── Minimal Top Bar: Destination name + Next maneuver only ─────────
           Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _ActiveDestinationCard(
-                    destination: activeDest,
-                    onNavigate: () =>
-                        _navigateToDestination(_selectedDestIndex),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _HeaderCloseButton(onClose: widget.onClose),
-              ],
-            ),
-          ),
-
-          // ── Turn-by-Turn Guidance Banner ───────────────────────────────────
-          Positioned(
-            top: 106,
-            left: 16,
-            child: _TurnGuidanceBanner(
-              maneuverIcon: activeDest.maneuverIcon,
-              instruction: activeDest.nextManeuver,
-              distance: activeDest.maneuverDistance,
+            top: 10,
+            left: 10,
+            right: 10,
+            child: _MinimalTopBar(
+              destination: activeDest,
+              onNavigate: () => _navigateToDestination(_selectedDestIndex),
+              onToggleVoice: () => setState(() => _isVoiceMuted = !_isVoiceMuted),
               isVoiceMuted: _isVoiceMuted,
-              onToggleVoice: () =>
-                  setState(() => _isVoiceMuted = !_isVoiceMuted),
             ),
           ),
 
-          // ── Destination Quick-Select Chips (Horizontal Deck) ───────────────
+          // ── Floating Map Controls (Right Side) ──────────────────────────────
           Positioned(
-            bottom: 84,
-            left: 16,
-            right: 80,
-            child: SizedBox(
-              height: 44,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _destinations.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final dest = _destinations[index];
-                  final isSelected = _selectedDestIndex == index;
-
-                  return _DestinationChip(
-                    destination: dest,
-                    isSelected: isSelected,
-                    onTap: () => _navigateToDestination(index),
-                  );
-                },
-              ),
-            ),
-          ),
-
-          // ── Floating Map Controls Toolbar (Right Side) ────────────────────
-          Positioned(
-            right: 16,
-            top: 106,
-            child: _MapControlDeck(
+            right: 10,
+            top: 70,
+            child: _CompactMapControls(
               isTrafficEnabled: _isTrafficEnabled,
               onToggleTraffic: () =>
                   setState(() => _isTrafficEnabled = !_isTrafficEnabled),
               onRecenter: _recenter,
               onZoomIn: _zoomIn,
               onZoomOut: _zoomOut,
-            ),
-          ),
-
-          // ── Bottom Trip Telemetry Bar ──────────────────────────────────────
-          Positioned(
-            bottom: 16,
-            left: 16,
-            right: 16,
-            child: _TripTelemetryBar(
-              speedKmh: 65,
-              speedLimitKmh: 80,
-              distanceRemaining: '${activeDest.distanceKm} km',
-              durationRemaining: '${activeDest.durationMinutes} min',
-              batteryOnArrival: '${activeDest.batteryArrivalPercent}%',
-              routeType: 'Demo route',
             ),
           ),
         ],
@@ -945,137 +883,98 @@ class _VectorMapPainter extends CustomPainter {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Active Destination Card (Top-Left Deck)
+// Minimal Top Bar: Destination + Next Maneuver + Voice
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ActiveDestinationCard extends StatelessWidget {
+class _MinimalTopBar extends StatelessWidget {
   final NavDestination destination;
   final VoidCallback onNavigate;
+  final VoidCallback onToggleVoice;
+  final bool isVoiceMuted;
 
-  const _ActiveDestinationCard({
+  const _MinimalTopBar({
     required this.destination,
     required this.onNavigate,
+    required this.onToggleVoice,
+    required this.isVoiceMuted,
   });
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.85),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.12),
-            width: 1,
-          ),
+          color: Colors.black.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
         ),
         child: Row(
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF8A00).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: const Color(0xFFFF8A00).withValues(alpha: 0.4),
-                  width: 1,
+            // Destination title + distance
+            Expanded(
+              child: Text(
+                destination.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
-              ),
-              child: Icon(
-                destination.categoryIcon,
-                color: const Color(0xFFFF8A00),
-                size: 20,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(width: 8),
+            // Next maneuver (compact)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF8A00).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFFF8A00).withValues(alpha: 0.3), width: 1),
+              ),
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Icon(destination.maneuverIcon, color: const Color(0xFFFF8A00), size: 14),
+                  const SizedBox(width: 4),
                   Text(
-                    destination.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    destination.nextManeuver,
+                    style: const TextStyle(color: Color(0xFFFF8A00), fontSize: 12, fontWeight: FontWeight.w500),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      Text(
-                        '${destination.distanceKm} km',
-                        style: const TextStyle(
-                          color: Color(0xFFFF8A00),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '·  ${destination.durationMinutes} min',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.65),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          destination.street,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: onNavigate,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
+            const SizedBox(width: 8),
+            // Voice toggle
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onToggleVoice,
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(
+                    isVoiceMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                    color: isVoiceMuted ? Colors.white38 : Colors.white70,
+                    size: 18,
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF8A00),
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFF8A00).withValues(alpha: 0.4),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.near_me_rounded, color: Colors.white, size: 16),
-                    SizedBox(width: 6),
-                    Text(
-                      'Recalculate',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+              ),
+            ),
+            const SizedBox(width: 4),
+            // Close button
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onNavigate,
+                borderRadius: BorderRadius.circular(6),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.close_rounded, color: Colors.white70, size: 18),
                 ),
               ),
             ),
@@ -1087,212 +986,17 @@ class _ActiveDestinationCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Turn-by-Turn Guidance Banner
+// Compact Map Controls (Right Side) - Recenter, Zoom, Traffic
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _TurnGuidanceBanner extends StatelessWidget {
-  final IconData maneuverIcon;
-  final String instruction;
-  final String distance;
-  final bool isVoiceMuted;
-  final VoidCallback onToggleVoice;
-
-  const _TurnGuidanceBanner({
-    required this.maneuverIcon,
-    required this.instruction,
-    required this.distance,
-    required this.isVoiceMuted,
-    required this.onToggleVoice,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.84),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFFF8A00).withValues(alpha: 0.35),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF8A00).withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: const Color(0xFFFF8A00).withValues(alpha: 0.4),
-                  width: 1,
-                ),
-              ),
-              child: Icon(
-                maneuverIcon,
-                color: const Color(0xFFFF8A00),
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  instruction,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  distance,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 20),
-            Semantics(
-              button: true,
-              toggled: isVoiceMuted,
-              label: isVoiceMuted
-                  ? 'Voice guidance muted'
-                  : 'Voice guidance on',
-              onTap: onToggleVoice,
-              excludeSemantics: true,
-              child: SizedBox(
-                width: 48,
-                height: 48,
-                child: Center(
-                  child: Material(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      onTap: onToggleVoice,
-                      customBorder: const CircleBorder(),
-                      child: SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: Icon(
-                          isVoiceMuted
-                              ? Icons.volume_off_rounded
-                              : Icons.volume_up_rounded,
-                          color: isVoiceMuted
-                              ? Colors.white.withValues(alpha: 0.3)
-                              : Colors.white.withValues(alpha: 0.8),
-                          size: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Destination Quick-Select Chips
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _DestinationChip extends StatelessWidget {
-  final NavDestination destination;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _DestinationChip({
-    required this.destination,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFF241C10)
-                : Colors.black.withValues(alpha: 0.78),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected
-                  ? const Color(0xFFFF8A00).withValues(alpha: 0.7)
-                  : Colors.white.withValues(alpha: 0.1),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                destination.categoryIcon,
-                color: isSelected
-                    ? const Color(0xFFFF8A00)
-                    : Colors.white.withValues(alpha: 0.6),
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                destination.title,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.white70,
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${destination.distanceKm} km',
-                style: TextStyle(
-                  color: isSelected
-                      ? const Color(0xFFFF8A00)
-                      : Colors.white.withValues(alpha: 0.4),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Floating Map Controls Toolbar
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _MapControlDeck extends StatelessWidget {
+class _CompactMapControls extends StatelessWidget {
   final bool isTrafficEnabled;
   final VoidCallback onToggleTraffic;
   final VoidCallback onRecenter;
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
 
-  const _MapControlDeck({
+  const _CompactMapControls({
     required this.isTrafficEnabled,
     required this.onToggleTraffic,
     required this.onRecenter,
@@ -1302,366 +1006,84 @@ class _MapControlDeck extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.84),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.12),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _ControlIconButton(
-              icon: Icons.my_location_rounded,
-              tooltip: 'Recenter on vehicle',
-              onTap: onRecenter,
-            ),
-            const _DividerLine(),
-            _ControlIconButton(
-              icon: Icons.add_rounded,
-              tooltip: 'Zoom in',
-              onTap: onZoomIn,
-            ),
-            _ControlIconButton(
-              icon: Icons.remove_rounded,
-              tooltip: 'Zoom out',
-              onTap: onZoomOut,
-            ),
-            const _DividerLine(),
-            _ControlIconButton(
-              icon: Icons.traffic_rounded,
-              active: isTrafficEnabled,
-              isToggle: true,
-              tooltip: 'Traffic',
-              onTap: onToggleTraffic,
-            ),
-            const _ControlIconButton(
-              icon: Icons.view_in_ar_rounded,
-              tooltip: '3D view — unavailable in prototype',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ControlIconButton extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final bool active;
-  final bool isToggle;
-  final VoidCallback? onTap;
-
-  const _ControlIconButton({
-    required this.icon,
-    required this.tooltip,
-    this.active = false,
-    this.isToggle = false,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      toggled: isToggle ? active : null,
-      label: tooltip,
-      onTap: onTap,
-      excludeSemantics: true,
-      child: Tooltip(
-        message: tooltip,
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Center(
-            child: Material(
-              color: active
-                  ? const Color(0xFFFF8A00).withValues(alpha: 0.2)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              child: InkWell(
-                onTap: onTap,
-                borderRadius: BorderRadius.circular(8),
-                child: SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: Icon(
-                    icon,
-                    color: active
-                        ? const Color(0xFFFF8A00)
-                        : enabled
-                        ? Colors.white70
-                        : Colors.white24,
-                    size: 18,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DividerLine extends StatelessWidget {
-  const _DividerLine();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 24,
-      height: 1,
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      color: Colors.white.withValues(alpha: 0.1),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Bottom Trip Telemetry Bar
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _TripTelemetryBar extends StatelessWidget {
-  final int speedKmh;
-  final int speedLimitKmh;
-  final String distanceRemaining;
-  final String durationRemaining;
-  final String batteryOnArrival;
-  final String routeType;
-
-  const _TripTelemetryBar({
-    required this.speedKmh,
-    required this.speedLimitKmh,
-    required this.distanceRemaining,
-    required this.durationRemaining,
-    required this.batteryOnArrival,
-    required this.routeType,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.85),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.10),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            // Speed & Speed Limit Sign
-            Row(
-              children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$speedKmh',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'km/h',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.45),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFFF5252),
-                      width: 2,
-                    ),
-                    color: Colors.white,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$speedLimitKmh',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            _TelemetryDivider(),
-
-            // Distance remaining
-            _TelemetryItem(
-              icon: Icons.straighten_rounded,
-              label: 'Distance',
-              value: distanceRemaining,
-            ),
-
-            _TelemetryDivider(),
-
-            // Duration remaining / ETA
-            _TelemetryItem(
-              icon: Icons.timer_outlined,
-              label: 'Duration',
-              value: durationRemaining,
-            ),
-
-            _TelemetryDivider(),
-
-            // Battery on arrival
-            _TelemetryItem(
-              icon: Icons.battery_charging_full_rounded,
-              iconColor: const Color(0xFF00E676),
-              label: 'Battery Arrival',
-              value: batteryOnArrival,
-            ),
-
-            _TelemetryDivider(),
-
-            // Route mode toggle
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.alt_route_rounded,
-                  color: Color(0xFFFF8A00),
-                  size: 16,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  routeType,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Simulated',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TelemetryDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 32,
-      color: Colors.white.withValues(alpha: 0.08),
-    );
-  }
-}
-
-class _TelemetryItem extends StatelessWidget {
-  final IconData icon;
-  final Color? iconColor;
-  final String label;
-  final String value;
-
-  const _TelemetryItem({
-    required this.icon,
-    this.iconColor,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: iconColor ?? const Color(0xFFFF8A00), size: 16),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
+        _MapControlButton(
+          icon: Icons.my_location_rounded,
+          onTap: onRecenter,
+          tooltip: 'Recenter',
         ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.45),
-            fontSize: 10,
-            fontWeight: FontWeight.w400,
-          ),
+        const SizedBox(height: 6),
+        _MapControlButton(
+          icon: Icons.add_rounded,
+          onTap: onZoomIn,
+          tooltip: 'Zoom in',
+        ),
+        const SizedBox(height: 6),
+        _MapControlButton(
+          icon: Icons.remove_rounded,
+          onTap: onZoomOut,
+          tooltip: 'Zoom out',
+        ),
+        const SizedBox(height: 6),
+        _MapControlButton(
+          icon: Icons.traffic_rounded,
+          onTap: onToggleTraffic,
+          active: isTrafficEnabled,
+          tooltip: 'Traffic',
         ),
       ],
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Header Close Button
-// ─────────────────────────────────────────────────────────────────────────────
+class _MapControlButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool active;
+  final String tooltip;
 
-class _HeaderCloseButton extends StatelessWidget {
-  final VoidCallback onClose;
-
-  const _HeaderCloseButton({required this.onClose});
+  const _MapControlButton({
+    required this.icon,
+    this.onTap,
+    this.active = false,
+    required this.tooltip,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onClose,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.84),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.12),
-              width: 1,
+    final enabled = onTap != null;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: active
+                    ? const Color(0xFFFF8A00).withValues(alpha: 0.6)
+                    : Colors.white.withValues(alpha: 0.12),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: active
+                  ? const Color(0xFFFF8A00)
+                  : enabled
+                  ? Colors.white70
+                  : Colors.white24,
+              size: 20,
             ),
           ),
-          child: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
         ),
       ),
     );
