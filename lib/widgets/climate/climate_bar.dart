@@ -173,26 +173,12 @@ class _LeftClimateSection extends StatelessWidget {
       child: Row(
         children: [
           const _HeatedSeatButton(),
-          const SizedBox(width: 24),
-          _ControlButton(
-            label: '−',
-            onPressed: () => onTemperatureChange(temperature - 0.5),
+          const SizedBox(width: 20),
+          _TemperatureControl(
+            temperature: temperature,
+            onTemperatureChange: onTemperatureChange,
           ),
-          const SizedBox(width: 12),
-          Text(
-            '${temperature.toStringAsFixed(1)}°',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 12),
-          _ControlButton(
-            label: '+',
-            onPressed: () => onTemperatureChange(temperature + 0.5),
-          ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 20),
           _FanSpeedIndicator(speed: fanSpeed, onSpeedChange: onFanSpeedChange),
         ],
       ),
@@ -281,26 +267,12 @@ class _RightClimateSection extends StatelessWidget {
       child: Row(
         children: [
           _FanSpeedIndicator(speed: fanSpeed, onSpeedChange: onFanSpeedChange),
-          const SizedBox(width: 24),
-          _ControlButton(
-            label: '−',
-            onPressed: () => onTemperatureChange(temperature - 0.5),
+          const SizedBox(width: 20),
+          _TemperatureControl(
+            temperature: temperature,
+            onTemperatureChange: onTemperatureChange,
           ),
-          const SizedBox(width: 12),
-          Text(
-            '${temperature.toStringAsFixed(1)}°',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 12),
-          _ControlButton(
-            label: '+',
-            onPressed: () => onTemperatureChange(temperature + 0.5),
-          ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 20),
           const _HeatedSeatButton(),
         ],
       ),
@@ -363,11 +335,68 @@ class _HeatedSeatButtonState extends State<_HeatedSeatButton> {
   }
 }
 
+class _TemperatureControl extends StatelessWidget {
+  final double temperature;
+  final Function(double) onTemperatureChange;
+
+  const _TemperatureControl({
+    required this.temperature,
+    required this.onTemperatureChange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Compact rounded pill matching the reference: minus on the left,
+    // temperature centered, plus on the right.
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF17171F),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ControlButton(
+            label: '−',
+            compact: true,
+            onPressed: () => onTemperatureChange(temperature - 0.5),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${temperature.toStringAsFixed(1)}°',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 8),
+          _ControlButton(
+            label: '+',
+            compact: true,
+            onPressed: () => onTemperatureChange(temperature + 0.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ControlButton extends StatefulWidget {
   final String label;
   final VoidCallback onPressed;
 
-  const _ControlButton({required this.label, required this.onPressed});
+  /// Smaller hit area used inside the [_TemperatureControl] pill.
+  final bool compact;
+
+  const _ControlButton({
+    required this.label,
+    required this.onPressed,
+    this.compact = false,
+  });
 
   @override
   State<_ControlButton> createState() => _ControlButtonState();
@@ -378,6 +407,7 @@ class _ControlButtonState extends State<_ControlButton> {
 
   @override
   Widget build(BuildContext context) {
+    final compact = widget.compact;
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
@@ -385,15 +415,17 @@ class _ControlButtonState extends State<_ControlButton> {
       onTap: widget.onPressed,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
-        width: 32,
-        height: 32,
+        width: compact ? 24 : 32,
+        height: compact ? 28 : 32,
         decoration: BoxDecoration(color: Colors.transparent),
         child: Center(
           child: Text(
             widget.label,
             style: TextStyle(
-              color: _isPressed ? const Color(0xFFE53935) : Colors.white54,
-              fontSize: 20,
+              color: _isPressed
+                  ? const Color(0xFFE53935)
+                  : Colors.white.withValues(alpha: 0.62),
+              fontSize: compact ? 18 : 20,
               fontWeight: FontWeight.w400,
             ),
           ),
