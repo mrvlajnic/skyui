@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import 'sky_icon.dart';
@@ -11,22 +9,30 @@ class SkyIcons {
   /// house with a soft apex and a bottom-center door notch.
   static const SkyIconData home = SkyIconData.svg(_homePath);
 
-  /// Recreated 1:1 from `assets/icons/navigation.svg`: tilted paper plane
-  /// with a spine fold.
-  static const SkyIconData navigation = SkyIconData.svg(_navigationPath);
+  /// Converted 1:1 from the user-supplied filled navigation glyph
+  /// (`assets/icons/navigation.svg`): tilted paper plane.
+  static const SkyIconData navigation = SkyIconData.svg(
+    _navigationPath,
+    filled: true,
+  );
 
-  /// Recreated 1:1 from `assets/icons/music.svg`: beamed eighth-note pair.
-  static const SkyIconData music = SkyIconData.svg(_musicPath);
+  /// Converted 1:1 from the user-supplied filled media glyph
+  /// (`assets/icons/music.svg`): beamed eighth-note pair.
+  static const SkyIconData music = SkyIconData.svg(_musicPath, filled: true);
 
-  /// Recreated 1:1 from `assets/icons/phone.svg`: handset outline.
-  static const SkyIconData phone = SkyIconData.svg(_phonePath);
+  /// Converted 1:1 from the user-supplied filled phone glyph
+  /// (`assets/icons/phone.svg`): handset outline.
+  static const SkyIconData phone = SkyIconData.svg(_phonePath, filled: true);
 
   /// Recreated 1:1 from `assets/icons/vehicle.svg`: front-view car.
   static const SkyIconData vehicle = SkyIconData.svg(_vehiclePath);
 
-  /// Recreated 1:1 from `assets/icons/settings.svg`: 8-tooth gear with a
-  /// tooth centered at 12 o'clock.
-  static const SkyIconData settings = SkyIconData.svg(_settingsPath);
+  /// Converted 1:1 from the user-supplied filled settings glyph
+  /// (`assets/icons/settings.svg`): gear with a center hub.
+  static const SkyIconData settings = SkyIconData.svg(
+    _settingsPath,
+    filled: true,
+  );
 
   /// Converted 1:1 from the user-supplied filled heated-seat glyph
   /// (`assets/icons/heated_seat.svg`): filled side-profile seat with
@@ -83,99 +89,110 @@ void _homePath(Path path) {
   path.addPath(door, Offset.zero);
 }
 
+/// Filled navigation glyph, converted 1:1 from the user-supplied
+/// symbol source (84x79 viewBox, background-cell rect dropped; two
+/// closed sub-paths with opposite winding). Same coordinates as
+/// assets/icons/navigation.svg.
 void _navigationPath(Path path) {
-  // Tilted paper plane: tip up-right, swept wings meeting at a notch, plus
-  // the spine fold from the tip to the notch.
-  path.moveTo(20.4, 3.6);
-  path.lineTo(3.6, 9.8);
-  path.lineTo(10.2, 14.2);
-  path.lineTo(14.2, 20.4);
+  path.moveTo(22.33, 1.90);
+  path.cubicTo(22.54, 2.23, 19.86, 9.09, 15.97, 18.30);
+  path.cubicTo(15.01, 20.47, 14.00, 22.31, 13.67, 22.40);
+  path.cubicTo(13.21, 22.48, 12.79, 21.52, 12.12, 18.42);
+  path.cubicTo(11.62, 16.16, 11.07, 14.20, 10.91, 14.03);
+  path.cubicTo(10.78, 13.86, 8.65, 13.53, 6.18, 13.23);
+  path.cubicTo(2.88, 12.90, 1.66, 12.61, 1.66, 12.19);
+  path.cubicTo(1.66, 11.73, 20.78, 1.65, 21.82, 1.61);
+  path.cubicTo(21.99, 1.56, 22.20, 1.73, 22.33, 1.90);
   path.close();
-  path.moveTo(20.4, 3.6);
-  path.lineTo(10.2, 14.2);
+  path.moveTo(11.95, 7.80);
+  path.lineTo(4.01, 11.81);
+  path.lineTo(7.85, 12.23);
+  path.cubicTo(9.94, 12.48, 11.74, 12.77, 11.87, 12.86);
+  path.cubicTo(11.95, 12.98, 12.37, 14.36, 12.79, 16.00);
+  path.cubicTo(13.21, 17.58, 13.67, 19.05, 13.79, 19.26);
+  path.cubicTo(13.92, 19.43, 14.50, 18.46, 15.05, 17.17);
+  path.cubicTo(15.59, 15.83, 17.01, 12.36, 18.27, 9.47);
+  path.cubicTo(19.48, 6.54, 20.49, 4.03, 20.49, 3.91);
+  path.cubicTo(20.49, 3.49, 20.11, 3.66, 11.95, 7.80);
+  path.close();
 }
 
+/// Filled media glyph, converted 1:1 from the user-supplied
+/// symbol source (70x89 viewBox, background-cell rect dropped; four
+/// closed sub-paths with opposite winding). Same coordinates as
+/// assets/icons/music.svg.
 void _musicPath(Path path) {
-  // Beamed eighth-note pair: two stems, a slightly tilted beam connecting
-  // their tops, and two open heads under the stems.
-  path.moveTo(7.9, 4);
-  path.lineTo(7.9, 15.8);
-  path.moveTo(17.9, 5);
-  path.lineTo(17.9, 16.8);
-  path.moveTo(7.9, 4);
-  path.lineTo(17.9, 5);
-  path.addOval(const Rect.fromLTWH(3.65, 15.4, 4.4, 3.9));
-  path.addOval(const Rect.fromLTWH(13.65, 16.4, 4.4, 3.9));
+  path.moveTo(21.22, 2.71);
+  path.cubicTo(21.47, 3.43, 21.60, 6.79, 21.51, 11.04);
+  path.cubicTo(21.39, 18.02, 21.34, 18.23, 20.37, 19.04);
+  path.cubicTo(19.05, 20.10, 16.75, 20.10, 15.64, 19.00);
+  path.cubicTo(13.18, 16.53, 16.41, 12.24, 19.51, 13.89);
+  path.cubicTo(20.28, 14.32, 20.32, 14.19, 20.32, 10.75);
+  path.lineTo(20.32, 7.09);
+  path.lineTo(18.96, 7.39);
+  path.cubicTo(18.20, 7.51, 15.73, 8.20, 13.52, 8.83);
+  path.lineTo(9.48, 9.98);
+  path.lineTo(9.35, 15.30);
+  path.cubicTo(9.22, 20.49, 9.22, 20.70, 8.12, 21.55);
+  path.cubicTo(7.52, 22.02, 6.46, 22.40, 5.78, 22.40);
+  path.cubicTo(4.25, 22.40, 2.46, 20.70, 2.46, 19.21);
+  path.cubicTo(2.46, 16.91, 5.99, 15.04, 7.48, 16.53);
+  path.cubicTo(7.86, 16.91, 7.99, 15.72, 7.99, 11.04);
+  path.cubicTo(7.99, 6.71, 8.12, 4.92, 8.50, 4.67);
+  path.cubicTo(9.22, 4.20, 18.58, 1.65, 19.81, 1.60);
+  path.cubicTo(20.49, 1.56, 20.92, 1.90, 21.22, 2.71);
+  path.close();
+  path.moveTo(15.43, 3.77);
+  path.cubicTo(13.82, 4.24, 11.73, 4.79, 10.88, 5.01);
+  path.cubicTo(9.39, 5.39, 9.27, 5.56, 9.27, 6.88);
+  path.cubicTo(9.27, 8.71, 9.52, 8.75, 15.64, 7.13);
+  path.lineTo(20.11, 5.98);
+  path.lineTo(20.11, 4.54);
+  path.cubicTo(20.11, 2.71, 19.56, 2.58, 15.43, 3.77);
+  path.close();
+  path.moveTo(16.84, 15.21);
+  path.cubicTo(15.77, 15.81, 15.81, 17.98, 16.88, 18.57);
+  path.cubicTo(18.07, 19.17, 18.49, 19.13, 19.47, 18.15);
+  path.cubicTo(20.37, 17.25, 20.54, 16.57, 19.98, 15.72);
+  path.cubicTo(19.51, 15.00, 17.69, 14.70, 16.84, 15.21);
+  path.close();
+  path.moveTo(4.16, 17.93);
+  path.cubicTo(3.27, 19.04, 4.12, 20.87, 5.57, 21.04);
+  path.cubicTo(7.14, 21.25, 7.99, 20.44, 7.99, 18.83);
+  path.cubicTo(7.99, 17.55, 7.90, 17.47, 6.33, 17.38);
+  path.cubicTo(5.27, 17.30, 4.50, 17.51, 4.16, 17.93);
+  path.close();
 }
 
+/// Filled phone glyph, converted 1:1 from the user-supplied
+/// symbol source (93x100 viewBox, background-cell rect dropped; two
+/// closed sub-paths with opposite winding). Same coordinates as
+/// assets/icons/phone.svg.
 void _phonePath(Path path) {
-  // Handset outline (24x24 stroke-icon geometry, scaled 0.85 about the
-  // center so it sits comfortably inside the viewBox).
-  path.moveTo(20.5, 16.18);
-  path.lineTo(20.5, 18.73);
-  path.arcToPoint(
-    const Offset(18.65, 20.43),
-    radius: const Radius.elliptical(1.7, 1.7),
-    clockwise: true,
-  );
-  path.arcToPoint(
-    const Offset(11.31, 17.82),
-    radius: const Radius.elliptical(16.82, 16.82),
-    clockwise: true,
-  );
-  path.arcToPoint(
-    const Offset(6.21, 12.72),
-    radius: const Radius.elliptical(16.58, 16.58),
-    clockwise: true,
-  );
-  path.arcToPoint(
-    const Offset(3.6, 5.35),
-    radius: const Radius.elliptical(16.82, 16.82),
-    clockwise: true,
-  );
-  path.arcToPoint(
-    const Offset(5.29, 3.5),
-    radius: const Radius.elliptical(1.7, 1.7),
-    clockwise: true,
-  );
-  path.lineTo(7.84, 3.5);
-  path.arcToPoint(
-    const Offset(9.54, 4.96),
-    radius: const Radius.elliptical(1.7, 1.7),
-    clockwise: true,
-  );
-  path.arcToPoint(
-    const Offset(10.14, 7.35),
-    radius: const Radius.elliptical(10.91, 10.91),
-    clockwise: false,
-  );
-  path.arcToPoint(
-    const Offset(9.76, 9.14),
-    radius: const Radius.elliptical(1.7, 1.7),
-    clockwise: true,
-  );
-  path.lineTo(8.68, 10.22);
-  path.arcToPoint(
-    const Offset(13.78, 15.32),
-    radius: const Radius.elliptical(13.6, 13.6),
-    clockwise: false,
-  );
-  path.lineTo(14.86, 14.24);
-  path.arcToPoint(
-    const Offset(16.65, 13.86),
-    radius: const Radius.elliptical(1.7, 1.7),
-    clockwise: true,
-  );
-  path.arcToPoint(
-    const Offset(19.04, 14.46),
-    radius: const Radius.elliptical(10.91, 10.91),
-    clockwise: false,
-  );
-  path.arcToPoint(
-    const Offset(20.5, 16.18),
-    radius: const Radius.elliptical(1.7, 1.7),
-    clockwise: true,
-  );
+  path.moveTo(7.49, 3.17);
+  path.cubicTo(8.28, 4.04, 9.15, 5.29, 9.48, 5.87);
+  path.cubicTo(9.97, 6.82, 9.93, 7.03, 9.15, 8.14);
+  path.cubicTo(8.65, 8.81, 8.23, 9.64, 8.23, 10.01);
+  path.cubicTo(8.23, 10.84, 11.80, 14.65, 13.25, 15.44);
+  path.cubicTo(14.24, 15.94, 14.49, 15.89, 15.44, 15.15);
+  path.cubicTo(16.77, 14.11, 17.60, 14.28, 20.38, 16.02);
+  path.cubicTo(21.87, 16.97, 22.32, 17.51, 22.32, 18.34);
+  path.cubicTo(22.32, 20.91, 19.21, 23.02, 16.52, 22.23);
+  path.cubicTo(10.02, 20.37, 2.56, 12.54, 1.77, 6.78);
+  path.cubicTo(1.44, 4.58, 1.98, 3.42, 3.80, 2.34);
+  path.cubicTo(5.62, 1.22, 5.91, 1.27, 7.49, 3.17);
+  path.close();
+  path.moveTo(3.80, 3.84);
+  path.cubicTo(2.93, 4.71, 2.76, 5.16, 2.97, 6.53);
+  path.cubicTo(3.51, 10.59, 7.36, 15.77, 12.05, 18.84);
+  path.cubicTo(16.65, 21.78, 19.30, 21.99, 20.91, 19.50);
+  path.cubicTo(21.66, 18.42, 21.66, 18.38, 20.46, 17.43);
+  path.cubicTo(18.55, 15.89, 16.98, 15.36, 16.15, 15.94);
+  path.cubicTo(14.16, 17.43, 12.92, 17.01, 9.85, 13.99);
+  path.cubicTo(6.99, 11.09, 6.53, 9.80, 7.78, 8.14);
+  path.cubicTo(8.23, 7.48, 8.65, 6.82, 8.65, 6.65);
+  path.cubicTo(8.65, 6.16, 5.71, 2.76, 5.29, 2.76);
+  path.cubicTo(5.04, 2.76, 4.38, 3.25, 3.80, 3.84);
   path.close();
 }
 
@@ -228,38 +245,70 @@ void _vehiclePath(Path path) {
   );
 }
 
+/// Filled settings glyph, converted 1:1 from the user-supplied
+/// symbol source (71x89 viewBox, background-cell rect dropped; four
+/// closed sub-paths). Same coordinates as assets/icons/settings.svg.
 void _settingsPath(Path path) {
-  // Gear: 8 teeth on radii 7.7/10 around (12,12), one tooth centered at
-  // 12 o'clock, plus the hub circle. Same math as assets/icons/settings.svg.
-  const teeth = 8;
-  const valleyRadius = 7.7;
-  const peakRadius = 10.0;
-  const toothSpan = 12 * math.pi / 180;
-  const peakSpan = 7 * math.pi / 180;
-  const step = 2 * math.pi / teeth;
-
-  var started = false;
-  for (var k = 0; k < teeth; k++) {
-    final base = -math.pi / 2 + k * step;
-    final points = <(double, double)>[
-      (valleyRadius, base - toothSpan),
-      (peakRadius, base - peakSpan),
-      (peakRadius, base + peakSpan),
-      (valleyRadius, base + toothSpan),
-    ];
-    for (final (radius, angle) in points) {
-      final x = 12.0 + radius * math.cos(angle);
-      final y = 12.0 + radius * math.sin(angle);
-      if (started) {
-        path.lineTo(x, y);
-      } else {
-        path.moveTo(x, y);
-        started = true;
-      }
-    }
-  }
+  path.moveTo(14.29, 3.03);
+  path.cubicTo(14.90, 4.58, 15.43, 4.75, 17.11, 3.97);
+  path.cubicTo(18.05, 3.56, 18.29, 3.60, 19.44, 4.75);
+  path.cubicTo(20.62, 5.93, 20.66, 6.14, 20.21, 7.28);
+  path.cubicTo(19.60, 8.67, 19.84, 9.24, 21.23, 9.77);
+  path.cubicTo(22.05, 10.10, 22.21, 10.43, 22.21, 11.98);
+  path.cubicTo(22.21, 13.61, 22.09, 13.90, 20.99, 14.47);
+  path.cubicTo(19.64, 15.16, 19.56, 15.41, 20.25, 16.92);
+  path.cubicTo(20.66, 17.86, 20.62, 18.11, 19.44, 19.25);
+  path.cubicTo(18.29, 20.43, 18.09, 20.52, 17.07, 20.07);
+  path.cubicTo(15.72, 19.41, 14.45, 19.78, 14.45, 20.80);
+  path.cubicTo(14.45, 22.64, 10.57, 23.01, 9.71, 21.29);
+  path.cubicTo(8.89, 19.62, 8.49, 19.41, 7.10, 19.99);
+  path.cubicTo(5.91, 20.48, 5.75, 20.43, 4.65, 19.37);
+  path.cubicTo(3.42, 18.19, 3.05, 16.96, 3.83, 16.51);
+  path.cubicTo(4.60, 16.02, 4.24, 15.08, 3.01, 14.47);
+  path.cubicTo(1.91, 13.90, 1.79, 13.61, 1.79, 12.02);
+  path.cubicTo(1.79, 10.47, 1.95, 10.10, 2.77, 9.69);
+  path.cubicTo(4.07, 9.12, 4.32, 8.38, 3.75, 7.12);
+  path.cubicTo(3.34, 6.22, 3.42, 5.93, 4.44, 4.87);
+  path.cubicTo(5.71, 3.52, 6.28, 3.40, 7.46, 4.13);
+  path.cubicTo(8.08, 4.50, 8.40, 4.50, 8.89, 4.09);
+  path.cubicTo(9.26, 3.77, 9.55, 3.32, 9.55, 3.07);
+  path.cubicTo(9.55, 2.17, 10.53, 1.60, 12.12, 1.60);
+  path.cubicTo(13.51, 1.60, 13.76, 1.76, 14.29, 3.03);
   path.close();
-  path.addOval(const Rect.fromLTRB(12 - 3.4, 12 - 3.4, 12 + 3.4, 12 + 3.4));
+  path.moveTo(10.61, 3.85);
+  path.cubicTo(10.28, 5.11, 8.53, 5.93, 7.30, 5.36);
+  path.cubicTo(5.79, 4.66, 4.93, 5.48, 5.26, 7.32);
+  path.cubicTo(5.54, 9.04, 4.97, 10.59, 4.03, 10.59);
+  path.cubicTo(3.13, 10.59, 2.44, 12.14, 3.05, 12.88);
+  path.cubicTo(3.30, 13.20, 3.79, 13.45, 4.07, 13.45);
+  path.cubicTo(5.10, 13.45, 5.67, 15.33, 5.10, 16.59);
+  path.cubicTo(4.65, 17.57, 4.69, 17.78, 5.46, 18.43);
+  path.cubicTo(6.16, 18.96, 6.48, 19.05, 7.06, 18.68);
+  path.cubicTo(8.24, 17.94, 10.00, 18.64, 10.49, 19.99);
+  path.cubicTo(11.10, 21.62, 12.57, 21.66, 13.31, 20.11);
+  path.cubicTo(14.00, 18.68, 15.80, 17.98, 16.98, 18.72);
+  path.cubicTo(17.72, 19.17, 17.92, 19.13, 18.62, 18.43);
+  path.cubicTo(19.31, 17.78, 19.35, 17.49, 18.90, 16.84);
+  path.cubicTo(18.21, 15.70, 18.74, 13.90, 19.97, 13.45);
+  path.cubicTo(21.36, 12.92, 21.36, 11.28, 19.97, 10.67);
+  path.cubicTo(18.74, 10.10, 18.21, 8.34, 18.90, 7.20);
+  path.cubicTo(19.35, 6.54, 19.31, 6.26, 18.66, 5.60);
+  path.cubicTo(17.97, 4.95, 17.72, 4.91, 16.78, 5.32);
+  path.cubicTo(15.35, 5.97, 13.80, 5.32, 13.23, 3.85);
+  path.cubicTo(12.69, 2.42, 10.98, 2.42, 10.61, 3.85);
+  path.close();
+  path.moveTo(13.39, 8.55);
+  path.cubicTo(11.47, 7.81, 9.88, 8.38, 8.73, 10.26);
+  path.cubicTo(6.48, 13.90, 11.63, 17.70, 14.70, 14.63);
+  path.cubicTo(16.54, 12.79, 15.80, 9.44, 13.39, 8.55);
+  path.close();
+  path.moveTo(10.77, 9.89);
+  path.cubicTo(9.96, 10.30, 9.75, 10.71, 9.75, 12.02);
+  path.cubicTo(9.75, 13.33, 9.96, 13.73, 10.86, 14.27);
+  path.cubicTo(11.88, 14.80, 12.12, 14.80, 13.14, 14.27);
+  path.cubicTo(13.96, 13.78, 14.29, 13.29, 14.37, 12.18);
+  path.cubicTo(14.53, 10.06, 12.74, 8.91, 10.77, 9.89);
+  path.close();
 }
 
 /// Filled heated-seat glyph geometry, converted 1:1 from the user-supplied

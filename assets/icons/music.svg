@@ -1,13 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <!-- Veltron sidebar "Media": beamed eighth-note pair.
-       Rendered in-app by SkyIcons.music (lib/core/icons/sky_icons.dart). -->
-  <path
-    d="M7.9 4V15.8M17.9 5V16.8M7.9 4L17.9 5"
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-  <ellipse cx="5.85" cy="17.35" rx="2.2" ry="1.95" stroke="currentColor" stroke-width="2"/>
-  <ellipse cx="15.85" cy="18.35" rx="2.2" ry="1.95" stroke="currentColor" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Converted 1:1 from the user-supplied filled glyph (music);
+       frame rect dropped; interior punched via opposite winding.
+       Rendered in-app by SkyIcons (lib/core/icons/sky_icons.dart). -->
+  <path d="M21.22 2.71C21.47 3.43 21.60 6.79 21.51 11.04C21.39 18.02 21.34 18.23 20.37 19.04C19.05 20.10 16.75 20.10 15.64 19.00C13.18 16.53 16.41 12.24 19.51 13.89C20.28 14.32 20.32 14.19 20.32 10.75L20.32 7.09L18.96 7.39C18.20 7.51 15.73 8.20 13.52 8.83L9.48 9.98L9.35 15.30C9.22 20.49 9.22 20.70 8.12 21.55C7.52 22.02 6.46 22.40 5.78 22.40C4.25 22.40 2.46 20.70 2.46 19.21C2.46 16.91 5.99 15.04 7.48 16.53C7.86 16.91 7.99 15.72 7.99 11.04C7.99 6.71 8.12 4.92 8.50 4.67C9.22 4.20 18.58 1.65 19.81 1.60C20.49 1.56 20.92 1.90 21.22 2.71Z M15.43 3.77C13.82 4.24 11.73 4.79 10.88 5.01C9.39 5.39 9.27 5.56 9.27 6.88C9.27 8.71 9.52 8.75 15.64 7.13L20.11 5.98L20.11 4.54C20.11 2.71 19.56 2.58 15.43 3.77Z M16.84 15.21C15.77 15.81 15.81 17.98 16.88 18.57C18.07 19.17 18.49 19.13 19.47 18.15C20.37 17.25 20.54 16.57 19.98 15.72C19.51 15.00 17.69 14.70 16.84 15.21Z M4.16 17.93C3.27 19.04 4.12 20.87 5.57 21.04C7.14 21.25 7.99 20.44 7.99 18.83C7.99 17.55 7.90 17.47 6.33 17.38C5.27 17.30 4.50 17.51 4.16 17.93Z " fill="currentColor" />
 </svg>

@@ -1,11 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <!-- Veltron sidebar "Navigation": tilted paper plane with spine fold.
-       Rendered in-app by SkyIcons.navigation (lib/core/icons/sky_icons.dart). -->
-  <path
-    d="M20.4 3.6L3.6 9.8L10.2 14.2L14.2 20.4ZM20.4 3.6L10.2 14.2"
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Converted 1:1 from the user-supplied filled glyph (navigation);
+       frame rect dropped; interior punched via opposite winding.
+       Rendered in-app by SkyIcons (lib/core/icons/sky_icons.dart). -->
+  <path d="M22.33 1.90C22.54 2.23 19.86 9.09 15.97 18.30C15.01 20.47 14.00 22.31 13.67 22.40C13.21 22.48 12.79 21.52 12.12 18.42C11.62 16.16 11.07 14.20 10.91 14.03C10.78 13.86 8.65 13.53 6.18 13.23C2.88 12.90 1.66 12.61 1.66 12.19C1.66 11.73 20.78 1.65 21.82 1.61C21.99 1.56 22.20 1.73 22.33 1.90Z M11.95 7.80L4.01 11.81L7.85 12.23C9.94 12.48 11.74 12.77 11.87 12.86C11.95 12.98 12.37 14.36 12.79 16.00C13.21 17.58 13.67 19.05 13.79 19.26C13.92 19.43 14.50 18.46 15.05 17.17C15.59 15.83 17.01 12.36 18.27 9.47C19.48 6.54 20.49 4.03 20.49 3.91C20.49 3.49 20.11 3.66 11.95 7.80Z " fill="currentColor" />
 </svg>
