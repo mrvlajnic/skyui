@@ -35,6 +35,12 @@ class SkyIcons {
     _heatedSeatPath,
     filled: true,
   );
+
+  /// Converted 1:1 from the user-supplied filled-outline house glyph
+  /// (`assets/icons/house.svg`): house outline with eaves and a bottom-
+  /// center door notch; the interior is punched by the source second
+  /// path (opposite winding, supported by the painter's nonzero fill).
+  static const SkyIconData house = SkyIconData.svg(_housePath, filled: true);
 }
 
 void _homePath(Path path) {
@@ -259,6 +265,9 @@ void _settingsPath(Path path) {
 /// Filled heated-seat glyph geometry, converted 1:1 from the user-supplied
 /// symbol source (151x140 viewBox, background-cell rect dropped; six closed
 /// sub-paths). Same coordinates as assets/icons/heated_seat.svg.
+/// Filled heated-seat glyph geometry, converted 1:1 from the user-supplied
+/// symbol source (151x140 viewBox, background-cell rect dropped; six closed
+/// sub-paths). Same coordinates as assets/icons/heated_seat.svg.
 void _heatedSeatPath(Path path) {
   path.moveTo(21.47, 1.79);
   path.cubicTo(22.40, 2.44, 22.40, 2.55, 21.22, 7.60);
@@ -374,5 +383,86 @@ void _heatedSeatPath(Path path) {
   path.cubicTo(11.29, 20.04, 11.75, 20.00, 11.75, 19.96);
   path.cubicTo(11.75, 19.69, 10.94, 17.36, 10.83, 17.30);
   path.cubicTo(10.56, 17.13, 8.96, 16.98, 8.84, 17.09);
+  path.close();
+}
+
+/// Filled-outline house glyph, converted 1:1 from the user-supplied
+/// symbol source (633x512 viewBox, background-cell rect dropped; two
+/// closed sub-paths with opposite winding). Same coordinates as
+/// assets/icons/house.svg.
+void _housePath(Path path) {
+  path.moveTo(12.65, 2.58);
+  path.cubicTo(12.77, 2.63, 12.91, 2.73, 12.98, 2.78);
+  path.cubicTo(14.09, 3.78, 16.71, 6.21, 16.89, 6.40);
+  path.cubicTo(16.94, 6.46, 17.29, 6.79, 17.67, 7.13);
+  path.cubicTo(18.05, 7.48, 18.54, 7.94, 18.75, 8.15);
+  path.cubicTo(19.25, 8.63, 19.23, 8.61, 20.08, 9.40);
+  path.cubicTo(21.42, 10.65, 22.38, 11.59, 22.44, 11.70);
+  path.cubicTo(22.54, 11.89, 22.52, 12.06, 22.34, 12.23);
+  path.cubicTo(22.22, 12.35, 22.14, 12.39, 22.01, 12.39);
+  path.cubicTo(21.82, 12.39, 21.80, 12.38, 21.01, 11.65);
+  path.cubicTo(20.78, 11.43, 20.57, 11.26, 20.54, 11.26);
+  path.cubicTo(20.51, 11.26, 20.51, 12.88, 20.53, 15.68);
+  path.cubicTo(20.55, 20.49, 20.55, 20.55, 20.30, 20.93);
+  path.cubicTo(20.17, 21.12, 19.89, 21.33, 19.59, 21.43);
+  path.cubicTo(19.44, 21.49, 18.89, 21.50, 16.78, 21.52);
+  path.lineTo(14.16, 21.54);
+  path.lineTo(14.00, 21.38);
+  path.lineTo(13.83, 21.21);
+  path.lineTo(13.83, 19.04);
+  path.cubicTo(13.83, 15.47, 13.82, 15.26, 13.72, 15.14);
+  path.cubicTo(13.63, 15.05, 13.59, 15.05, 12.03, 15.05);
+  path.lineTo(10.43, 15.05);
+  path.lineTo(10.33, 15.17);
+  path.cubicTo(10.23, 15.29, 10.23, 15.33, 10.23, 18.28);
+  path.lineTo(10.23, 21.26);
+  path.lineTo(10.09, 21.40);
+  path.lineTo(9.95, 21.54);
+  path.lineTo(7.26, 21.53);
+  path.cubicTo(4.81, 21.51, 4.56, 21.50, 4.39, 21.43);
+  path.cubicTo(4.13, 21.31, 3.80, 21.04, 3.71, 20.86);
+  path.cubicTo(3.51, 20.46, 3.50, 20.44, 3.50, 15.77);
+  path.cubicTo(3.50, 13.32, 3.49, 11.30, 3.48, 11.29);
+  path.cubicTo(3.46, 11.27, 3.17, 11.52, 2.83, 11.83);
+  path.cubicTo(2.26, 12.34, 2.19, 12.39, 2.03, 12.39);
+  path.cubicTo(1.77, 12.39, 1.57, 12.20, 1.53, 11.93);
+  path.lineTo(1.50, 11.72);
+  path.lineTo(1.99, 11.25);
+  path.cubicTo(2.51, 10.74, 3.85, 9.48, 7.56, 6.00);
+  path.cubicTo(9.17, 4.48, 10.81, 2.96, 11.02, 2.79);
+  path.cubicTo(11.36, 2.51, 11.58, 2.44, 12.03, 2.46);
+  path.cubicTo(12.33, 2.47, 12.49, 2.50, 12.65, 2.58);
+  path.close();
+  path.moveTo(11.86, 3.45);
+  path.cubicTo(11.71, 3.49, 11.04, 4.07, 9.88, 5.19);
+  path.cubicTo(9.56, 5.49, 9.15, 5.88, 8.95, 6.07);
+  path.cubicTo(8.76, 6.25, 8.36, 6.62, 8.08, 6.90);
+  path.cubicTo(7.79, 7.17, 7.28, 7.64, 6.96, 7.93);
+  path.cubicTo(6.64, 8.23, 6.19, 8.65, 5.97, 8.86);
+  path.cubicTo(5.74, 9.08, 5.34, 9.46, 5.07, 9.72);
+  path.cubicTo(4.79, 9.97, 4.56, 10.21, 4.53, 10.24);
+  path.cubicTo(4.51, 10.27, 4.50, 12.55, 4.51, 15.31);
+  path.lineTo(4.52, 20.31);
+  path.lineTo(4.66, 20.43);
+  path.lineTo(4.79, 20.54);
+  path.lineTo(7.01, 20.54);
+  path.lineTo(9.24, 20.54);
+  path.lineTo(9.24, 17.82);
+  path.cubicTo(9.24, 15.19, 9.24, 15.09, 9.34, 14.84);
+  path.cubicTo(9.40, 14.65, 9.50, 14.51, 9.65, 14.38);
+  path.cubicTo(10.02, 14.06, 10.11, 14.05, 12.14, 14.06);
+  path.lineTo(13.90, 14.07);
+  path.lineTo(14.16, 14.22);
+  path.cubicTo(14.44, 14.37, 14.59, 14.55, 14.72, 14.86);
+  path.cubicTo(14.79, 15.05, 14.80, 15.35, 14.83, 17.79);
+  path.lineTo(14.85, 20.52);
+  path.lineTo(17.00, 20.53);
+  path.cubicTo(19.45, 20.54, 19.43, 20.55, 19.52, 20.21);
+  path.cubicTo(19.55, 20.08, 19.56, 18.63, 19.54, 15.20);
+  path.cubicTo(19.52, 12.55, 19.50, 10.34, 19.49, 10.28);
+  path.cubicTo(19.47, 10.20, 18.32, 9.08, 17.22, 8.08);
+  path.cubicTo(16.72, 7.63, 15.03, 6.04, 14.28, 5.33);
+  path.cubicTo(13.29, 4.39, 12.54, 3.70, 12.37, 3.58);
+  path.cubicTo(12.16, 3.42, 12.05, 3.40, 11.86, 3.45);
   path.close();
 }
