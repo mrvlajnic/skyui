@@ -12,9 +12,13 @@ class SkyIconData {
   /// [SkyIcon] output matches the bundled SVG asset it was recreated from.
   final SkySvgPath? svgPath;
 
-  const SkyIconData(this.iconData) : svgPath = null;
+  /// Whether [svgPath] describes closed filled shapes (true) or an open
+  /// stroke outline (false, the default for the icon pack's outline glyphs).
+  final bool filled;
 
-  const SkyIconData.svg(this.svgPath) : iconData = null;
+  const SkyIconData(this.iconData) : svgPath = null, filled = false;
+
+  const SkyIconData.svg(this.svgPath, {this.filled = false}) : iconData = null;
 }
 
 class SkyIcon extends StatelessWidget {
@@ -42,6 +46,7 @@ class SkyIcon extends StatelessWidget {
           painter: _SkySvgIconPainter(
             svgPath,
             color ?? IconTheme.of(context).color ?? const Color(0xFFADADAD),
+            filled: icon.filled,
           ),
         ),
       );
@@ -56,10 +61,14 @@ class SkyIcon extends StatelessWidget {
 }
 
 class _SkySvgIconPainter extends CustomPainter {
-  const _SkySvgIconPainter(this.svgPath, this.color);
+  const _SkySvgIconPainter(this.svgPath, this.color, {required this.filled});
 
   final SkySvgPath svgPath;
   final Color color;
+
+  /// Filled glyphs are drawn as closed filled shapes with no stroke;
+  /// unfilled (outline) glyphs keep the 2-unit round stroke.
+  final bool filled;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -76,7 +85,7 @@ class _SkySvgIconPainter extends CustomPainter {
     );
     canvas.scale(scale);
     final paint = Paint()
-      ..style = PaintingStyle.stroke
+      ..style = filled ? PaintingStyle.fill : PaintingStyle.stroke
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
@@ -87,5 +96,7 @@ class _SkySvgIconPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SkySvgIconPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.svgPath != svgPath;
+      oldDelegate.color != color ||
+      oldDelegate.svgPath != svgPath ||
+      oldDelegate.filled != filled;
 }

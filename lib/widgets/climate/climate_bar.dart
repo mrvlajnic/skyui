@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/icons/sky_icon.dart';
+import '../../core/icons/sky_icons.dart';
+
 class ClimateBar extends StatefulWidget {
   const ClimateBar({super.key});
 
@@ -27,10 +30,7 @@ class _ClimateBarState extends State<ClimateBar> {
           backgroundColor: const Color(0xFF111118),
         ),
         child: ClipPath(
-          clipper: ClimatePanelClipper(
-            slantWidth: 20.0,
-            borderRadius: 12.0,
-          ),
+          clipper: ClimatePanelClipper(slantWidth: 20.0, borderRadius: 12.0),
           child: Container(
             height: 56,
             color: Colors.transparent,
@@ -46,9 +46,7 @@ class _ClimateBarState extends State<ClimateBar> {
                     setState(() => leftFanSpeed = speed);
                   },
                 ),
-                Expanded(
-                  child: const _CenterClimateSection(),
-                ),
+                Expanded(child: const _CenterClimateSection()),
                 _RightClimateSection(
                   temperature: rightTemp,
                   fanSpeed: rightFanSpeed,
@@ -72,10 +70,7 @@ class ClimatePanelClipper extends CustomClipper<Path> {
   final double slantWidth;
   final double borderRadius;
 
-  ClimatePanelClipper({
-    required this.slantWidth,
-    required this.borderRadius,
-  });
+  ClimatePanelClipper({required this.slantWidth, required this.borderRadius});
 
   @override
   Path getClip(Size size) {
@@ -93,7 +88,8 @@ class ClimatePanelClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(covariant ClimatePanelClipper oldClipper) =>
-      oldClipper.slantWidth != slantWidth || oldClipper.borderRadius != borderRadius;
+      oldClipper.slantWidth != slantWidth ||
+      oldClipper.borderRadius != borderRadius;
 }
 
 class ClimatePanelPainter extends CustomPainter {
@@ -140,11 +136,11 @@ class ClimatePanelPainter extends CustomPainter {
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
-    
+
     final accentPath = Path()
       ..moveTo(size.width - slantWidth, 0)
       ..lineTo(size.width, size.height);
-    
+
     canvas.drawPath(accentPath, accentPaint);
   }
 
@@ -197,10 +193,7 @@ class _LeftClimateSection extends StatelessWidget {
             onPressed: () => onTemperatureChange(temperature + 0.5),
           ),
           const SizedBox(width: 24),
-          _FanSpeedIndicator(
-            speed: fanSpeed,
-            onSpeedChange: onFanSpeedChange,
-          ),
+          _FanSpeedIndicator(speed: fanSpeed, onSpeedChange: onFanSpeedChange),
         ],
       ),
     );
@@ -287,10 +280,7 @@ class _RightClimateSection extends StatelessWidget {
       padding: const EdgeInsets.only(left: 16, right: 32, top: 6, bottom: 6),
       child: Row(
         children: [
-          _FanSpeedIndicator(
-            speed: fanSpeed,
-            onSpeedChange: onFanSpeedChange,
-          ),
+          _FanSpeedIndicator(speed: fanSpeed, onSpeedChange: onFanSpeedChange),
           const SizedBox(width: 24),
           _ControlButton(
             label: '−',
@@ -326,40 +316,48 @@ class _HeatedSeatButton extends StatefulWidget {
 }
 
 class _HeatedSeatButtonState extends State<_HeatedSeatButton> {
-  int level = 3; // Default to 3 to match preview
+  // Levels 0 (off) through 4 (max); four indicator dots as in the
+  // reference image. Default 4 so the bar matches the all-dots-lit look.
+  int level = 4;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
         setState(() {
-          level = (level + 1) % 4;
+          level = (level + 1) % 5;
         });
       },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.chair_outlined,
-            color: level > 0 ? const Color(0xFFE53935) : Colors.white54,
-            size: 20,
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(3, (index) {
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                width: 3,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: index < level ? const Color(0xFFE53935) : Colors.white24,
-                  shape: BoxShape.circle,
-                ),
-              );
-            }),
-          ),
-        ],
+      child: Semantics(
+        button: true,
+        label: 'Heated seat, level $level of 4',
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SkyIcon(
+              SkyIcons.heatedSeat,
+              color: level > 0 ? const Color(0xFFE53935) : Colors.white54,
+              size: 20,
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(4, (index) {
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                  width: 3,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: index < level
+                        ? const Color(0xFFE53935)
+                        : Colors.white24,
+                    shape: BoxShape.circle,
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -369,10 +367,7 @@ class _ControlButton extends StatefulWidget {
   final String label;
   final VoidCallback onPressed;
 
-  const _ControlButton({
-    required this.label,
-    required this.onPressed,
-  });
+  const _ControlButton({required this.label, required this.onPressed});
 
   @override
   State<_ControlButton> createState() => _ControlButtonState();
@@ -392,9 +387,7 @@ class _ControlButtonState extends State<_ControlButton> {
         duration: const Duration(milliseconds: 100),
         width: 32,
         height: 32,
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-        ),
+        decoration: BoxDecoration(color: Colors.transparent),
         child: Center(
           child: Text(
             widget.label,
@@ -414,10 +407,7 @@ class _FanSpeedIndicator extends StatelessWidget {
   final int speed;
   final Function(int) onSpeedChange;
 
-  const _FanSpeedIndicator({
-    required this.speed,
-    required this.onSpeedChange,
-  });
+  const _FanSpeedIndicator({required this.speed, required this.onSpeedChange});
 
   @override
   Widget build(BuildContext context) {
@@ -456,9 +446,7 @@ class _FanSpeedIndicator extends StatelessWidget {
                         width: 2,
                         height: 2,
                         decoration: BoxDecoration(
-                          color: index < speed
-                              ? Colors.white
-                              : Colors.white24,
+                          color: index < speed ? Colors.white : Colors.white24,
                           shape: BoxShape.circle,
                         ),
                       ),

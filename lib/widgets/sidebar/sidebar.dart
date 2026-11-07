@@ -41,7 +41,7 @@ class _SidebarState extends State<Sidebar> {
       SidebarData(SkyIcons.navigation, 'Navigation'),
       SidebarData(SkyIcons.music, 'Media'),
       SidebarData(SkyIcons.phone, 'Phone'),
-      SidebarData(SkyIcons.vehicle, 'Vehicle', enabled: false),
+      SidebarData(SkyIcons.vehicle, 'Vehicle'),
     ];
 
     const bottomItems = [

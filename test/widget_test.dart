@@ -12,6 +12,7 @@ import 'package:skyui/main.dart';
 import 'package:skyui/screens/media/media_screen_content.dart';
 import 'package:skyui/screens/navigation/navigation_screen_content.dart';
 import 'package:skyui/screens/phone/phone_screen.dart';
+import 'package:skyui/screens/vehicle/vehicle_screen.dart';
 import 'package:skyui/services/drive_mode_service.dart';
 
 void main() {
@@ -305,8 +306,86 @@ void main() {
       find.descendant(of: settingsButton, matching: find.byType(InkWell)),
     );
 
-    expect(vehicleTap.onTap, isNull);
+    expect(vehicleTap.onTap, isNotNull);
     expect(settingsTap.onTap, isNull);
+  });
+
+  testWidgets('Vehicle module opens, shows demo-labeled telemetry, closes', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1680, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const SkyUIApp());
+
+    await tester.tap(find.byKey(const ValueKey('sidebar-Vehicle')));
+    // Drive the full 350 ms expansion past the content fade-in interval.
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(VehicleScreenContent), findsOneWidget);
+    expect(find.text('Energy'), findsOneWidget);
+    expect(find.text('Tire pressure'), findsOneWidget);
+    expect(find.text('Service'), findsOneWidget);
+    expect(find.text('76'), findsOneWidget);
+    expect(find.text('385'), findsOneWidget);
+    expect(find.text('FL'), findsOneWidget);
+    expect(find.text('Comfort'), findsOneWidget);
+    // Every card carries the DEMO DATA badge (scoped to the module; the
+    // compact VehicleCards beneath the overlay are still in the tree).
+    expect(
+      find.descendant(
+        of: find.byType(VehicleScreenContent),
+        matching: find.text('DEMO DATA'),
+      ),
+      findsNWidgets(3),
+    );
+    // Parked drive state chip, driven by DriveModeService.
+    expect(find.text('PARKED'), findsWidgets);
+    expect(tester.takeException(), isNull);
+
+    // Close affordance returns to the home dashboard.
+    final closeFinder = find.byKey(const ValueKey('vehicle-close-button'));
+    expect(closeFinder, findsOneWidget);
+    await tester.tap(closeFinder);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(VehicleScreenContent), findsNothing);
+    expect(find.byKey(const ValueKey('sidebar-Vehicle')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Vehicle telemetry reflects driving state and call lock', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1680, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const SkyUIApp());
+    await tester.tap(find.byKey(const ValueKey('sidebar-Vehicle')));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('PARKED'), findsWidgets);
+    driveMode.update(VehicleState.driving);
+    await tester.pump();
+    expect(find.text('DRIVING'), findsWidgets);
+    expect(tester.takeException(), isNull);
+
+    // A new trip away (back home) works while driving — vehicle is not locked.
+    await tester.tap(find.byKey(const ValueKey('sidebar-Home')));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(VehicleScreenContent), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('SkyUI app loads', (WidgetTester tester) async {

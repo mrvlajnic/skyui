@@ -9,13 +9,14 @@ import '../../widgets/climate/climate_bar.dart';
 import '../navigation/navigation_screen_content.dart';
 import '../phone/phone_screen.dart';
 import '../media/media_screen_content.dart';
+import '../vehicle/vehicle_screen.dart';
 
 // ── Shared layout constants ───────────────────────────────────────────────────
 const double _kPadding = 24.0;
 const double _kSpacing = 24.0;
 const double _kClimateBarHeight = 80.0;
 
-enum _HomeDestination { home, navigation, media, phone }
+enum _HomeDestination { home, navigation, media, phone, vehicle }
 
 /// Home dashboard screen.
 ///
@@ -53,6 +54,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late final Animation<double> _mediaOtherCardsOpacity;
   late final Animation<double> _mediaContentOpacity;
   bool _mediaExpanded = false;
+
+  // ── Vehicle Expansion Animation ────────────────────────────────────────────
+  late final AnimationController _vehicleController;
+  late final Animation<double> _vehicleExpandProgress;
+  late final Animation<double> _vehicleOtherCardsOpacity;
+  late final Animation<double> _vehicleContentOpacity;
+  bool _vehicleExpanded = false;
 
   _HomeDestination _activeDestination = _HomeDestination.home;
   _HomeDestination? _pendingDestination;
@@ -129,6 +137,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         curve: const Interval(0.65, 1.0, curve: Curves.easeOut),
       ),
     );
+    // ── Setup Vehicle Animation ──────────────────────────────────────────────
+    _vehicleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _vehicleExpandProgress = CurvedAnimation(
+      parent: _vehicleController,
+      curve: Curves.easeInOutCubic,
+    );
+    _vehicleOtherCardsOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _vehicleController,
+        curve: const Interval(0.0, 0.40, curve: Curves.easeIn),
+      ),
+    );
+    _vehicleContentOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _vehicleController,
+        curve: const Interval(0.65, 1.0, curve: Curves.easeOut),
+      ),
+    );
   }
 
   @override
@@ -136,6 +165,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _navController.dispose();
     _phoneController.dispose();
     _mediaController.dispose();
+    _vehicleController.dispose();
     super.dispose();
   }
 
@@ -149,6 +179,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         return _mediaController;
       case _HomeDestination.phone:
         return _phoneController;
+      case _HomeDestination.vehicle:
+        return _vehicleController;
       case _HomeDestination.home:
         throw StateError('Home does not have an expansion controller');
     }
@@ -164,6 +196,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         break;
       case _HomeDestination.phone:
         _phoneExpanded = expanded;
+        break;
+      case _HomeDestination.vehicle:
+        _vehicleExpanded = expanded;
         break;
       case _HomeDestination.home:
         break;
@@ -220,6 +255,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _HomeDestination.navigation => 1,
       _HomeDestination.media => 2,
       _HomeDestination.phone => 3,
+      _HomeDestination.vehicle => 4,
       _HomeDestination.home => 0,
     };
 
@@ -271,14 +307,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _requestDestination(_HomeDestination.home);
   }
 
+  void _openVehicle() {
+    _requestDestination(_HomeDestination.vehicle);
+  }
+
+  void _closeVehicle() {
+    _requestDestination(_HomeDestination.home);
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    // Opacity for the base card (Vehicle Card)
+    // Opacity for the base card row (Vehicle Card). Whichever module is
+    // expanding fades the base row with its own other-cards curve.
     final otherCardsOpacity = _phoneExpanded
         ? _phoneOtherCardsOpacity
-        : (_mediaExpanded ? _mediaOtherCardsOpacity : _navOtherCardsOpacity);
+        : _vehicleExpanded
+        ? _vehicleOtherCardsOpacity
+        : _mediaExpanded
+        ? _mediaOtherCardsOpacity
+        : _navOtherCardsOpacity;
 
     return PopScope<Object?>(
       canPop: _activeDestination == _HomeDestination.home,
@@ -299,6 +348,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   1 => _HomeDestination.navigation,
                   2 => _HomeDestination.media,
                   3 => _HomeDestination.phone,
+                  4 => _HomeDestination.vehicle,
                   _ => null,
                 };
                 if (destination != null) {
@@ -377,10 +427,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           width: width,
                           height: height,
                           child: IgnorePointer(
-                            ignoring: _phoneExpanded,
+                            ignoring: _phoneExpanded || _vehicleExpanded,
                             child: FadeTransition(
-                              // When Phone expands, Nav fades out. When Media expands, Nav STAYS VISIBLE!
-                              opacity: _phoneOtherCardsOpacity,
+                              // When Phone (or Vehicle) expands, Nav fades out.
+                              // When Media expands, Nav STAYS VISIBLE!
+                              opacity: _vehicleExpanded
+                                  ? _vehicleOtherCardsOpacity
+                                  : _phoneOtherCardsOpacity,
                               child: child!,
                             ),
                           ),
@@ -413,7 +466,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                         final parentOpacity = _navigationExpanded
                             ? _navOtherCardsOpacity
-                            : (_mediaExpanded ? _mediaOtherCardsOpacity : null);
+                            : _mediaExpanded
+                            ? _mediaOtherCardsOpacity
+                            : _vehicleExpanded
+                            ? _vehicleOtherCardsOpacity
+                            : null;
 
                         Widget content = child!;
                         if (parentOpacity != null) {
@@ -429,7 +486,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           width: width,
                           height: height,
                           child: IgnorePointer(
-                            ignoring: _navigationExpanded || _mediaExpanded,
+                            ignoring:
+                                _navigationExpanded ||
+                                _mediaExpanded ||
+                                _vehicleExpanded,
                             child: content,
                           ),
                         );
@@ -480,7 +540,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                         final parentOpacity = _navigationExpanded
                             ? _navOtherCardsOpacity
-                            : (_phoneExpanded ? _phoneOtherCardsOpacity : null);
+                            : _phoneExpanded
+                            ? _phoneOtherCardsOpacity
+                            : _vehicleExpanded
+                            ? _vehicleOtherCardsOpacity
+                            : null;
 
                         Widget content = child!;
                         if (parentOpacity != null) {
@@ -496,7 +560,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           width: width,
                           height: height,
                           child: IgnorePointer(
-                            ignoring: _navigationExpanded || _phoneExpanded,
+                            ignoring:
+                                _navigationExpanded ||
+                                _phoneExpanded ||
+                                _vehicleExpanded,
                             child: content,
                           ),
                         );
@@ -507,6 +574,74 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         mediaExpanded: _mediaExpanded,
                         onTap: _openMedia,
                         onClose: _closeMedia,
+                      ),
+                    );
+                  }
+
+                  // ── Animated Vehicle Overlay (Section 1 or Fullscreen) ────
+                  Widget buildVehicleOverlay() {
+                    // Compact geometry: exactly over the base VehicleCard
+                    // in Section 1. At rest it renders the same card so the
+                    // morph starts from one continuous surface (same pattern
+                    // as nav/phone/media).
+                    const vehicleCardLeft = 0.0;
+                    const vehicleCardTop = 0.0;
+                    final vehicleCardWidth = vehicleWidth;
+                    final vehicleCardHeight = availableHeight;
+
+                    return AnimatedBuilder(
+                      animation: _vehicleExpandProgress,
+                      builder: (context, child) {
+                        final t = _vehicleExpandProgress.value;
+                        final left = _lerpDouble(vehicleCardLeft, fullLeft, t);
+                        final top = _lerpDouble(vehicleCardTop, fullTop, t);
+                        final width = _lerpDouble(
+                          vehicleCardWidth,
+                          fullWidth,
+                          t,
+                        );
+                        final height = _lerpDouble(
+                          vehicleCardHeight,
+                          fullHeight,
+                          t,
+                        );
+
+                        final parentOpacity = _navigationExpanded
+                            ? _navOtherCardsOpacity
+                            : _phoneExpanded
+                            ? _phoneOtherCardsOpacity
+                            : _mediaExpanded
+                            ? _mediaOtherCardsOpacity
+                            : null;
+
+                        Widget content = child!;
+                        if (parentOpacity != null) {
+                          content = FadeTransition(
+                            opacity: parentOpacity,
+                            child: content,
+                          );
+                        }
+
+                        return Positioned(
+                          left: left,
+                          top: top,
+                          width: width,
+                          height: height,
+                          child: IgnorePointer(
+                            ignoring:
+                                _navigationExpanded ||
+                                _phoneExpanded ||
+                                _mediaExpanded,
+                            child: content,
+                          ),
+                        );
+                      },
+                      child: _VehicleCardOverlay(
+                        expandProgress: _vehicleExpandProgress,
+                        vehicleContentOpacity: _vehicleContentOpacity,
+                        vehicleExpanded: _vehicleExpanded,
+                        onTap: _openVehicle,
+                        onClose: _closeVehicle,
                       ),
                     );
                   }
@@ -530,7 +665,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ),
 
                               // ── Overlays: active expanding overlay on top ───
-                              if (_phoneExpanded) ...[
+                              if (_vehicleExpanded) ...[
+                                buildNavOverlay(),
+                                buildMediaOverlay(),
+                                buildPhoneOverlay(),
+                                buildVehicleOverlay(),
+                              ] else if (_phoneExpanded) ...[
                                 buildNavOverlay(),
                                 buildMediaOverlay(),
                                 buildPhoneOverlay(),
@@ -545,6 +685,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ] else ...[
                                 buildPhoneOverlay(),
                                 buildMediaOverlay(),
+                                buildVehicleOverlay(),
                                 buildNavOverlay(),
                               ],
                             ],
@@ -778,6 +919,60 @@ class _MediaCardOverlay extends StatelessWidget {
 
               // ── Full Sections 1 & 2 MediaScreenContent (fades in) ─────────
               if (mediaContentOpacity.value > 0) child!,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The vehicle card overlay that starts as the compact card and expands
+// full-screen (full-screen overlay parity with nav/phone, unlike media
+// which expands only to Sections 1 & 2).
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _VehicleCardOverlay extends StatelessWidget {
+  final Animation<double> expandProgress;
+  final Animation<double> vehicleContentOpacity;
+  final bool vehicleExpanded;
+  final VoidCallback onTap;
+  final VoidCallback onClose;
+
+  const _VehicleCardOverlay({
+    required this.expandProgress,
+    required this.vehicleContentOpacity,
+    required this.vehicleExpanded,
+    required this.onTap,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      // Only tappable when in the compact state
+      onTap: vehicleExpanded ? null : onTap,
+      child: AnimatedBuilder(
+        animation: expandProgress,
+        // Same child-caching as the nav/phone/media overlays: never rebuild
+        // the module subtree from an animation tick.
+        child: FadeTransition(
+          opacity: vehicleContentOpacity,
+          child: VehicleScreenContent(onClose: onClose),
+        ),
+        builder: (context, child) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              // ── Compact VehicleCard (fades out as vehicle content fades in) ──
+              Opacity(
+                opacity: (1.0 - vehicleContentOpacity.value).clamp(0.0, 1.0),
+                child: const VehicleCard(),
+              ),
+
+              // ── Full-screen VehicleScreenContent (fades in) ─────────────
+              if (vehicleContentOpacity.value > 0) child!,
             ],
           );
         },
