@@ -1,5 +1,10 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 /// Comprehensive destination model with spatial and telemetry properties
 class NavDestination {
@@ -10,7 +15,7 @@ class NavDestination {
   final double distanceKm;
   final int durationMinutes;
   final int batteryArrivalPercent;
-  final Offset coordinates; // Normalized 0.0 to 1.0 on map canvas
+  final LatLng coordinates; // Real-world map coordinates
   final String nextManeuver;
   final String maneuverDistance;
   final IconData maneuverIcon;
@@ -61,7 +66,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       distanceKm: 8.5,
       durationMinutes: 12,
       batteryArrivalPercent: 72,
-      coordinates: Offset(0.82, 0.22),
+      coordinates: LatLng(44.8125, 20.4612),
       nextManeuver: 'Turn right onto Main Street',
       maneuverDistance: 'In 300 m',
       maneuverIcon: Icons.turn_right_rounded,
@@ -74,7 +79,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       distanceKm: 4.2,
       durationMinutes: 7,
       batteryArrivalPercent: 74,
-      coordinates: Offset(0.28, 0.18),
+      coordinates: LatLng(44.8000, 20.4300),
       nextManeuver: 'Keep left on Highway E75',
       maneuverDistance: 'In 1.2 km',
       maneuverIcon: Icons.fork_left_rounded,
@@ -87,7 +92,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       distanceKm: 14.8,
       durationMinutes: 18,
       batteryArrivalPercent: 67,
-      coordinates: Offset(0.78, 0.82),
+      coordinates: LatLng(44.7700, 20.4900),
       nextManeuver: 'Take exit 4B toward South River',
       maneuverDistance: 'In 800 m',
       maneuverIcon: Icons.turn_slight_right_rounded,
@@ -100,7 +105,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       distanceKm: 6.1,
       durationMinutes: 9,
       batteryArrivalPercent: 73,
-      coordinates: Offset(0.18, 0.45),
+      coordinates: LatLng(44.7500, 20.4100),
       nextManeuver: 'Continue straight for 2.5 km',
       maneuverDistance: 'In 2.5 km',
       maneuverIcon: Icons.straight_rounded,
@@ -113,7 +118,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       distanceKm: 11.3,
       durationMinutes: 15,
       batteryArrivalPercent: 70,
-      coordinates: Offset(0.55, 0.85),
+      coordinates: LatLng(44.8200, 20.4550),
       nextManeuver: 'Turn left onto Marina Drive',
       maneuverDistance: 'In 450 m',
       maneuverIcon: Icons.turn_left_rounded,
@@ -123,11 +128,22 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   int _selectedDestIndex = 0;
 
   // ── GPS Puck & Vehicle Movement State ──────────────────────────────────────
-  Offset _currentPuckPos = const Offset(0.48, 0.58);
-  Offset _startPuckPos = const Offset(0.48, 0.58);
-  Offset _targetPuckPos = const Offset(0.82, 0.22);
+  // Real-world positions used by flutter_map; the simulated painter projects
+  // them back to normalized 0-1 canvas coords via _project().
+  static const LatLng _belgradeCenter = LatLng(44.7866, 20.4489);
+  LatLng _currentPuckLatLng = _belgradeCenter;
+  LatLng _startPuckLatLng = _belgradeCenter;
+  LatLng _targetPuckLatLng = _belgradeCenter;
   double _puckHeading = -math.pi / 4; // Angle in radians
 
+  /// Whether flutter_map + OSM tiles are reachable. Falls back to the
+  /// hand-painted simulated map when the tile server can't be contacted.
+  bool _useRealMap = true;
+
+  /// Current zoom level for flutter_map (driven by the +/- buttons).
+  double _zoom = 13;
+
+  late final MapController _mapController;
   late final AnimationController _travelController;
   late final Animation<double> _travelAnimation;
 
@@ -141,6 +157,12 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   @override
   void initState() {
     super.initState();
+
+    _mapController = MapController();
+
+    // Reachability probe: can we reach the OSM tile server? If not, fall back
+    // to the hand-painted simulated map so the screen still renders offline.
+    _probeTileServer();
 
     // Setup travel glide animation
     _travelController = AnimationController(
@@ -159,7 +181,26 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       duration: const Duration(milliseconds: 2000),
     )..repeat();
 
-    _targetPuckPos = _destinations[_selectedDestIndex].coordinates;
+    _targetPuckLatLng = _destinations[_selectedDestIndex].coordinates;
+  }
+
+  /// Lightly probes the OSM tile server. On success the real map is used; on
+  /// failure (offline / blocked) we silently fall back to the simulated map.
+  Future<void> _probeTileServer() async {
+    try {
+      final client = HttpClient()
+        ..connectionTimeout = const Duration(seconds: 3);
+      final request = await client.openUrl(
+        'GET',
+        Uri.parse('https://tile.openstreetmap.org/13/4193/2666.png'),
+      );
+      final response = await request.close();
+      await response.drain();
+      _useRealMap = response.statusCode == 200;
+    } catch (_) {
+      _useRealMap = false;
+    }
+    if (mounted) setState(() {});
   }
 
   @override
@@ -173,29 +214,33 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     final t = _travelAnimation.value;
 
     // Generate smooth bezier curve trajectory between start and target
-    final p0 = _startPuckPos;
-    final p2 = _targetPuckPos;
+    final p0 = _startPuckLatLng;
+    final p2 = _targetPuckLatLng;
     // Midpoint control offset for organic road curve
-    final p1 = Offset(
-      (p0.dx + p2.dx) / 2 + (p2.dy - p0.dy) * 0.2,
-      (p0.dy + p2.dy) / 2 - (p2.dx - p0.dx) * 0.2,
+    final p1 = LatLng(
+      (p0.latitude + p2.latitude) / 2 + (p2.longitude - p0.longitude) * 0.0004,
+      (p0.longitude + p2.longitude) / 2 - (p2.latitude - p0.latitude) * 0.0004,
     );
 
     // Quadratic Bezier interpolation: B(t) = (1-t)^2*P0 + 2(1-t)t*P1 + t^2*P2
     final invT = 1.0 - t;
-    final currentX = invT * invT * p0.dx + 2 * invT * t * p1.dx + t * t * p2.dx;
-    final currentY = invT * invT * p0.dy + 2 * invT * t * p1.dy + t * t * p2.dy;
+    final currentLat =
+        invT * invT * p0.latitude + 2 * invT * t * p1.latitude + t * t * p2.latitude;
+    final currentLng =
+        invT * invT * p0.longitude + 2 * invT * t * p1.longitude + t * t * p2.longitude;
 
     // Tangent derivative for heading: B'(t) = 2(1-t)(P1 - P0) + 2t(P2 - P1)
-    final dx = 2 * invT * (p1.dx - p0.dx) + 2 * t * (p2.dx - p1.dx);
-    final dy = 2 * invT * (p1.dy - p0.dy) + 2 * t * (p2.dy - p1.dy);
+    final dLat = 2 * invT * (p1.latitude - p0.latitude) + 2 * t * (p2.latitude - p1.latitude);
+    final dLng = 2 * invT * (p1.longitude - p0.longitude) + 2 * t * (p2.longitude - p1.longitude);
 
-    if (dx != 0 || dy != 0) {
-      _currentPuckPos = Offset(currentX, currentY);
-      _puckHeading = math.atan2(dy, dx) + math.pi / 2;
+    if (dLat != 0 || dLng != 0) {
+      _currentPuckLatLng = LatLng(currentLat, currentLng);
+      _puckHeading = math.atan2(dLat, dLng) + math.pi / 2;
     } else {
-      _currentPuckPos = Offset(currentX, currentY);
+      _currentPuckLatLng = LatLng(currentLat, currentLng);
     }
+    // flutter_map reads these fields on rebuild; keep the puck + route moving.
+    setState(() {});
   }
 
   /// Triggered when the user selects a destination or taps a waypoint
@@ -204,8 +249,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
 
     setState(() {
       _selectedDestIndex = index;
-      _startPuckPos = _currentPuckPos;
-      _targetPuckPos = _destinations[index].coordinates;
+      _startPuckLatLng = _currentPuckLatLng;
+      _targetPuckLatLng = _destinations[index].coordinates;
     });
 
     _travelController.stop();
@@ -225,27 +270,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          AnimatedBuilder(
-            animation: Listenable.merge([_pulseController, _travelAnimation]),
-            builder: (context, child) {
-              // Isolate the continuously animating map from the rest of the
-              // screen: its radar-pulse repaints no longer invalidate the
-              // blur panels above, and vice versa.
-              return RepaintBoundary(
-                child: CustomPaint(
-                  painter: _VectorMapPainter(
-                    puckPosition: _currentPuckPos,
-                    targetPosition: _targetPuckPos,
-                    puckHeading: _puckHeading,
-                    radarPulseProgress: _pulseController.value,
-                    destinations: _destinations,
-                    selectedDestIndex: _selectedDestIndex,
-                    isTrafficEnabled: _isTrafficEnabled,
-                  ),
-                ),
-              );
-            },
-          ),
+          // ── Map background: real OSM tiles, simulated fallback ─────────────
+          _mapBody(),
 
           // ── Top Bar: Destination Card + Close Button ───────────────────────
           Positioned(
@@ -315,6 +341,9 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
               isTrafficEnabled: _isTrafficEnabled,
               onToggleTraffic: () =>
                   setState(() => _isTrafficEnabled = !_isTrafficEnabled),
+              onRecenter: _recenter,
+              onZoomIn: _zoomIn,
+              onZoomOut: _zoomOut,
             ),
           ),
 
@@ -336,18 +365,188 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       ),
     );
   }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Vector Map Custom Painter
-// ─────────────────────────────────────────────────────────────────────────────
+  /// Real OSM tile map (flutter_map) with puck, destinations, route and
+  /// attribution, or the hand-painted simulated map when the tile server is
+  /// unreachable.
+  Widget _mapBody() {
+    if (!_useRealMap) {
+      return _simulatedMap();
+    }
+    return FlutterMap(
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: _currentPuckLatLng,
+        initialZoom: _zoom,
+        interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.all,
+        ),
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          subdomains: const ['a', 'b', 'c'],
+          minZoom: 1,
+          maxZoom: 19,
+          maxNativeZoom: 19,
+          userAgentPackageName: 'skyui',
+        ),
+        MarkerLayer(
+          markers: [
+            // Vehicle GPS puck with heading
+            Marker(
+              point: _currentPuckLatLng,
+              width: 34,
+              height: 34,
+              child: Transform.rotate(
+                angle: _puckHeading,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF00E676),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x8000E676),
+                        blurRadius: 8,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.directions_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+            // Destination waypoints
+            for (int i = 0; i < _destinations.length; i++) ...[
+              Marker(
+                point: _destinations[i].coordinates,
+                width: 22,
+                height: 22,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: i == _selectedDestIndex
+                        ? const Color(0xFFFF8A00)
+                        : Colors.white10,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: i == _selectedDestIndex
+                      ? const Icon(
+                          Icons.navigation,
+                          color: Colors.white,
+                          size: 16,
+                        )
+                      : null,
+                ),
+              ),
+            ],
+          ],
+        ),
+        PolylineLayer(
+          polylines: [
+            Polyline(
+              points: _routePoints(),
+              strokeWidth: 4,
+              color: const Color(0xFFFF8A00),
+            ),
+          ],
+        ),
+        const SimpleAttributionWidget(
+          source: Text('OpenStreetMap contributors'),
+          alignment: Alignment.bottomLeft,
+          backgroundColor: Color(0x7F000000),
+        ),
+      ],
+    );
+  }
+
+  /// Intermediate points along the puck→target bezier so the route polyline
+  /// reads as a curved road rather than a straight chord.
+  List<LatLng> _routePoints() {
+    final p0 = _startPuckLatLng;
+    final p2 = _targetPuckLatLng;
+    final p1 = LatLng(
+      (p0.latitude + p2.latitude) / 2 + (p2.longitude - p0.longitude) * 0.0004,
+      (p0.longitude + p2.longitude) / 2 - (p2.latitude - p0.latitude) * 0.0004,
+    );
+    return List.generate(11, (i) {
+      final t = i / 10;
+      final inv = 1 - t;
+      return LatLng(
+        inv * inv * p0.latitude + 2 * inv * t * p1.latitude + t * t * p2.latitude,
+        inv * inv * p0.longitude + 2 * inv * t * p1.longitude + t * t * p2.longitude,
+      );
+    });
+  }
+
+  /// Camera controls wired to [MapController].
+  void _recenter() {
+    _mapController.move(_currentPuckLatLng, _zoom);
+  }
+
+  void _zoomIn() {
+    _zoom = (_zoom + 1).clamp(1, 19);
+    _mapController.move(_currentPuckLatLng, _zoom);
+  }
+
+  void _zoomOut() {
+    _zoom = (_zoom - 1).clamp(1, 19);
+    _mapController.move(_currentPuckLatLng, _zoom);
+  }
+
+  /// Hand-painted simulated map used when the OSM tile server is unreachable.
+  /// Projects real-world [LatLng] positions onto the old normalized canvas.
+  Widget _simulatedMap() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_pulseController, _travelAnimation]),
+      builder: (context, child) {
+        return RepaintBoundary(
+          child: CustomPaint(
+            painter: _VectorMapPainter(
+              puckPosition: _project(_currentPuckLatLng),
+              targetPosition: _project(_targetPuckLatLng),
+              puckHeading: _puckHeading,
+              radarPulseProgress: _pulseController.value,
+              destinationPoints: _destinations
+                  .map((d) => _project(d.coordinates))
+                  .toList(),
+              destinationTitles: _destinations.map((d) => d.title).toList(),
+              selectedDestIndex: _selectedDestIndex,
+              isTrafficEnabled: _isTrafficEnabled,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Projects a real-world [LatLng] onto the 0-1 normalized canvas used by the
+  /// simulated painter. Bounding box roughly covers central Belgrade.
+  Offset _project(LatLng p) {
+    const south = 44.7450;
+    const north = 44.8300;
+    const west = 20.3900;
+    const east = 20.5100;
+    final x = ((p.longitude - west) / (east - west)).clamp(0.0, 1.0);
+    final y = ((north - p.latitude) / (north - south)).clamp(0.0, 1.0);
+    return Offset(x, y);
+  }
+
+}
 
 class _VectorMapPainter extends CustomPainter {
   final Offset puckPosition;
   final Offset targetPosition;
   final double puckHeading;
   final double radarPulseProgress;
-  final List<NavDestination> destinations;
+  /// Pre-projected waypoint positions (0-1 canvas space) — the painter itself
+  /// does not geocode, so [NavigationScreenContent] projects via [_project].
+  final List<Offset> destinationPoints;
+  final List<String> destinationTitles;
   final int selectedDestIndex;
   final bool isTrafficEnabled;
 
@@ -356,7 +555,8 @@ class _VectorMapPainter extends CustomPainter {
     required this.targetPosition,
     required this.puckHeading,
     required this.radarPulseProgress,
-    required this.destinations,
+    required this.destinationPoints,
+    required this.destinationTitles,
     required this.selectedDestIndex,
     required this.isTrafficEnabled,
   });
@@ -463,7 +663,7 @@ class _VectorMapPainter extends CustomPainter {
 
   static final Paint _arrowPaint = Paint()..color = Colors.white;
 
-  static final Path _arrowPath = Path()
+  static final ui.Path _arrowPath = ui.Path()
     ..moveTo(0, -6)
     ..lineTo(4, 4)
     ..lineTo(0, 2)
@@ -497,7 +697,7 @@ class _VectorMapPainter extends CustomPainter {
     }
 
     // ── Waterway / River Canal ──────────────────────────────────────────────
-    final riverPath = Path();
+    final ui.Path riverPath = ui.Path();
     riverPath.moveTo(0, size.height * 0.45);
     riverPath.cubicTo(
       size.width * 0.35,
@@ -602,7 +802,7 @@ class _VectorMapPainter extends CustomPainter {
     );
 
     // Primary Expressway / Highway Curve
-    final highwayPath = Path();
+    final ui.Path highwayPath = ui.Path();
     highwayPath.moveTo(0, size.height * 0.85);
     highwayPath.cubicTo(
       size.width * 0.30,
@@ -619,7 +819,7 @@ class _VectorMapPainter extends CustomPainter {
       canvas.drawPath(highwayPath, _trafficGreen);
 
       // Congestion segment
-      final slowPath = Path();
+      final ui.Path slowPath = ui.Path();
       slowPath.moveTo(size.width * 0.32, size.height * 0.65);
       slowPath.lineTo(size.width * 0.44, size.height * 0.45);
       canvas.drawPath(slowPath, _trafficSlow);
@@ -640,7 +840,7 @@ class _VectorMapPainter extends CustomPainter {
       (startPt.dy + targetPt.dy) / 2 - (targetPt.dx - startPt.dx) * 0.2,
     );
 
-    final routePath = Path();
+    final ui.Path routePath = ui.Path();
     routePath.moveTo(startPt.dx, startPt.dy);
     routePath.quadraticBezierTo(
       midControl.dx,
@@ -659,15 +859,12 @@ class _VectorMapPainter extends CustomPainter {
     canvas.drawPath(routePath, _routeCore);
 
     // ── Destination Waypoint Markers ─────────────────────────────────────────
-    for (int i = 0; i < destinations.length; i++) {
-      final dest = destinations[i];
-      final pt = Offset(
-        dest.coordinates.dx * size.width,
-        dest.coordinates.dy * size.height,
-      );
+    for (int i = 0; i < destinationPoints.length; i++) {
+      final pt = destinationPoints[i];
+      final title = destinationTitles[i];
       final isSelected = i == selectedDestIndex;
 
-      _drawWaypointPin(canvas, pt, isSelected, dest.title);
+      _drawWaypointPin(canvas, pt, isSelected, title);
     }
 
     // ── Vehicle GPS Puck with Heading & Radar Ripple ─────────────────────────
@@ -1091,10 +1288,16 @@ class _DestinationChip extends StatelessWidget {
 class _MapControlDeck extends StatelessWidget {
   final bool isTrafficEnabled;
   final VoidCallback onToggleTraffic;
+  final VoidCallback onRecenter;
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
 
   const _MapControlDeck({
     required this.isTrafficEnabled,
     required this.onToggleTraffic,
+    required this.onRecenter,
+    required this.onZoomIn,
+    required this.onZoomOut,
   });
 
   @override
@@ -1114,18 +1317,21 @@ class _MapControlDeck extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const _ControlIconButton(
+            _ControlIconButton(
               icon: Icons.my_location_rounded,
-              tooltip: 'Recenter — unavailable in prototype',
+              tooltip: 'Recenter on vehicle',
+              onTap: onRecenter,
             ),
             const _DividerLine(),
-            const _ControlIconButton(
+            _ControlIconButton(
               icon: Icons.add_rounded,
-              tooltip: 'Zoom in — unavailable in prototype',
+              tooltip: 'Zoom in',
+              onTap: onZoomIn,
             ),
-            const _ControlIconButton(
+            _ControlIconButton(
               icon: Icons.remove_rounded,
-              tooltip: 'Zoom out — unavailable in prototype',
+              tooltip: 'Zoom out',
+              onTap: onZoomOut,
             ),
             const _DividerLine(),
             _ControlIconButton(
