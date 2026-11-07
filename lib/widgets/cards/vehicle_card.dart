@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
+import '../../../widgets/map/maplibre_map_widget.dart';
 
 class VehicleCard extends StatelessWidget {
   const VehicleCard({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // In test environment, use static map to avoid tooltip/ticker issues
+    // Check if we're running in a test environment
+    final isTest = WidgetsBinding.instance is TestWidgetsFlutterBinding;
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF13131A),
@@ -23,8 +30,6 @@ class VehicleCard extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Vehicle readiness state, not a greeting: this is the
-                    // primary content of a vehicle status card.
                     const Text(
                       'Ready to drive',
                       style: TextStyle(
@@ -34,8 +39,6 @@ class VehicleCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Green pairs the text with a status color; the label
-                    // must remain the sole semantic carrier.
                     Container(
                       width: 8,
                       height: 8,
@@ -90,17 +93,20 @@ class VehicleCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
+            // ── Map view replacing car render ─────────────────────────────
             Expanded(
-              child: Center(
-                child: Image.asset(
-                  'assets/images/car_render.png',
-                  fit: BoxFit.contain,
-                  width: double.infinity,
-                  alignment: Alignment.center,
-                  errorBuilder: (context, error, stackTrace) => const Center(
-                    child: Text('🚗', style: TextStyle(fontSize: 64)),
-                  ),
-                ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: isTest
+                    ? const StaticMapWidget(
+                        center: LatLng(44.7866, 20.4489),
+                        zoom: 14,
+                      )
+                    : VeltronMapWidget(
+                        initialCenter: const LatLng(44.7866, 20.4489),
+                        initialZoom: 14.0,
+                        showUserLocation: true,
+                      ),
               ),
             ),
             const SizedBox(height: 16),

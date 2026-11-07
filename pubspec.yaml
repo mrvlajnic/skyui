@@ -13,6 +13,7 @@ dependencies:
 
   flutter_map: ^6.1.0
   latlong2: ^0.9.0
+  maplibre_gl: ^0.27.1
 
   phosphor_flutter: ^2.1.0
 
