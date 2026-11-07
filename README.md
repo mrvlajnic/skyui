@@ -24,13 +24,19 @@ All vehicle, phone, navigation, media, climate, connectivity, speed, route, trip
 
 ## Screenshots
 
-Simulated 1680×720 baseline views of the running client prototype (`docs/screenshots/`):
+Running client prototype (`docs/screenshots/`), before and after the icon/logo overhaul
+(every sidebar glyph replaced with the user-supplied filled punches; metallic `V` logo
+from `logo.ico` now the app icon and the sidebar logo).
 
-| Home dashboard | Navigation (simulated demo route) |
-| --- | --- |
-| ![Home dashboard](docs/screenshots/home.png) | ![Navigation](docs/screenshots/navigation.png) |
-| **Media & Audio** | **Phone dialer** |
-| ![Media](docs/screenshots/media.png) | ![Phone](docs/screenshots/phone.png) |
+| Screen | Before | After |
+| --- | --- | --- |
+| Home dashboard | ![Home before](docs/screenshots/before/home.png) | ![Home after](docs/screenshots/home.png) |
+| Navigation (simulated demo route) | ![Navigation before](docs/screenshots/before/navigation.png) | ![Navigation after](docs/screenshots/navigation.png) |
+| Media & Audio | ![Media before](docs/screenshots/before/media.png) | ![Media after](docs/screenshots/media.png) |
+| Phone dialer | ![Phone before](docs/screenshots/before/phone.png) | ![Phone after](docs/screenshots/phone.png) |
+| Vehicle | — | ![Vehicle after](docs/screenshots/vehicle.png) |
+
+Images are captured at 2100×900 (151.2% scaling).
 
 ## Veltron Auto context
 
