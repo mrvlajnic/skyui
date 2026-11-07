@@ -37,7 +37,7 @@ class _SidebarState extends State<Sidebar> {
   @override
   Widget build(BuildContext context) {
     const topItems = [
-      SidebarData(SkyIcons.home, 'Home'),
+      SidebarData(SkyIcons.house, 'Home'),
       SidebarData(SkyIcons.navigation, 'Navigation'),
       SidebarData(SkyIcons.music, 'Media'),
       SidebarData(SkyIcons.phone, 'Phone'),
