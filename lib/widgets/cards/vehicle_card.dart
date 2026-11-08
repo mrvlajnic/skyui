@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '../../../widgets/map/maplibre_map_widget.dart';
 
@@ -8,9 +7,10 @@ class VehicleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // In test environment, use static map to avoid tooltip/ticker issues
-    // Check if we're running in a test environment
-    final isTest = WidgetsBinding.instance is TestWidgetsFlutterBinding;
+    // Always use VeltronMapWidget in production.
+    // The StaticMapWidget fallback is only used during `flutter test`
+    // via the --dart-define=FLUTTER_TEST=true flag in CI.
+    final isTest = const bool.fromEnvironment('FLUTTER_TEST');
 
     return Container(
       decoration: BoxDecoration(
