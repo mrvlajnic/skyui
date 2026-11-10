@@ -7,11 +7,6 @@ class VehicleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Always use VeltronMapWidget in production.
-    // The StaticMapWidget fallback is only used during `flutter test`
-    // via the --dart-define=FLUTTER_TEST=true flag in CI.
-    final isTest = const bool.fromEnvironment('FLUTTER_TEST');
-
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF13131A),
@@ -97,16 +92,11 @@ class VehicleCard extends StatelessWidget {
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: isTest
-                    ? const StaticMapWidget(
-                        center: LatLng(44.7866, 20.4489),
-                        zoom: 14,
-                      )
-                    : VeltronMapWidget(
-                        initialCenter: const LatLng(44.7866, 20.4489),
-                        initialZoom: 14.0,
-                        showUserLocation: true,
-                      ),
+                child: VeltronMapWidget(
+                    initialCenter: const LatLng(44.7866, 20.4489),
+                    initialZoom: 14.0,
+                    showUserLocation: true,
+                  ),
               ),
             ),
             const SizedBox(height: 16),
