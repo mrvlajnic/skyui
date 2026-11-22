@@ -54,7 +54,14 @@ The UI must never replace primary driving instrumentation, warnings, braking, st
 
 ## 6. Data, telemetry, and privacy
 
-The current Dart implementation collects and transmits no telemetry, analytics, crash reports, remote logs, vehicle signals, contacts, location, or backend data. Local UI state is not transmitted.
+The current Dart implementation collects and transmits no telemetry, analytics, crash reports, remote logs, vehicle signals, contacts, or backend data. Local UI state is not transmitted.
+
+The only outbound requests are:
+
+- optional map tile and style requests to `https://api.maptiler.com` when an API key is injected at build time or supplied through the `MAPTILER_KEY` environment variable on desktop. The provider necessarily receives the request IP address, client user agent, and requested tile coordinates, which approximate the map area currently displayed. No key is stored in the repository, and no request is made when no key is configured; the app then shows a local painted map instead.
+- Flutter web fallback-font requests to `https://fonts.gstatic.com` in the browser build.
+
+No personal data, vehicle identifiers, or diagnostics are sent to any of these hosts.
 
 No future telemetry or diagnostic collection is authorized by this notice. Before implementation, the owner must document:
 
@@ -83,7 +90,7 @@ No APK, AAB, IPA, macOS bundle, Windows installer, Linux package, or web artifac
 
 ## 8. Local web launcher limitation
 
-The local launcher is a development web-app simulator, not a native embedded runtime. It builds a CSP-compatible local CanvasKit bundle, but Flutter fallback fonts may still use `https://fonts.gstatic.com`. Fully offline operation is not claimed until local fonts are bundled and a network trace confirms no external fetch.
+The local launcher is a development web-app simulator, not a native embedded runtime. It builds a CSP-compatible local CanvasKit bundle, but Flutter fallback fonts may still use `https://fonts.gstatic.com`, and the launcher's CSP currently blocks the MapTiler tile host, so the browser build shows the painted map instead of tiles. Fully offline operation is not claimed until local fonts are bundled and a network trace confirms no external fetch.
 
 ## 9. Warranty and liability boundary
 

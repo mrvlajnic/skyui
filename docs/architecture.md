@@ -98,7 +98,8 @@ Current responsibilities:
 - `core/`: shared theme and icon resources; it must not import screens.
 - `screens/`: stateful page-level UI and local prototype behavior.
 - `services/drive_mode_service.dart`: debug-only parked/driving notifier used by the Media browsing guard.
-- `widgets/`: dashboard cards, shell, climate, header, and sidebar components.
+- `widgets/`: dashboard cards, shell, climate, header, sidebar, and map surfaces.
+- `widgets/map/`: presentation-only basemap layer. `DashboardMap` selects the renderer (MapLibre platform view on mobile, `flutter_map` raster tiles on desktop/web, painted fixture on failure), `MapStyle` owns the style ID, attribution text, and key lookup, and `tile_probe.dart` gates the fallback. It is not a domain/map adapter; no position, route, or traffic source exists behind it.
 - `test/`: widget and state-transition tests.
 - `web/flutter_bootstrap.js`: CSP-compatible web bootstrap with local CanvasKit configuration.
 
@@ -112,6 +113,7 @@ There is no current `lib/models/` directory. Media and Navigation value objects 
 | Demo call | `PhoneScreen` | Phone overlay; not a telephony session |
 | Media playback and queue | `MediaScreenContent` | Media overlay; reset on teardown |
 | Navigation selection and map position | `NavigationScreenContent` | Navigation overlay; reset on teardown |
+| Basemap tiles | `DashboardMap` and `MapStyle` | Widget lifetime; build-time key, per-widget reachability probe, no position source |
 | Climate values | `ClimateBar` child state | Home widget lifetime |
 | Debug parked/driving state | `DriveModeService` | Process lifetime; not a vehicle source |
 | Compact media card state | `MediaCard` fixture state | Card lifetime; not synchronized with expanded Media |
@@ -168,7 +170,7 @@ Future contracts should define, as applicable:
 Future adapters may include:
 
 - vehicle gateway;
-- GPS/map provider;
+- GPS and routing provider (basemap imagery is currently requested directly by the UI layer through `widgets/map/`);
 - Bluetooth/carrier/telephony;
 - audio HAL;
 - HVAC/charging service;

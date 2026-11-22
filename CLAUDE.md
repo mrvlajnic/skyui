@@ -26,6 +26,7 @@ lib/
 │   ├── cards/
 │   ├── climate/
 │   ├── header/
+│   ├── map/
 │   └── sidebar/
 └── main.dart
 
@@ -37,6 +38,8 @@ web/
 ```
 
 There is no current `lib/models/` directory or shared media, call, navigation, climate, hardware, or backend service layer. `DriveModeService` is a debug/demo notifier, not a vehicle trust source.
+
+The map layer in `lib/widgets/map/` is presentation-only. It requests MapTiler tiles only when a key is injected at build time (`--dart-define=MAPTILER_KEY=...`) or supplied through the `MAPTILER_KEY` environment variable on desktop; with no key, or when the tile host is unreachable, it renders the local painted fixture. The key must never be committed, and provider credit must stay visible.
 
 ## Implemented prototype surface
 

@@ -50,7 +50,7 @@ The ambition is an automotive-grade design direction. That means the interface s
 
 > **Prototype boundary:** SkyUI is not a vehicle controller, production infotainment platform, certified automotive HMI, cybersecurity-assured release, or fully offline runtime. The only current evidence boundary is a 1680×720 landscape widget and headless-browser smoke test. Physical-display, resolution-matrix, accessibility, performance, lifecycle, safety, security, hardware, and compliance validation remain pending.
 
-The current application implements no backend, remote telemetry, crash reporting, analytics, vehicle-signal collection, or cloud synchronization.
+The current application implements no backend, remote telemetry, crash reporting, analytics, vehicle-signal collection, or cloud synchronization. The only outbound requests are optional map tile and style requests to MapTiler when an API key is injected at build time, and Flutter web fallback fonts.
 
 ## Current status
 
@@ -62,7 +62,7 @@ The current application implements no backend, remote telemetry, crash reporting
 | Vehicle card | Demo data | Static render and fixtures; no CAN/OBD source; quick actions are disabled |
 | Media studio | Local simulation | Source, queue, playback, and audio labels are local state; no audio HAL or persistent session |
 | Phone cockpit | Local simulation | Dialer, synthetic recents, and explicit demo call; no telephony, contacts, DTMF, or carrier service |
-| Navigation | Local simulation | Custom map and fixture destinations; no GPS, map provider, routing engine, or live traffic |
+| Navigation | Local simulation | MapTiler basemap when a key is configured, painted fixture otherwise; fixture destinations and route; no GPS, routing engine, or live traffic |
 | Climate bar | Local simulation | Visual controls only; no HVAC commands, validated limits, or automatic regulation |
 | Local web launcher | Development tool | Loopback server, CSP-compatible build, local CanvasKit, and enforced build stamp |
 | Android release | Blocked | Placeholder `com.example.skyui` identity and debug signing |
@@ -101,8 +101,8 @@ Vehicle and Settings sidebar entries are visibly disabled because their screens 
 
 ### Navigation
 
-- Custom-painted map, fixture destinations, and local destination transition.
-- Simulated maneuver, speed, limit, ETA, distance, and arrival values.
+- Real basemap in the compact Navigation panel: MapTiler `basic-v2` tiles on desktop and web, the MapLibre platform view on Android/iOS, and a painted fixture map when no key is configured or the tile host is unreachable.
+- Fixture destinations and local destination transition; the displayed position, route, maneuver, speed, limit, ETA, distance, and arrival values are simulated.
 - Traffic toggles a painted fixture layer; it is not a traffic feed.
 - Recalculate replays motion to the selected fixture destination; it does not calculate a route.
 - Zoom, Recenter, and 3D controls are disabled until a real map-camera model exists.
@@ -131,6 +131,7 @@ lib/
 │   ├── cards/
 │   ├── climate/
 │   ├── header/
+│   ├── map/
 │   └── sidebar/
 └── main.dart
 
@@ -141,7 +142,7 @@ web/
 └── flutter_bootstrap.js
 ```
 
-`DriveModeService` is a debug/demo notifier used by the Media browsing guard. It is not a vehicle state, trust, or safety source. There is currently no `lib/models/` directory or shared media, call, route, climate, or hardware session layer.
+`DriveModeService` is a debug/demo notifier used by the Media browsing guard. It is not a vehicle state, trust, or safety source. `widgets/map/` holds the basemap surfaces: `DashboardMap` (renderer selection), `MapStyle` (style ID, attribution, key lookup), `tile_probe.dart` (reachability), `route_preview_map.dart` (offline fixture), `map_attribution.dart`, and `map_vehicle_puck.dart`. There is currently no `lib/models/` directory or shared media, call, route, climate, or hardware session layer.
 
 ## State ownership
 
@@ -219,7 +220,7 @@ Without a key, or when the tile host is unreachable, the map falls back to the l
 ## Verification currently completed
 
 - `flutter analyze` passes.
-- Nine Flutter tests pass.
+- Thirteen Flutter tests pass.
 - `python -m py_compile run_app.py` passes.
 - The enforced CSP-compatible web release build passes.
 - The loopback server returns security headers and rejects an untrusted Host header.

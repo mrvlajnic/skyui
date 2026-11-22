@@ -43,7 +43,7 @@ Use semantic roles rather than treating one accent as universally dominant.
 - Surface: slightly lighter card surface.
 - Primary: blue selection and primary action.
 - Secondary: cyan information and active-state emphasis.
-- Route/map emphasis: orange.
+- Route/map emphasis: orange in the expanded Navigation route, blue for the vehicle puck on the light basemap.
 - Success: green status.
 - Warning: yellow or amber status.
 - Error/destructive: red status.
@@ -156,7 +156,9 @@ The current Semantics improvements are a foundation, not an accessibility certif
 
 ## Images and custom painting
 
-Current imagery is primarily a static vehicle PNG and custom-painted maps. There is no live weather, map, album-art, or camera source.
+Current imagery is the static V1 exterior render, custom-painted map fixtures, and a light MapTiler `basic-v2` basemap when an API key is configured. The displayed map position, route, and all vehicle values remain fixtures; there is no live weather, album-art, camera, or positioning source.
+
+Map surfaces sit on a light background rather than the dark shell. Route emphasis and the vehicle puck use saturated blue (`#0A84FF`) with a white ring so they stay legible on the light cartography; provider credit is a 7 px chip and must remain visible while OSM-derived tiles are shown.
 
 Images should be high quality, appropriately decoded for the target DPR, and labeled as fixtures when they represent vehicle or environmental state.
 

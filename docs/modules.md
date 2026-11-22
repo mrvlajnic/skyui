@@ -54,7 +54,7 @@ The selected item uses a subtle neutral rounded highlight behind a bright icon; 
 
 Sidebar icons are custom stroke SVG recreations from `assets/icons/*.svg`, rendered through the `SkyIcons` pack (`lib/core/icons/`) rather than Material or Phosphor glyphs.
 
-The current 108 dp rail and adaptive 64–80 dp item rows are implementation details at the 1680×720 baseline, not physical automotive measurements. Labels are exposed through tooltip and Semantics rather than rendered in the rail.
+The current 108 dp rail and adaptive 56–80 dp item rows are implementation details at the 1680×720 baseline, not physical automotive measurements. Destinations, Settings included, form one vertically centered group so the rail has no empty bottom shelf. Labels are exposed through tooltip and Semantics rather than rendered in the rail.
 
 ## 3. Vehicle card
 
@@ -62,7 +62,7 @@ Path: `lib/widgets/cards/vehicle_card.dart`
 
 Current behavior:
 
-- Static vehicle render.
+- Static V1 exterior render, horizontally centered in the card.
 - `DEMO DATA` label.
 - Simulated greeting, weather, battery, range, and door state.
 - Disabled Search, Charging, Climate, and Driver Profile actions with unavailable semantics.
@@ -123,17 +123,21 @@ Paths:
 
 - `lib/widgets/cards/navigation_card.dart`
 - `lib/screens/navigation/navigation_screen_content.dart`
+- `lib/widgets/map/` (basemap surfaces)
 
 Current behavior:
 
-- custom-painted map with fixture destinations;
-- destination selection animates the puck toward the selected fixture;
+- real basemap in the compact panel: MapTiler `basic-v2` raster tiles through `flutter_map` on desktop and web, the `maplibre_gl` platform view on Android/iOS, and the painted fixture map when no API key is configured or the tile host is unreachable;
+- a short reachability probe chooses the painted fallback instead of a blank surface;
+- the basemap key is injected at build time (`--dart-define=MAPTILER_KEY=...`) or read from the `MAPTILER_KEY` environment variable on desktop, never stored in the repository;
+- provider credit (`© MapTiler © OpenStreetMap contributors`) is shown as a small chip because the tile terms require it;
+- fixture destinations; selection animates the puck toward the selected fixture;
 - maneuver, speed, limit, ETA, distance, and arrival values are fixtures;
 - Traffic toggles a painted visual layer, not live traffic;
 - Recalculate replays the selected fixture destination, not a routing calculation;
 - Zoom, Recenter, and 3D controls are disabled because no map-camera model exists;
 - free map tap was removed because it changed only a hidden target;
-- no GPS, road graph, map provider, route engine, live traffic, or vehicle signal source exists.
+- no GPS, road graph, route engine, live traffic, or vehicle signal source exists; the basemap provider supplies imagery only.
 
 The route/status area explicitly labels the route as simulated.
 
@@ -144,6 +148,8 @@ Path: `lib/widgets/climate/climate_bar.dart`
 Current behavior:
 
 - local temperature, fan, and seat-heat visual state;
+- the bar reserves 104 dp and its contents scale from one ratio derived from the original 56 dp panel, so control sizes follow the bar height while horizontal spacing keeps its rhythm;
+- left and right heated-seat glyphs are mirrored so they face each other;
 - no HVAC command path;
 - no validated min/max range or quantization contract;
 - no automatic regulation, stale sensor handling, CAN fault, or vehicle safety behavior;
@@ -159,6 +165,7 @@ The current `AUTO` presentation is not connected to a climate-control algorithm.
 | Media playback | `MediaScreenContent` | Lost on overlay teardown |
 | Demo call | `PhoneScreen` | Not a durable call session |
 | Navigation selection | `NavigationScreenContent` | Local fixture state |
+| Basemap availability | `DashboardMap` / `NavigationScreenContent` | Per-widget probe; tiles are third-party imagery, not a position source |
 | Climate | `ClimateBar` and child state | No service boundary |
 | Drive mode | `DriveModeService` | Debug/demo notifier only |
 
@@ -169,7 +176,7 @@ These are not current modules or integrations:
 - central driver interaction policy;
 - persistent call, media, navigation, and climate sessions;
 - CAN/OBD/LIN/AVB and vehicle gateway;
-- GPS and map/traffic provider;
+- GPS, routing, and live-traffic services (basemap imagery already comes from MapTiler);
 - Bluetooth, telephony, contacts, DTMF, and carrier services;
 - audio HAL and stream/decoder services;
 - HVAC, charging, and diagnostics;

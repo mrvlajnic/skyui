@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../core/icons/sky_icon.dart';
 import '../../core/icons/sky_icons.dart';
 
+/// Scales a design metric from the original 56 dp panel so the contents grow
+/// with the bar instead of leaving extra padding around them.
+double _s(double value) => value * ClimateBar.scale;
+
 class ClimateBar extends StatefulWidget {
   const ClimateBar({super.key});
 
@@ -12,6 +16,12 @@ class ClimateBar extends StatefulWidget {
 
   /// Visible panel height once the layout gap is removed.
   static const double panelHeight = height - 24;
+
+  /// The internal metrics below were designed at this panel height.
+  static const double _basePanelHeight = 56;
+
+  /// Uniform scale applied to every metric inside the bar.
+  static const double scale = panelHeight / _basePanelHeight;
 
   @override
   State<ClimateBar> createState() => _ClimateBarState();
@@ -176,10 +186,10 @@ class _LeftClimateSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 20, right: 16, top: 6, bottom: 6),
+      padding: EdgeInsets.only(left: 20, right: 16, top: _s(6), bottom: _s(6)),
       child: Row(
         children: [
-          const _HeatedSeatButton(),
+          const _HeatedSeatButton(mirrored: true),
           const SizedBox(width: 20),
           _TemperatureControl(
             temperature: temperature,
@@ -206,7 +216,7 @@ class _CenterClimateSection extends StatelessWidget {
           const _StatBlock(value: '14.0%', label: 'Trip: Efficiency'),
           Container(
             width: 1,
-            height: 24,
+            height: _s(24),
             color: Colors.white12,
             margin: const EdgeInsets.symmetric(horizontal: 24),
           ),
@@ -234,18 +244,18 @@ class _StatBlock extends StatelessWidget {
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
-            fontSize: 14,
+            fontSize: _s(14),
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: _s(2)),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white54,
-            fontSize: 10,
+            fontSize: _s(10),
             fontWeight: FontWeight.w400,
           ),
         ),
@@ -270,7 +280,7 @@ class _RightClimateSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 32, top: 6, bottom: 6),
+      padding: EdgeInsets.only(left: 16, right: 32, top: _s(6), bottom: _s(6)),
       child: Row(
         children: [
           _FanSpeedIndicator(speed: fanSpeed, onSpeedChange: onFanSpeedChange),
@@ -288,7 +298,10 @@ class _RightClimateSection extends StatelessWidget {
 }
 
 class _HeatedSeatButton extends StatefulWidget {
-  const _HeatedSeatButton();
+  /// Mirrors the seat glyph so the left and right seats face each other.
+  final bool mirrored;
+
+  const _HeatedSeatButton({this.mirrored = false});
 
   @override
   State<_HeatedSeatButton> createState() => _HeatedSeatButtonState();
@@ -313,19 +326,22 @@ class _HeatedSeatButtonState extends State<_HeatedSeatButton> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SkyIcon(
-              SkyIcons.heatedSeat,
-              color: level > 0 ? const Color(0xFFE53935) : Colors.white54,
-              size: 20,
+            Transform.flip(
+              flipX: widget.mirrored,
+              child: SkyIcon(
+                SkyIcons.heatedSeat,
+                color: level > 0 ? const Color(0xFFE53935) : Colors.white54,
+                size: _s(20),
+              ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: _s(4)),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: List.generate(4, (index) {
                 return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                  width: 3,
-                  height: 3,
+                  margin: EdgeInsets.symmetric(horizontal: _s(1.5)),
+                  width: _s(3),
+                  height: _s(3),
                   decoration: BoxDecoration(
                     color: index < level
                         ? const Color(0xFFE53935)
@@ -353,14 +369,14 @@ class _TemperatureControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Compact rounded pill matching the reference: minus on the left,
-    // temperature centered, plus on the right.
+    // Rounded pill matching the reference: minus on the left, temperature
+    // centered, plus on the right.
     return Container(
-      height: 40,
+      height: _s(40),
       padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
         color: const Color(0xFF17171F),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(_s(10)),
         border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
       ),
       child: Row(
@@ -374,9 +390,9 @@ class _TemperatureControl extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '${temperature.toStringAsFixed(1)}°',
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 18,
+              fontSize: _s(18),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -422,8 +438,8 @@ class _ControlButtonState extends State<_ControlButton> {
       onTap: widget.onPressed,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
-        width: compact ? 24 : 32,
-        height: compact ? 28 : 32,
+        width: _s(compact ? 24 : 32),
+        height: _s(compact ? 28 : 32),
         decoration: BoxDecoration(color: Colors.transparent),
         child: Center(
           child: Text(
@@ -432,7 +448,7 @@ class _ControlButtonState extends State<_ControlButton> {
               color: _isPressed
                   ? const Color(0xFFE53935)
                   : Colors.white.withValues(alpha: 0.62),
-              fontSize: compact ? 18 : 20,
+              fontSize: _s(compact ? 18 : 20),
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -457,20 +473,20 @@ class _FanSpeedIndicator extends StatelessWidget {
       },
       child: Container(
         color: Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        padding: EdgeInsets.symmetric(horizontal: 4, vertical: _s(4)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.toys_outlined, color: Colors.white54, size: 16),
-            const SizedBox(height: 4),
+            Icon(Icons.toys_outlined, color: Colors.white54, size: _s(16)),
+            SizedBox(height: _s(4)),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'AUTO',
                   style: TextStyle(
                     color: Colors.white54,
-                    fontSize: 9,
+                    fontSize: _s(9),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -480,10 +496,10 @@ class _FanSpeedIndicator extends StatelessWidget {
                   children: List.generate(
                     4,
                     (index) => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 1.0),
+                      padding: EdgeInsets.symmetric(horizontal: _s(1)),
                       child: Container(
-                        width: 2,
-                        height: 2,
+                        width: _s(2),
+                        height: _s(2),
                         decoration: BoxDecoration(
                           color: index < speed ? Colors.white : Colors.white24,
                           shape: BoxShape.circle,

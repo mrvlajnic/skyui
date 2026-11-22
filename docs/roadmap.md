@@ -35,6 +35,7 @@ Status: UI implemented for internal evaluation; integrations incomplete
 - [x] Synthetic Phone Dialer and Recent Calls.
 - [x] Explicit local demo-call state and in-call navigation lock.
 - [x] Custom-painted Navigation map and fixture destinations.
+- [x] Light basemap integration with a key-gated provider and painted offline fallback.
 - [x] Disabled unsupported map camera controls.
 - [x] Simulated climate controls and fixture trip summary.
 - [x] Local CSP-compatible web launcher and build stamp.
@@ -72,7 +73,7 @@ Status: required before hardware or external release
 
 6. **Offline web runtime**
    - Bundle an approved local font and configure local fallback behavior.
-   - Capture a network trace proving no external fetch.
+   - Capture a network trace proving no external fetch, including the map tile host; the current basemap requests `https://api.maptiler.com` when a key is configured and therefore is not offline-capable.
    - Validate CSP/COOP/COEP behavior on every supported browser.
 
 7. **Release identity and provenance**
@@ -98,7 +99,7 @@ These activities precede any actuator integration or vehicle pilot; they are not
 Status: blocked by Phases 2.5 and 3
 
 - [ ] Vehicle signal adapter with freshness, validity, fault, and provenance.
-- [ ] GPS/map/traffic provider and route engine.
+- [ ] GPS, routing, and live-traffic services (basemap imagery already comes from MapTiler).
 - [ ] Audio HAL and media service adapter.
 - [ ] Bluetooth, telephony, contacts, and carrier adapter.
 - [ ] HVAC, charging, and diagnostics adapter.

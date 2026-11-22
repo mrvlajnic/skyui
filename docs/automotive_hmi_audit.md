@@ -16,6 +16,8 @@ Cilj je automotive-grade design i engineering direction. Ovaj audit ne pretvara 
 
 SkyUI je dovoljno funkcionalan kao interni, mock-based HMI prototip za cockpit simulator na landscape baseline-u 1680×720. Nije spreman za povezivanje na vozilo, distribuciju vozačima ili bilo kakvu bezbednosnu tvrdnju. Trenutni kod nema backend, remote telemetry, crash reporting, analytics ili cloud sync.
 
+Ažuriranje (22. novembar 2026): Navigation panel sada prikazuje MapTiler `basic-v2` osnovnu mapu kada je API ključ ubrizgan pri buildu (`--dart-define=MAPTILER_KEY=...`), odnosno `flutter_map` raster pločice na desktopu/webu i `maplibre_gl` platform view na Android/iOS. Bez ključa ili bez mreže prikazuje se lokalna slikana mapa. Jedini spoljni mrežni zahtevi su stoga pločice ka `https://api.maptiler.com` i web fallback fontovi; ključ se ne čuva u repozitorijumu, ali je ugrađen u build i čitljiv iz binarnog artefakta.
+
 Najvažnije preostale blokere su:
 
 1. Nema centralne, verifikovane vozačke restrikcije interakcija.
@@ -310,7 +312,7 @@ Pre optimizacije ne treba nasumično dodavati `RepaintBoundary`; prvo snimiti Fl
 
 ### P-03: Custom map i dalje alocira Paint/Path svaki repaint
 
-VectorMapPainter nije keširao statičke putanje, blokove i shader-e. Ukinuti neproduktivni flow controller je smanjenje, ali mapni repaint i dalje ima prostor za lokalni profil.
+`_VectorMapPainter` (simulisana mapa) i `RoutePreviewMap` painter ne keširaju statičke putanje, blokove i shader-e. Ukinuti neproduktivni flow controller je smanjenje, ali mapni repaint i dalje ima prostor za lokalni profil. Kada je basemap dostupan, teži deo crtanja preuzima `flutter_map` tile layer; njegov raster/GPU trošak na ciljnom SoC-u još nije izmeren.
 
 ### P-04: Phone call timer rebuilduje ceo PhoneScreen
 
@@ -403,6 +405,19 @@ To nije dokaz da ti slojevi neće postojati. Pre integracije moraju imati TARA/H
 ### S-09: Nijedan pronađeni secret nije dokaz bezbednog release-a
 
 Nisu pronađeni API ključevi, JWT-ovi, privatni key-evi, lozinke ili cloud credentials u tekstualnom source-u i dostupnoj Git istoriji. Ovo ne pokriva bespoke formate, ignored lokalne cache-e, native binary dependency-e ili organizacioni secret store.
+
+MapTiler ključ se ne nalazi u repozitorijumu: ubrizgava se pri buildu (`--dart-define=MAPTILER_KEY=...`) ili čita iz `MAPTILER_KEY` environment varijable na desktopu. Međutim, ugrađen je u binarni artefakt i čitljiv je svakome koji ga dobije. Pre deljenja build-a potrebni su restrikcija ključa po platformi/domenu, rotacija i odvojena kvota; ovo nije production key-management.
+
+### S-10: Basemap je spoljna zavisnost sa sopstvenim uslovima i privatnošću
+
+Kada je ključ konfigurisan, aplikacija šalje zahteve ka `https://api.maptiler.com`. Provajder dobija IP adresu, user agent i koordinate pločica, što posredno otkriva prikazano područje mape. Još nije utvrđeno:
+
+- da li su uslovi provajdera prihvatljivi za komercijalnu upotrebu ovog prototipa;
+- SLA, rate limit, cena i ponašanje pri prekidu servisa;
+- obaveza prikaza atribucije (`© MapTiler © OpenStreetMap contributors`) u svakom budućem raspoređivanju;
+- da li je potreban sopstveni tile server ili licencirani vektor za offline/vehicle runtime.
+
+Bez ključa aplikacija ne vrši zahtev i prikazuje lokalnu slikanu mapu, pa offline ponašanje ostaje fallback, ne garantovana funkcija.
 
 ## Šta nije moglo da se proveri iz ovog repozitorijuma
 
