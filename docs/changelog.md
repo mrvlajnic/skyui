@@ -36,6 +36,8 @@ Status: prototype-only; no signed or approved vehicle release artifact.
 
 ### Fixed
 
+- Tapping the compact Navigation card no longer gets swallowed by the embedded map: the card's map is wrapped in `IgnorePointer`, so the expand gesture works again.
+
 - The compact Navigation panel rendered `TargetPlatform.windows is not yet supported by the maps plugin`, because `maplibre_gl` has no Windows or web platform view. The panel now shows a real map on every target: `maplibre_gl` on Android/iOS, `flutter_map` raster tiles on desktop and web, and the painted fixture only when no key is configured or tiles are unreachable (offline, or the launcher CSP that blocks external imagery).
 - The Vehicle card shows the exterior design render again; map presentation belongs to Navigation.
 - The Vehicle render was hugging the left edge because the card `Column` uses start alignment; it is now centered, with a regression test.

@@ -17,7 +17,9 @@ class NavigationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Stack(
           children: [
-            const DashboardMap(),
+            // The compact map is non-interactive; let taps fall through to the
+            // card's expand gesture instead of being consumed by the map.
+            const IgnorePointer(child: DashboardMap()),
             Positioned(top: 16, left: 16, child: _RouteInfoCard()),
             Positioned(bottom: 16, left: 16, right: 16, child: _TripInfoBar()),
           ],
