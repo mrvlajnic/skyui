@@ -52,6 +52,31 @@ class SkyIcons {
   /// center door notch; the interior is punched by the source second
   /// path (opposite winding, supported by the painter's nonzero fill).
   static const SkyIconData house = SkyIconData.svg(_housePath, filled: true);
+
+  /// Converted 1:1 from the user-supplied filled search glyph
+  /// (`assets/icons/search.svg`): magnifier with handle.
+  static const SkyIconData search = SkyIconData.svg(_searchPath, filled: true);
+
+  /// Converted 1:1 from the user-supplied filled charging glyph
+  /// (`assets/icons/charging.svg`): lightning bolt.
+  static const SkyIconData charging = SkyIconData.svg(
+    _chargingPath,
+    filled: true,
+  );
+
+  /// Converted 1:1 from the user-supplied filled climate glyph
+  /// (`assets/icons/climate.svg`): five-blade fan.
+  static const SkyIconData climate = SkyIconData.svg(
+    _climatePath,
+    filled: true,
+  );
+
+  /// Converted 1:1 from the user-supplied filled driver-profile glyph
+  /// (`assets/icons/profile.svg`): head and shoulders.
+  static const SkyIconData profile = SkyIconData.svg(
+    _profilePath,
+    filled: true,
+  );
 }
 
 void _homePath(Path path) {
@@ -567,5 +592,143 @@ void _housePath(Path path) {
   path.cubicTo(16.72, 7.63, 15.03, 6.04, 14.28, 5.33);
   path.cubicTo(13.29, 4.39, 12.54, 3.70, 12.37, 3.58);
   path.cubicTo(12.16, 3.42, 12.05, 3.40, 11.86, 3.45);
+  path.close();
+}
+
+/// Filled search glyph, converted 1:1 from the user-supplied
+/// symbol source (frame rect dropped; authored winding preserved).
+void _searchPath(Path path) {
+  path.moveTo(16.78, 4.43);
+  path.cubicTo(19.20, 6.92, 19.67, 10.16, 18.26, 13.95);
+  path.lineTo(17.25, 16.66);
+  path.lineTo(20.09, 19.56);
+  path.cubicTo(23.63, 23.16, 22.98, 23.34, 18.96, 19.85);
+  path.cubicTo(16.07, 17.31, 15.95, 17.25, 14.36, 18.08);
+  path.cubicTo(10.81, 19.85, 5.44, 18.55, 3.01, 15.30);
+  path.cubicTo(1.36, 13.00, 1.12, 9.04, 2.48, 6.50);
+  path.cubicTo(5.55, 1.01, 12.47, -0.06, 16.78, 4.43);
+  path.close();
+  path.moveTo(7.62, 3.19);
+  path.cubicTo(6.62, 3.61, 5.02, 4.85, 4.14, 5.97);
+  path.cubicTo(2.66, 7.68, 2.48, 8.27, 2.78, 10.81);
+  path.cubicTo(3.07, 14.12, 5.14, 16.72, 8.33, 17.79);
+  path.cubicTo(12.88, 19.26, 18.14, 15.13, 18.14, 9.99);
+  path.cubicTo(18.14, 4.73, 12.41, 1.01, 7.62, 3.19);
+  path.close();
+}
+
+/// Filled charging glyph, converted 1:1 from the user-supplied
+/// symbol source (frame rect dropped; authored winding preserved).
+void _chargingPath(Path path) {
+  path.moveTo(14.61, 5.11);
+  path.cubicTo(13.47, 9.53, 13.64, 9.92, 16.53, 9.92);
+  path.cubicTo(17.95, 9.92, 19.08, 10.15, 19.08, 10.38);
+  path.cubicTo(19.08, 11.06, 9.39, 22.39, 8.83, 22.39);
+  path.cubicTo(8.20, 22.39, 8.15, 22.73, 9.17, 18.99);
+  path.cubicTo(10.58, 13.78, 10.41, 13.32, 7.47, 13.32);
+  path.cubicTo(6.05, 13.32, 4.92, 13.21, 4.92, 13.04);
+  path.cubicTo(4.92, 12.87, 7.13, 10.04, 9.85, 6.69);
+  path.cubicTo(15.06, 0.34, 15.85, 0.06, 14.61, 5.11);
+  path.close();
+  path.moveTo(10.07, 7.94);
+  path.cubicTo(8.49, 9.92, 7.18, 11.85, 7.18, 12.19);
+  path.cubicTo(7.18, 12.47, 8.20, 12.76, 9.39, 12.76);
+  path.lineTo(11.60, 12.76);
+  path.lineTo(10.75, 15.93);
+  path.cubicTo(10.30, 17.69, 10.07, 19.22, 10.19, 19.33);
+  path.cubicTo(10.30, 19.50, 12.00, 17.69, 13.93, 15.31);
+  path.lineTo(17.44, 11.06);
+  path.lineTo(15.17, 11.06);
+  path.cubicTo(12.62, 11.06, 12.57, 10.94, 13.36, 6.64);
+  path.cubicTo(13.64, 5.33, 13.64, 4.26, 13.42, 4.26);
+  path.cubicTo(13.13, 4.26, 11.66, 5.90, 10.07, 7.94);
+  path.close();
+}
+
+/// Filled climate glyph, converted 1:1 from the user-supplied
+/// symbol source (frame rect dropped; authored winding preserved).
+void _climatePath(Path path) {
+  path.moveTo(13.34, 2.51);
+  path.cubicTo(14.49, 3.60, 14.49, 3.20, 13.06, 6.46);
+  path.cubicTo(11.57, 9.83, 12.26, 10.80, 14.54, 8.46);
+  path.cubicTo(17.75, 5.09, 22.26, 6.63, 22.26, 11.09);
+  path.cubicTo(22.26, 13.66, 21.06, 14.46, 18.89, 13.38);
+  path.cubicTo(17.97, 12.86, 16.60, 12.46, 15.92, 12.46);
+  path.cubicTo(14.77, 12.46, 14.83, 12.58, 16.49, 14.46);
+  path.cubicTo(18.43, 16.69, 18.72, 18.41, 17.40, 20.29);
+  path.cubicTo(16.26, 21.89, 12.77, 22.92, 11.29, 22.12);
+  path.cubicTo(10.08, 21.49, 10.08, 20.52, 11.46, 17.21);
+  path.cubicTo(12.49, 14.69, 11.80, 14.29, 9.68, 16.12);
+  path.cubicTo(7.23, 18.18, 5.05, 18.06, 3.17, 15.83);
+  path.cubicTo(1.40, 13.78, 1.28, 12.46, 2.77, 10.69);
+  path.lineTo(3.91, 9.32);
+  path.lineTo(6.48, 10.75);
+  path.cubicTo(9.17, 12.18, 10.83, 11.95, 8.71, 10.46);
+  path.cubicTo(7.34, 9.49, 5.97, 6.00, 6.48, 4.74);
+  path.cubicTo(6.88, 3.66, 10.20, 1.60, 11.51, 1.60);
+  path.cubicTo(12.03, 1.60, 12.89, 2.00, 13.34, 2.51);
+  path.close();
+  path.moveTo(8.66, 3.66);
+  path.cubicTo(7.06, 4.80, 7.00, 7.49, 8.60, 9.09);
+  path.cubicTo(9.23, 9.72, 10.03, 10.18, 10.31, 10.06);
+  path.cubicTo(10.83, 9.89, 13.06, 4.40, 13.11, 3.14);
+  path.cubicTo(13.11, 2.40, 9.97, 2.74, 8.66, 3.66);
+  path.close();
+  path.moveTo(16.09, 8.29);
+  path.cubicTo(14.03, 10.00, 14.37, 10.75, 17.69, 11.89);
+  path.cubicTo(20.03, 12.69, 20.95, 12.80, 21.23, 12.29);
+  path.cubicTo(22.15, 10.80, 20.03, 7.32, 18.26, 7.32);
+  path.cubicTo(17.69, 7.32, 16.72, 7.77, 16.09, 8.29);
+  path.close();
+  path.moveTo(3.22, 11.15);
+  path.cubicTo(2.25, 12.06, 2.88, 14.69, 4.31, 15.83);
+  path.cubicTo(6.25, 17.38, 7.17, 17.32, 8.83, 15.61);
+  path.cubicTo(10.37, 14.12, 10.66, 13.03, 9.51, 13.03);
+  path.cubicTo(9.11, 13.03, 7.86, 12.52, 6.65, 11.89);
+  path.cubicTo(4.37, 10.69, 3.80, 10.52, 3.22, 11.15);
+  path.close();
+  path.moveTo(10.89, 11.26);
+  path.cubicTo(9.91, 11.89, 10.43, 13.49, 11.69, 13.95);
+  path.cubicTo(12.89, 14.46, 14.37, 12.46, 13.57, 11.49);
+  path.cubicTo(12.89, 10.63, 12.03, 10.58, 10.89, 11.26);
+  path.close();
+  path.moveTo(13.11, 15.43);
+  path.cubicTo(13.11, 16.18, 12.60, 17.61, 11.91, 18.69);
+  path.cubicTo(10.49, 21.04, 11.11, 21.89, 13.86, 21.38);
+  path.cubicTo(15.74, 21.04, 17.69, 19.09, 17.69, 17.61);
+  path.cubicTo(17.69, 16.75, 14.83, 14.18, 13.92, 14.18);
+  path.cubicTo(13.46, 14.18, 13.11, 14.75, 13.11, 15.43);
+  path.close();
+}
+
+/// Filled driver-profile glyph, converted 1:1 from the user-supplied
+/// symbol source (frame rect dropped; authored winding preserved).
+void _profilePath(Path path) {
+  path.moveTo(15.21, 2.82);
+  path.cubicTo(16.46, 3.77, 16.76, 4.54, 16.76, 6.63);
+  path.cubicTo(16.76, 8.71, 16.46, 9.48, 15.21, 10.44);
+  path.cubicTo(11.70, 13.23, 6.64, 11.03, 6.64, 6.74);
+  path.cubicTo(6.64, 2.34, 11.64, 0.02, 15.21, 2.82);
+  path.close();
+  path.moveTo(18.25, 16.09);
+  path.cubicTo(19.86, 17.16, 22.12, 20.38, 22.12, 21.63);
+  path.cubicTo(22.12, 22.22, 19.68, 22.40, 12.00, 22.40);
+  path.cubicTo(5.45, 22.40, 1.88, 22.16, 1.88, 21.80);
+  path.cubicTo(1.88, 21.45, 2.24, 20.32, 2.71, 19.19);
+  path.cubicTo(3.43, 17.46, 4.62, 16.57, 8.43, 15.02);
+  path.cubicTo(10.10, 14.36, 16.70, 15.08, 18.25, 16.09);
+  path.close();
+  path.moveTo(10.21, 2.58);
+  path.cubicTo(8.19, 3.29, 7.00, 7.16, 8.31, 9.07);
+  path.cubicTo(8.90, 9.96, 11.11, 11.09, 12.30, 11.09);
+  path.cubicTo(13.79, 11.09, 16.17, 8.35, 16.17, 6.63);
+  path.cubicTo(16.17, 3.77, 12.95, 1.57, 10.21, 2.58);
+  path.close();
+  path.moveTo(6.23, 17.04);
+  path.cubicTo(4.38, 18.11, 3.07, 19.90, 3.07, 21.15);
+  path.cubicTo(3.07, 21.57, 6.05, 21.80, 12.00, 21.80);
+  path.cubicTo(21.52, 21.80, 21.88, 21.69, 19.98, 18.95);
+  path.cubicTo(18.49, 16.80, 15.93, 15.85, 11.88, 15.85);
+  path.cubicTo(9.20, 15.85, 7.60, 16.21, 6.23, 17.04);
   path.close();
 }

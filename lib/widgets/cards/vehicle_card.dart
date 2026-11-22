@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons/sky_icon.dart';
+import '../../../core/icons/sky_icons.dart';
+
 class VehicleCard extends StatelessWidget {
   const VehicleCard({super.key});
 
@@ -218,16 +221,13 @@ class VehicleCard extends StatelessWidget {
             const SizedBox(height: 24),
             Row(
               children: [
-                _ActionButton(icon: Icons.search, label: 'Search'),
+                _ActionButton(icon: SkyIcons.search, label: 'Search'),
                 const SizedBox(width: 12),
-                _ActionButton(icon: Icons.bolt, label: 'Charging'),
+                _ActionButton(icon: SkyIcons.charging, label: 'Charging'),
                 const SizedBox(width: 12),
-                _ActionButton(icon: Icons.toys_outlined, label: 'Climate'),
+                _ActionButton(icon: SkyIcons.climate, label: 'Climate'),
                 const SizedBox(width: 12),
-                _ActionButton(
-                  icon: Icons.person_outline,
-                  label: 'Driver Profile',
-                ),
+                _ActionButton(icon: SkyIcons.profile, label: 'Driver Profile'),
               ],
             ),
             const SizedBox(height: 16),
@@ -263,7 +263,7 @@ class VehicleCard extends StatelessWidget {
 }
 
 class _ActionButton extends StatelessWidget {
-  final IconData icon;
+  final SkyIconData icon;
   final String label;
 
   const _ActionButton({required this.icon, required this.label});
@@ -296,7 +296,7 @@ class _ActionButton extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    Icon(icon, color: Colors.white24, size: 24),
+                    SkyIcon(icon, color: Colors.white24, size: 24),
                     const SizedBox(height: 8),
                     Text(
                       label,

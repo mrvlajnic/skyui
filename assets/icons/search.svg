@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Converted 1:1 from the user-supplied filled glyph (search);
+       frame rect dropped; original sub-path winding preserved so the
+       nonzero fill reproduces the source punches. Rendered in-app by
+       SkyIcons (lib/core/icons/sky_icons.dart). -->
+  <path d="M16.78 4.43C19.20 6.92 19.67 10.16 18.26 13.95L17.25 16.66L20.09 19.56C23.63 23.16 22.98 23.34 18.96 19.85C16.07 17.31 15.95 17.25 14.36 18.08C10.81 19.85 5.44 18.55 3.01 15.30C1.36 13.00 1.12 9.04 2.48 6.50C5.55 1.01 12.47 -0.06 16.78 4.43ZM7.62 3.19C6.62 3.61 5.02 4.85 4.14 5.97C2.66 7.68 2.48 8.27 2.78 10.81C3.07 14.12 5.14 16.72 8.33 17.79C12.88 19.26 18.14 15.13 18.14 9.99C18.14 4.73 12.41 1.01 7.62 3.19Z" fill="currentColor" />
+</svg>
