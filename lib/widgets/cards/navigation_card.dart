@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
+
+import '../map/dashboard_map.dart';
 
 class NavigationCard extends StatelessWidget {
   const NavigationCard({super.key});
@@ -16,7 +17,7 @@ class NavigationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Stack(
           children: [
-            _MapBackground(),
+            const DashboardMap(),
             Positioned(top: 16, left: 16, child: _RouteInfoCard()),
             Positioned(bottom: 16, left: 16, right: 16, child: _TripInfoBar()),
           ],
@@ -24,110 +25,6 @@ class NavigationCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _MapBackground extends StatelessWidget {
-  const _MapBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFF0F111A), // Dark slate background
-      child: Stack(
-        children: [
-          CustomPaint(painter: _MapPainter(), child: Container()),
-          Center(
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF00A3FF).withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    spreadRadius: 4,
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Transform.rotate(
-                  angle: -math.pi / 6,
-                  child: Icon(
-                    Icons.navigation,
-                    color: const Color(0xFF00A3FF),
-                    size: 28,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Draw grid / roads
-    final roadPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
-      ..strokeWidth = 12
-      ..style = PaintingStyle.stroke;
-
-    final blockPaint = Paint()
-      ..color = const Color(0xFF161824)
-      ..style = PaintingStyle.fill;
-
-    // Draw some stylized isometric/angled blocks
-    for (int i = 0; i < 5; i++) {
-      for (int j = 0; j < 5; j++) {
-        final rect = Rect.fromLTWH(i * 100.0 + 20, j * 100.0 + 20, 60, 60);
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(rect, const Radius.circular(8)),
-          blockPaint,
-        );
-      }
-    }
-
-    // Draw horizontal and vertical roads
-    for (double i = 0; i < size.width; i += 100) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), roadPaint);
-    }
-    for (double i = 0; i < size.height; i += 100) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), roadPaint);
-    }
-
-    // Draw glowing cyan route
-    final routePaint = Paint()
-      ..color = const Color(0xFF00A3FF)
-      ..strokeWidth = 6
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-
-    final routeGlowPaint = Paint()
-      ..color = const Color(0xFF00A3FF).withValues(alpha: 0.3)
-      ..strokeWidth = 16
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-
-    final path = Path();
-    path.moveTo(size.width * 0.8, size.height * 0.2);
-    path.lineTo(size.width * 0.8, size.height * 0.4);
-    path.lineTo(size.width * 0.5, size.height * 0.4);
-    path.lineTo(size.width * 0.5, size.height * 0.8);
-    path.lineTo(size.width * 0.2, size.height * 0.8);
-
-    canvas.drawPath(path, routeGlowPaint);
-    canvas.drawPath(path, routePaint);
-  }
-
-  @override
-  bool shouldRepaint(_MapPainter oldDelegate) => false;
 }
 
 class _RouteInfoCard extends StatelessWidget {

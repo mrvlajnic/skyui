@@ -1,10 +1,14 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+
+import '../../widgets/map/map_attribution.dart';
+import '../../widgets/map/map_style.dart';
+import '../../widgets/map/map_vehicle_puck.dart';
+import '../../widgets/map/tile_probe.dart';
 
 /// Comprehensive destination model with spatial and telemetry properties
 class NavDestination {
@@ -136,9 +140,10 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   LatLng _targetPuckLatLng = _belgradeCenter;
   double _puckHeading = -math.pi / 4; // Angle in radians
 
-  /// Whether flutter_map + OSM tiles are reachable. Falls back to the
-  /// hand-painted simulated map when the tile server can't be contacted.
-  bool _useRealMap = true;
+  /// Whether the basemap host is reachable. Falls back to the hand-painted
+  /// simulated map when the tile server can't be contacted or no API key is
+  /// configured.
+  bool _useRealMap = MapStyle.hasApiKey;
 
   /// Current zoom level for flutter_map (driven by the +/- buttons).
   double _zoom = 13;
@@ -184,23 +189,12 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     _targetPuckLatLng = _destinations[_selectedDestIndex].coordinates;
   }
 
-  /// Lightly probes the OSM tile server. On success the real map is used; on
+  /// Lightly probes the basemap tile host. On success the real map is used; on
   /// failure (offline / blocked) we silently fall back to the simulated map.
   Future<void> _probeTileServer() async {
-    try {
-      final client = HttpClient()
-        ..connectionTimeout = const Duration(seconds: 3);
-      final request = await client.openUrl(
-        'GET',
-        Uri.parse('https://tile.openstreetmap.org/13/4193/2666.png'),
-      );
-      final response = await request.close();
-      await response.drain();
-      _useRealMap = response.statusCode == 200;
-    } catch (_) {
-      _useRealMap = false;
-    }
-    if (mounted) setState(() {});
+    final reachable = await basemapTilesReachable();
+    if (!mounted) return;
+    setState(() => _useRealMap = reachable);
   }
 
   @override
@@ -225,13 +219,21 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     // Quadratic Bezier interpolation: B(t) = (1-t)^2*P0 + 2(1-t)t*P1 + t^2*P2
     final invT = 1.0 - t;
     final currentLat =
-        invT * invT * p0.latitude + 2 * invT * t * p1.latitude + t * t * p2.latitude;
+        invT * invT * p0.latitude +
+        2 * invT * t * p1.latitude +
+        t * t * p2.latitude;
     final currentLng =
-        invT * invT * p0.longitude + 2 * invT * t * p1.longitude + t * t * p2.longitude;
+        invT * invT * p0.longitude +
+        2 * invT * t * p1.longitude +
+        t * t * p2.longitude;
 
     // Tangent derivative for heading: B'(t) = 2(1-t)(P1 - P0) + 2t(P2 - P1)
-    final dLat = 2 * invT * (p1.latitude - p0.latitude) + 2 * t * (p2.latitude - p1.latitude);
-    final dLng = 2 * invT * (p1.longitude - p0.longitude) + 2 * t * (p2.longitude - p1.longitude);
+    final dLat =
+        2 * invT * (p1.latitude - p0.latitude) +
+        2 * t * (p2.latitude - p1.latitude);
+    final dLng =
+        2 * invT * (p1.longitude - p0.longitude) +
+        2 * t * (p2.longitude - p1.longitude);
 
     if (dLat != 0 || dLng != 0) {
       _currentPuckLatLng = LatLng(currentLat, currentLng);
@@ -281,7 +283,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
             child: _MinimalTopBar(
               destination: activeDest,
               onNavigate: () => _navigateToDestination(_selectedDestIndex),
-              onToggleVoice: () => setState(() => _isVoiceMuted = !_isVoiceMuted),
+              onToggleVoice: () =>
+                  setState(() => _isVoiceMuted = !_isVoiceMuted),
               isVoiceMuted: _isVoiceMuted,
             ),
           ),
@@ -304,7 +307,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     );
   }
 
-  /// Real OSM tile map (flutter_map) with puck, destinations, route and
+  /// Real basemap (flutter_map) with puck, destinations, route and
   /// attribution, or the hand-painted simulated map when the tile server is
   /// unreachable.
   Widget _mapBody() {
@@ -316,18 +319,19 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       options: MapOptions(
         initialCenter: _currentPuckLatLng,
         initialZoom: _zoom,
+        backgroundColor: const Color(0xFFEFEEEA),
         interactionOptions: const InteractionOptions(
           flags: InteractiveFlag.all,
         ),
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          subdomains: const ['a', 'b', 'c'],
+          urlTemplate: MapStyle.rasterTileUrl,
           minZoom: 1,
-          maxZoom: 19,
-          maxNativeZoom: 19,
+          maxZoom: MapStyle.maxZoom,
+          maxNativeZoom: MapStyle.maxNativeZoom,
           userAgentPackageName: 'skyui',
+          retinaMode: RetinaMode.isHighDensity(context),
         ),
         MarkerLayer(
           markers: [
@@ -338,24 +342,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
               height: 34,
               child: Transform.rotate(
                 angle: _puckHeading,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF00E676),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x8000E676),
-                        blurRadius: 8,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.directions_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
+                child: const MapVehiclePuck(),
               ),
             ),
             // Destination waypoints
@@ -368,9 +355,14 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
                   decoration: BoxDecoration(
                     color: i == _selectedDestIndex
                         ? const Color(0xFFFF8A00)
-                        : Colors.white10,
+                        : Colors.white,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(
+                      color: i == _selectedDestIndex
+                          ? Colors.white
+                          : const Color(0xFF9AA0A6),
+                      width: 2,
+                    ),
                   ),
                   child: i == _selectedDestIndex
                       ? const Icon(
@@ -393,11 +385,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
             ),
           ],
         ),
-        const SimpleAttributionWidget(
-          source: Text('OpenStreetMap contributors'),
-          alignment: Alignment.bottomLeft,
-          backgroundColor: Color(0x7F000000),
-        ),
+        const MapAttribution(text: MapStyle.attribution),
       ],
     );
   }
@@ -415,8 +403,12 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       final t = i / 10;
       final inv = 1 - t;
       return LatLng(
-        inv * inv * p0.latitude + 2 * inv * t * p1.latitude + t * t * p2.latitude,
-        inv * inv * p0.longitude + 2 * inv * t * p1.longitude + t * t * p2.longitude,
+        inv * inv * p0.latitude +
+            2 * inv * t * p1.latitude +
+            t * t * p2.latitude,
+        inv * inv * p0.longitude +
+            2 * inv * t * p1.longitude +
+            t * t * p2.longitude,
       );
     });
   }
@@ -473,7 +465,6 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     final y = ((north - p.latitude) / (north - south)).clamp(0.0, 1.0);
     return Offset(x, y);
   }
-
 }
 
 class _VectorMapPainter extends CustomPainter {
@@ -481,6 +472,7 @@ class _VectorMapPainter extends CustomPainter {
   final Offset targetPosition;
   final double puckHeading;
   final double radarPulseProgress;
+
   /// Pre-projected waypoint positions (0-1 canvas space) — the painter itself
   /// does not geocode, so [NavigationScreenContent] projects via [_project].
   final List<Offset> destinationPoints;
@@ -908,7 +900,10 @@ class _MinimalTopBar extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.08),
+            width: 1,
+          ),
         ),
         child: Row(
           children: [
@@ -932,16 +927,27 @@ class _MinimalTopBar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFFF8A00).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFFFF8A00).withValues(alpha: 0.3), width: 1),
+                border: Border.all(
+                  color: const Color(0xFFFF8A00).withValues(alpha: 0.3),
+                  width: 1,
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(destination.maneuverIcon, color: const Color(0xFFFF8A00), size: 14),
+                  Icon(
+                    destination.maneuverIcon,
+                    color: const Color(0xFFFF8A00),
+                    size: 14,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     destination.nextManeuver,
-                    style: const TextStyle(color: Color(0xFFFF8A00), fontSize: 12, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      color: Color(0xFFFF8A00),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -958,7 +964,9 @@ class _MinimalTopBar extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(6),
                   child: Icon(
-                    isVoiceMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                    isVoiceMuted
+                        ? Icons.volume_off_rounded
+                        : Icons.volume_up_rounded,
                     color: isVoiceMuted ? Colors.white38 : Colors.white70,
                     size: 18,
                   ),
@@ -974,7 +982,11 @@ class _MinimalTopBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
                 child: const Padding(
                   padding: EdgeInsets.all(6),
-                  child: Icon(Icons.close_rounded, color: Colors.white70, size: 18),
+                  child: Icon(
+                    Icons.close_rounded,
+                    color: Colors.white70,
+                    size: 18,
+                  ),
                 ),
               ),
             ),

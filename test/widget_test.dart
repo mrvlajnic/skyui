@@ -14,6 +14,7 @@ import 'package:skyui/screens/navigation/navigation_screen_content.dart';
 import 'package:skyui/screens/phone/phone_screen.dart';
 import 'package:skyui/screens/vehicle/vehicle_screen.dart';
 import 'package:skyui/services/drive_mode_service.dart';
+import 'package:skyui/widgets/cards/vehicle_card.dart';
 
 void main() {
   final driveMode = DriveModeService.instance;
@@ -385,6 +386,32 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(VehicleScreenContent), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Vehicle render is centered in the Vehicle card', (tester) async {
+    tester.view.physicalSize = const Size(1680, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const SkyUIApp());
+
+    final renderFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is Image &&
+          widget.image is AssetImage &&
+          (widget.image as AssetImage).assetName ==
+              'assets/images/car_render.png',
+    );
+    expect(renderFinder, findsWidgets);
+
+    final cardRect = tester.getRect(find.byType(VehicleCard).first);
+    final renderRect = tester.getRect(renderFinder.first);
+    expect(
+      renderRect.center.dx,
+      moreOrLessEquals(cardRect.center.dx, epsilon: 1),
+    );
     expect(tester.takeException(), isNull);
   });
 

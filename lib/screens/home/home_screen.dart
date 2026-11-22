@@ -14,7 +14,6 @@ import '../vehicle/vehicle_screen.dart';
 // ── Shared layout constants ───────────────────────────────────────────────────
 const double _kPadding = 24.0;
 const double _kSpacing = 24.0;
-const double _kClimateBarHeight = 80.0;
 
 enum _HomeDestination { home, navigation, media, phone, vehicle }
 
@@ -360,9 +359,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final availableHeight =
-                      constraints.maxHeight -
-                      _kClimateBarHeight -
-                      _kPadding * 2;
+                      constraints.maxHeight - ClimateBar.height - _kPadding * 2;
                   final availableWidth = constraints.maxWidth - _kPadding * 2;
 
                   final centerCardHeight = (availableHeight - _kSpacing) / 2;

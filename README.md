@@ -203,6 +203,19 @@ flutter run -d chrome
 
 These are development targets only. Android release configuration currently uses placeholder identity and debug signing; other platform signing, notarization, permissions, and hardware behavior are unverified.
 
+### Map basemap key
+
+The Navigation map uses MapTiler ([`basic-v2`](https://cloud.maptiler.com/maps/), light cartography). The key is injected at build time and is not committed:
+
+```bash
+flutter run -d windows --dart-define=MAPTILER_KEY=your_key_here
+flutter build windows --debug --dart-define=MAPTILER_KEY=your_key_here
+```
+
+Create a free key under MapTiler Cloud → Account → API keys. Restrict it to the platforms you use; a key embedded in a desktop or web build is readable by anyone with the binary.
+
+Without a key, or when the tile host is unreachable, the map falls back to the local painted fixture instead of rendering tiles. The web launcher also needs `https://api.maptiler.com` allowed in its CSP before it can show tiles; it currently falls back to the painted map. Map credits (`© MapTiler © OpenStreetMap contributors`) are required and are shown as a small chip.
+
 ## Verification currently completed
 
 - `flutter analyze` passes.

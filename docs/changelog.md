@@ -29,12 +29,21 @@ Status: prototype-only; no signed or approved vehicle release artifact.
 - Media playback timer stops while paused and waveform rendering uses a CustomPainter.
 - `AppTheme` is connected to the application and base dark color tokens are aligned.
 - Android backup is disabled for the prototype.
+- The climate bar is taller (104 dp) and the dashboard cards take the reclaimed height; sidebar destinations, Settings included, are vertically centered so the rail has no empty bottom shelf.
+- Navigation basemaps use MapTiler `basic-v2` light cartography, with the API key injected at build time; a missing key or unreachable host falls back to the painted fixture. The painted fallback and map puck share the same light palette.
 - Local launcher binds only to loopback, validates Host headers, adds security headers, and always runs the documented CSP-compatible build command.
+
+### Fixed
+
+- The compact Navigation panel rendered `TargetPlatform.windows is not yet supported by the maps plugin`, because `maplibre_gl` has no Windows or web platform view. The panel now shows a real map on every target: `maplibre_gl` on Android/iOS, `flutter_map` with OSM tiles on desktop and web, and the painted fixture only when tiles are unreachable (offline, or the launcher CSP that blocks external imagery).
+- The Vehicle card shows the exterior design render again; map presentation belongs to Navigation.
+- The Vehicle render was hugging the left edge because the card `Column` uses start alignment; it is now centered, with a regression test.
+- Map credit is now a 7 px chip naming the basemap provider; the `flutter_map |` package branding that `SimpleAttributionWidget` prepends is gone. The OSM and provider credits stay because their terms require them.
 
 ### Verification
 
 - `flutter analyze` passes.
-- Nine Flutter tests pass.
+- Thirteen Flutter tests pass.
 - `python -m py_compile run_app.py` passes.
 - CSP-compatible web release build passes.
 - Loopback Host validation and security-header smoke test pass.

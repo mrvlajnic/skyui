@@ -6,6 +6,13 @@ import '../../core/icons/sky_icons.dart';
 class ClimateBar extends StatefulWidget {
   const ClimateBar({super.key});
 
+  /// Total height the dashboard layout reserves for the bar, including the
+  /// gap below the panel.
+  static const double height = 104;
+
+  /// Visible panel height once the layout gap is removed.
+  static const double panelHeight = height - 24;
+
   @override
   State<ClimateBar> createState() => _ClimateBarState();
 }
@@ -19,7 +26,7 @@ class _ClimateBarState extends State<ClimateBar> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 80,
+      height: ClimateBar.height,
       padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
       color: Colors.transparent,
       child: CustomPaint(
@@ -32,7 +39,7 @@ class _ClimateBarState extends State<ClimateBar> {
         child: ClipPath(
           clipper: ClimatePanelClipper(slantWidth: 20.0, borderRadius: 12.0),
           child: Container(
-            height: 56,
+            height: ClimateBar.panelHeight,
             color: Colors.transparent,
             child: Row(
               children: [

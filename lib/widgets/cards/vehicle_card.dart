@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:maplibre_gl/maplibre_gl.dart';
-import '../../../widgets/map/maplibre_map_widget.dart';
 
 class VehicleCard extends StatelessWidget {
   const VehicleCard({super.key});
@@ -88,15 +86,18 @@ class VehicleCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            // ── Map view replacing car render ─────────────────────────────
+            // ── Vehicle exterior render ───────────────────────────────────
             Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: VeltronMapWidget(
-                    initialCenter: const LatLng(44.7866, 20.4489),
-                    initialZoom: 14.0,
-                    showUserLocation: true,
+              child: Center(
+                child: Semantics(
+                  label: 'Vehicle exterior design render',
+                  image: true,
+                  excludeSemantics: true,
+                  child: Image.asset(
+                    'assets/images/car_render.png',
+                    fit: BoxFit.contain,
                   ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
