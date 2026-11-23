@@ -217,6 +217,8 @@ Create a free key under MapTiler Cloud → Account → API keys. Restrict it to 
 
 Without a key, or when the tile host is unreachable, the map falls back to the local painted fixture instead of rendering tiles. The web launcher also needs `https://api.maptiler.com` allowed in its CSP before it can show tiles; it currently falls back to the painted map. Map credits (`© MapTiler © OpenStreetMap contributors`) are required and are shown as a small chip.
 
+For day-to-day desktop work, no build flag is needed: put the key in a git-ignored `maptiler_key.txt` at the repository root (or set `MAPTILER_KEY` in the environment). Desktop builds resolve the key in this order: build define → `MAPTILER_KEY` environment variable → `maptiler_key.txt` / `.maptiler_key` found by searching upward from the working directory and from the executable.
+
 ## Verification currently completed
 
 - `flutter analyze` passes.

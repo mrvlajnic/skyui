@@ -8,6 +8,10 @@ brag-output-*/
 my-video/
 docs/brag/
 
+# Local map basemap key (read at runtime by lib/widgets/map/map_style.dart)
+maptiler_key.txt
+.maptiler_key
+
 # Miscellaneous
 *.class
 *.log

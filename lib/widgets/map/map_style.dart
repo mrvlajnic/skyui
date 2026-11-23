@@ -1,4 +1,4 @@
-import 'dart:io' show Platform;
+import 'dart:io' show Directory, File, Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -36,12 +36,54 @@ abstract final class MapStyle {
   static const double maxZoom = 20;
   static const int maxNativeZoom = 20;
 
-  /// Build-time define first, then the desktop environment variable. Web
-  /// builds only see the compile-time value.
+  /// Build-time define first, then the desktop environment variable, then a
+  /// local key file. Web builds only see the compile-time value.
   static String get apiKey {
+    final cached = _resolvedKey;
+    if (cached != null) return cached;
+    final resolved = _resolveApiKey();
+    _resolvedKey = resolved;
+    return resolved;
+  }
+
+  static String? _resolvedKey;
+
+  static String _resolveApiKey() {
     if (_compiledKey.isNotEmpty) return _compiledKey;
     if (kIsWeb) return '';
-    return Platform.environment['MAPTILER_KEY'] ?? '';
+    final fromEnvironment = Platform.environment['MAPTILER_KEY'];
+    if (fromEnvironment != null && fromEnvironment.trim().isNotEmpty) {
+      return fromEnvironment.trim();
+    }
+    return _readKeyFile();
+  }
+
+  /// Reads a git-ignored key file so `flutter run` and IDE builds do not need
+  /// the `--dart-define` flag. Searches upward from the working directory and
+  /// from the executable, which covers both `flutter run` (project root) and a
+  /// debug build launched from `build/windows/.../Debug`.
+  static String _readKeyFile() {
+    const fileNames = ['maptiler_key.txt', '.maptiler_key'];
+    final starts = <String>{
+      Directory.current.path,
+      File(Platform.resolvedExecutable).parent.path,
+    };
+    for (final name in fileNames) {
+      for (final start in starts) {
+        var directory = Directory(start);
+        for (var depth = 0; depth < 6; depth++) {
+          final file = File('${directory.path}${Platform.pathSeparator}$name');
+          if (file.existsSync()) {
+            final value = file.readAsStringSync().trim();
+            if (value.isNotEmpty) return value;
+          }
+          final parent = directory.parent;
+          if (parent.path == directory.path) break;
+          directory = parent;
+        }
+      }
+    }
+    return '';
   }
 
   static bool get hasApiKey => apiKey.isNotEmpty;
