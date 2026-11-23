@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/icons/sky_icon.dart';
@@ -16,6 +18,14 @@ class ClimateBar extends StatefulWidget {
 
   /// Visible panel height once the layout gap is removed.
   static const double panelHeight = height - 24;
+
+  /// Horizontal inset of the bottom-right corner relative to the top-right
+  /// corner. The reference design cuts the right end at roughly 36° from
+  /// vertical, so the top edge is the widest point.
+  static const double slantWidth = panelHeight * 0.72;
+
+  /// Radius used where the diagonal meets the top and bottom edges.
+  static const double slantJoinRadius = 10;
 
   /// The internal metrics below were designed at this panel height.
   static const double _basePanelHeight = 56;
@@ -41,13 +51,18 @@ class _ClimateBarState extends State<ClimateBar> {
       color: Colors.transparent,
       child: CustomPaint(
         painter: ClimatePanelPainter(
-          slantWidth: 20.0,
+          slantWidth: ClimateBar.slantWidth,
+          joinRadius: ClimateBar.slantJoinRadius,
           borderRadius: 12.0,
-          borderColor: const Color(0x22FFFFFF),
+          borderColor: const Color(0x3AFFFFFF),
           backgroundColor: const Color(0xFF111118),
         ),
         child: ClipPath(
-          clipper: ClimatePanelClipper(slantWidth: 20.0, borderRadius: 12.0),
+          clipper: ClimatePanelClipper(
+            slantWidth: ClimateBar.slantWidth,
+            joinRadius: ClimateBar.slantJoinRadius,
+            borderRadius: 12.0,
+          ),
           child: Container(
             height: ClimateBar.panelHeight,
             color: Colors.transparent,
@@ -83,34 +98,92 @@ class _ClimateBarState extends State<ClimateBar> {
   }
 }
 
+/// Shared geometry for the climate panel.
+///
+/// The right end is a diagonal cut: the top edge is the widest point and the
+/// bottom-right corner is inset by [slantWidth], matching the reference
+/// design. Both joins are rounded so the cut reads as a shape rather than a
+/// clipped corner.
+class _PanelGeometry {
+  final Path path;
+  final Offset accentStart;
+  final Offset accentEnd;
+
+  const _PanelGeometry({
+    required this.path,
+    required this.accentStart,
+    required this.accentEnd,
+  });
+
+  factory _PanelGeometry.from(
+    Size size,
+    double slantWidth,
+    double borderRadius,
+    double joinRadius,
+  ) {
+    final width = size.width;
+    final height = size.height;
+
+    // Diagonal direction from the top-right corner to the inset bottom-right.
+    final dx = -slantWidth;
+    final dy = height;
+    final length = math.sqrt(dx * dx + dy * dy);
+    final ux = dx / length;
+    final uy = dy / length;
+
+    final path = Path()
+      ..moveTo(borderRadius, 0)
+      ..lineTo(width - joinRadius, 0)
+      ..quadraticBezierTo(width, 0, width + ux * joinRadius, uy * joinRadius)
+      ..lineTo(width - slantWidth - ux * joinRadius, height - uy * joinRadius)
+      ..quadraticBezierTo(
+        width - slantWidth,
+        height,
+        width - slantWidth - joinRadius,
+        height,
+      )
+      ..lineTo(borderRadius, height)
+      ..quadraticBezierTo(0, height, 0, height - borderRadius)
+      ..lineTo(0, borderRadius)
+      ..quadraticBezierTo(0, 0, borderRadius, 0)
+      ..close();
+
+    return _PanelGeometry(
+      path: path,
+      accentStart: Offset(width + ux * joinRadius, uy * joinRadius),
+      accentEnd: Offset(
+        width - slantWidth - ux * joinRadius,
+        height - uy * joinRadius,
+      ),
+    );
+  }
+}
+
 class ClimatePanelClipper extends CustomClipper<Path> {
   final double slantWidth;
+  final double joinRadius;
   final double borderRadius;
 
-  ClimatePanelClipper({required this.slantWidth, required this.borderRadius});
+  ClimatePanelClipper({
+    required this.slantWidth,
+    required this.borderRadius,
+    this.joinRadius = 10,
+  });
 
   @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.moveTo(borderRadius, 0);
-    path.lineTo(size.width - slantWidth, 0);
-    path.lineTo(size.width, size.height);
-    path.lineTo(borderRadius, size.height);
-    path.quadraticBezierTo(0, size.height, 0, size.height - borderRadius);
-    path.lineTo(0, borderRadius);
-    path.quadraticBezierTo(0, 0, borderRadius, 0);
-    path.close();
-    return path;
-  }
+  Path getClip(Size size) =>
+      _PanelGeometry.from(size, slantWidth, borderRadius, joinRadius).path;
 
   @override
   bool shouldReclip(covariant ClimatePanelClipper oldClipper) =>
       oldClipper.slantWidth != slantWidth ||
+      oldClipper.joinRadius != joinRadius ||
       oldClipper.borderRadius != borderRadius;
 }
 
 class ClimatePanelPainter extends CustomPainter {
   final double slantWidth;
+  final double joinRadius;
   final double borderRadius;
   final Color borderColor;
   final Color backgroundColor;
@@ -120,34 +193,30 @@ class ClimatePanelPainter extends CustomPainter {
     required this.borderRadius,
     required this.borderColor,
     required this.backgroundColor,
+    this.joinRadius = 10,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final path = Path();
-    path.moveTo(borderRadius, 0);
-    path.lineTo(size.width - slantWidth, 0);
-    path.lineTo(size.width, size.height);
-    path.lineTo(borderRadius, size.height);
-    path.quadraticBezierTo(0, size.height, 0, size.height - borderRadius);
-    path.lineTo(0, borderRadius);
-    path.quadraticBezierTo(0, 0, borderRadius, 0);
-    path.close();
+    final geometry = _PanelGeometry.from(
+      size,
+      slantWidth,
+      borderRadius,
+      joinRadius,
+    );
 
-    // Fill background
     final bgPaint = Paint()
       ..color = backgroundColor
       ..style = PaintingStyle.fill;
-    canvas.drawPath(path, bgPaint);
+    canvas.drawPath(geometry.path, bgPaint);
 
-    // Draw main border
     final borderPaint = Paint()
       ..color = borderColor
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
-    canvas.drawPath(path, borderPaint);
+    canvas.drawPath(geometry.path, borderPaint);
 
-    // Draw red/orange accent line on the slanted right edge
+    // Red accent along the diagonal cut.
     final accentPaint = Paint()
       ..color = const Color(0xFFE53935)
       ..strokeWidth = 2.0
@@ -155,8 +224,8 @@ class ClimatePanelPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final accentPath = Path()
-      ..moveTo(size.width - slantWidth, 0)
-      ..lineTo(size.width, size.height);
+      ..moveTo(geometry.accentStart.dx, geometry.accentStart.dy)
+      ..lineTo(geometry.accentEnd.dx, geometry.accentEnd.dy);
 
     canvas.drawPath(accentPath, accentPaint);
   }
@@ -164,6 +233,7 @@ class ClimatePanelPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant ClimatePanelPainter oldDelegate) {
     return oldDelegate.slantWidth != slantWidth ||
+        oldDelegate.joinRadius != joinRadius ||
         oldDelegate.borderRadius != borderRadius ||
         oldDelegate.borderColor != borderColor ||
         oldDelegate.backgroundColor != backgroundColor;
@@ -280,7 +350,7 @@ class _RightClimateSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(left: 16, right: 32, top: _s(6), bottom: _s(6)),
+      padding: EdgeInsets.only(left: 16, right: 52, top: _s(6), bottom: _s(6)),
       child: Row(
         children: [
           _FanSpeedIndicator(speed: fanSpeed, onSpeedChange: onFanSpeedChange),

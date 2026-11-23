@@ -29,7 +29,7 @@ Status: prototype-only; no signed or approved vehicle release artifact.
 - Media playback timer stops while paused and waveform rendering uses a CustomPainter.
 - `AppTheme` is connected to the application and base dark color tokens are aligned.
 - Android backup is disabled for the prototype.
-- The climate bar is taller (104 dp) and the dashboard cards take the reclaimed height; its contents scale with the panel from one ratio so the bar does not just add padding, and the left heated-seat glyph is mirrored so the two seats face each other. Sidebar destinations, Settings included, are vertically centered so the rail has no empty bottom shelf.
+- The climate bar is taller (104 dp) and the dashboard cards take the reclaimed height; its contents scale with the panel from one ratio so the bar does not just add padding, and the left heated-seat glyph is mirrored so the two seats face each other. The right end now matches the reference cut: the top edge is the widest point, the bottom-right corner is inset by 0.72 × the panel height, both joins round into the cut, and the red accent runs along it. Sidebar destinations, Settings included, are vertically centered so the rail has no empty bottom shelf.
 - Navigation basemaps use MapTiler `basic-v2` light cartography, with the API key injected at build time; a missing key or unreachable host falls back to the painted fixture. The painted fallback and map puck share the same light palette.
 - Local launcher binds only to loopback, validates Host headers, adds security headers, and always runs the documented CSP-compatible build command.
 - Documentation now records the basemap provider and key handling, the tile-request privacy boundary, the shared map widgets, and the current climate/sidebar layout constants.
