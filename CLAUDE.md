@@ -20,8 +20,11 @@ lib/
 │   ├── media/
 │   ├── navigation/
 │   └── phone/
+├── models/
+│   └── place.dart
 ├── services/
-│   └── drive_mode_service.dart
+│   ├── drive_mode_service.dart
+│   └── geocoding_service.dart
 ├── widgets/
 │   ├── cards/
 │   ├── climate/

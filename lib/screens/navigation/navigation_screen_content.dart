@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../models/place.dart';
+import '../../services/geocoding_service.dart';
 import '../../widgets/map/map_attribution.dart';
 import '../../widgets/map/map_style.dart';
 import '../../widgets/map/map_vehicle_puck.dart';
 import '../../widgets/map/tile_probe.dart';
+import 'place_search_panel.dart';
 
 /// Comprehensive destination model with spatial and telemetry properties
 class NavDestination {
@@ -51,7 +54,15 @@ class NavDestination {
 class NavigationScreenContent extends StatefulWidget {
   final VoidCallback onClose;
 
-  const NavigationScreenContent({super.key, required this.onClose});
+  /// Optional injected search service, used by tests. When null the screen
+  /// builds a MapTiler service if a key is configured.
+  final GeocodingService? geocodingService;
+
+  const NavigationScreenContent({
+    super.key,
+    required this.onClose,
+    this.geocodingService,
+  });
 
   @override
   State<NavigationScreenContent> createState() =>
@@ -159,11 +170,28 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   bool _isVoiceMuted = false;
   bool _isTrafficEnabled = true;
 
+  // ── Search ────────────────────────────────────────────────────────────────
+  late final GeocodingService? _geocoding;
+  late final bool _ownsGeocoding;
+  Place? _startPlace;
+  Place? _destinationPlace;
+  bool _searchOpen = false;
+
   @override
   void initState() {
     super.initState();
 
     _mapController = MapController();
+
+    // Search is provider-backed and key-gated; without a key the panel explains
+    // why it is unavailable instead of failing silently.
+    final injected = widget.geocodingService;
+    _ownsGeocoding = injected == null && MapStyle.hasApiKey;
+    _geocoding =
+        injected ??
+        (MapStyle.hasApiKey
+            ? MapTilerGeocodingService(apiKey: MapStyle.apiKey)
+            : null);
 
     // Reachability probe: can we reach the OSM tile server? If not, fall back
     // to the hand-painted simulated map so the screen still renders offline.
@@ -199,6 +227,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
 
   @override
   void dispose() {
+    if (_ownsGeocoding) _geocoding?.dispose();
     _travelController.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -259,9 +288,42 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     _travelController.forward(from: 0.0);
   }
 
+  void _openSearch() => setState(() => _searchOpen = true);
+
+  void _closeSearch() => setState(() => _searchOpen = false);
+
+  /// Applies a search result. Routing is not implemented yet, so the existing
+  /// simulated travel runs between the chosen points.
+  void _selectPlace(SearchTarget target, Place place) {
+    setState(() {
+      switch (target) {
+        case SearchTarget.start:
+          _startPlace = place;
+          _currentPuckLatLng = place.coordinates;
+          _startPuckLatLng = place.coordinates;
+          break;
+        case SearchTarget.destination:
+          _destinationPlace = place;
+          _startPuckLatLng = _startPlace?.coordinates ?? _currentPuckLatLng;
+          _targetPuckLatLng = place.coordinates;
+          _searchOpen = false;
+          break;
+      }
+    });
+
+    if (target == SearchTarget.destination) {
+      if (_useRealMap) {
+        _mapController.move(place.coordinates, _zoom);
+      }
+      _travelController.stop();
+      _travelController.forward(from: 0.0);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeDest = _destinations[_selectedDestIndex];
+    final hasSearchedDestination = _destinationPlace != null;
 
     return Container(
       decoration: BoxDecoration(
@@ -281,13 +343,38 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
             left: 10,
             right: 10,
             child: _MinimalTopBar(
-              destination: activeDest,
-              onNavigate: () => _navigateToDestination(_selectedDestIndex),
+              title: _destinationPlace?.name ?? activeDest.title,
+              subtitle: hasSearchedDestination
+                  ? 'Search result · simulated route'
+                  : activeDest.nextManeuver,
+              maneuverIcon: hasSearchedDestination
+                  ? Icons.place_outlined
+                  : activeDest.maneuverIcon,
+              onOpenSearch: _openSearch,
+              onClose: widget.onClose,
               onToggleVoice: () =>
                   setState(() => _isVoiceMuted = !_isVoiceMuted),
               isVoiceMuted: _isVoiceMuted,
             ),
           ),
+
+          if (_searchOpen)
+            Positioned(
+              left: 10,
+              top: 78,
+              bottom: 10,
+              width: 380,
+              child: PlaceSearchPanel(
+                service: _geocoding,
+                unavailableReason:
+                    'Map key not configured. Add MAPTILER_KEY or '
+                    'maptiler_key.txt to enable place search.',
+                initialStart: _startPlace,
+                initialDestination: _destinationPlace,
+                onPlaceSelected: _selectPlace,
+                onClose: _closeSearch,
+              ),
+            ),
 
           // ── Floating Map Controls (Right Side) ──────────────────────────────
           Positioned(
@@ -351,29 +438,46 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
                 point: _destinations[i].coordinates,
                 width: 22,
                 height: 22,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: i == _selectedDestIndex
-                        ? const Color(0xFFFF8A00)
-                        : Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(
+                child: GestureDetector(
+                  onTap: () => _navigateToDestination(i),
+                  child: Container(
+                    decoration: BoxDecoration(
                       color: i == _selectedDestIndex
-                          ? Colors.white
-                          : const Color(0xFF9AA0A6),
-                      width: 2,
+                          ? const Color(0xFFFF8A00)
+                          : Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: i == _selectedDestIndex
+                            ? Colors.white
+                            : const Color(0xFF9AA0A6),
+                        width: 2,
+                      ),
                     ),
+                    child: i == _selectedDestIndex
+                        ? const Icon(
+                            Icons.navigation,
+                            color: Colors.white,
+                            size: 16,
+                          )
+                        : null,
                   ),
-                  child: i == _selectedDestIndex
-                      ? const Icon(
-                          Icons.navigation,
-                          color: Colors.white,
-                          size: 16,
-                        )
-                      : null,
                 ),
               ),
             ],
+            if (_startPlace != null)
+              Marker(
+                point: _startPlace!.coordinates,
+                width: 22,
+                height: 22,
+                child: const _SearchedPlaceMarker(color: Color(0xFF00E676)),
+              ),
+            if (_destinationPlace != null)
+              Marker(
+                point: _destinationPlace!.coordinates,
+                width: 26,
+                height: 26,
+                child: const _SearchedPlaceMarker(color: Color(0xFFFF8A00)),
+              ),
           ],
         ),
         PolylineLayer(
@@ -879,14 +983,20 @@ class _VectorMapPainter extends CustomPainter {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _MinimalTopBar extends StatelessWidget {
-  final NavDestination destination;
-  final VoidCallback onNavigate;
+  final String title;
+  final String subtitle;
+  final IconData maneuverIcon;
+  final VoidCallback onOpenSearch;
+  final VoidCallback onClose;
   final VoidCallback onToggleVoice;
   final bool isVoiceMuted;
 
   const _MinimalTopBar({
-    required this.destination,
-    required this.onNavigate,
+    required this.title,
+    required this.subtitle,
+    required this.maneuverIcon,
+    required this.onOpenSearch,
+    required this.onClose,
     required this.onToggleVoice,
     required this.isVoiceMuted,
   });
@@ -910,7 +1020,7 @@ class _MinimalTopBar extends StatelessWidget {
             // Destination title + distance
             Expanded(
               child: Text(
-                destination.title,
+                title,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
@@ -935,14 +1045,10 @@ class _MinimalTopBar extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    destination.maneuverIcon,
-                    color: const Color(0xFFFF8A00),
-                    size: 14,
-                  ),
+                  Icon(maneuverIcon, color: const Color(0xFFFF8A00), size: 14),
                   const SizedBox(width: 4),
                   Text(
-                    destination.nextManeuver,
+                    subtitle,
                     style: const TextStyle(
                       color: Color(0xFFFF8A00),
                       fontSize: 12,
@@ -955,6 +1061,27 @@ class _MinimalTopBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
+            // Search
+            Tooltip(
+              message: 'Search start and destination',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  key: const ValueKey('navigation-search-button'),
+                  onTap: onOpenSearch,
+                  borderRadius: BorderRadius.circular(6),
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.search_rounded,
+                      color: Colors.white70,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
             // Voice toggle
             Material(
               color: Colors.transparent,
@@ -974,18 +1101,21 @@ class _MinimalTopBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            // Close button
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onNavigate,
-                borderRadius: BorderRadius.circular(6),
-                child: const Padding(
-                  padding: EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.close_rounded,
-                    color: Colors.white70,
-                    size: 18,
+            // Close module
+            Tooltip(
+              message: 'Close navigation',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onClose,
+                  borderRadius: BorderRadius.circular(6),
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: Colors.white70,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),
@@ -1097,6 +1227,34 @@ class _MapControlButton extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Marker for a searched start or destination point.
+class _SearchedPlaceMarker extends StatelessWidget {
+  final Color color;
+
+  const _SearchedPlaceMarker({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.45),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: const Center(
+        child: Icon(Icons.circle, color: Colors.white, size: 5),
       ),
     );
   }
