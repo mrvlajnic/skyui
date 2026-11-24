@@ -765,7 +765,7 @@ class _AnimatedRow extends StatelessWidget {
 // The nav card overlay that starts as the compact card and expands full-screen
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _NavCardOverlay extends StatelessWidget {
+class _NavCardOverlay extends StatefulWidget {
   final Animation<double> expandProgress;
   final Animation<double> navContentOpacity;
   final bool navigationExpanded;
@@ -781,31 +781,65 @@ class _NavCardOverlay extends StatelessWidget {
   });
 
   @override
+  State<_NavCardOverlay> createState() => _NavCardOverlayState();
+}
+
+class _NavCardOverlayState extends State<_NavCardOverlay> {
+  /// Keeps the navigation module alive after it has been opened once.
+  ///
+  /// Disposing it on collapse stopped its travel controller: the home card kept
+  /// a frozen route, and reopening navigation started a fresh trip from that
+  /// frozen point. Mounted-but-hidden preserves the trip across visits.
+  bool _keepContentMounted = false;
+
+  @override
+  void didUpdateWidget(covariant _NavCardOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.navigationExpanded) _keepContentMounted = true;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       // Only tappable when in the compact state
-      onTap: navigationExpanded ? null : onTap,
+      onTap: widget.navigationExpanded ? null : widget.onTap,
       child: AnimatedBuilder(
-        animation: expandProgress,
+        animation: widget.expandProgress,
         // Built once per parent rebuild instead of once per animation tick.
         // Rebuilding the whole module here caused the visible hitch at the
         // end of the expansion.
         child: FadeTransition(
-          opacity: navContentOpacity,
-          child: NavigationScreenContent(onClose: onClose),
+          opacity: widget.navContentOpacity,
+          child: NavigationScreenContent(onClose: widget.onClose),
         ),
         builder: (context, child) {
+          // Evaluated per tick: the first expansion starts at opacity 0 and
+          // must mount the module as the fade begins.
+          final keepContent = _keepContentMounted ||
+              widget.navContentOpacity.value > 0;
+          final fullyHidden = !widget.navigationExpanded &&
+              widget.navContentOpacity.value == 0;
           return Stack(
             fit: StackFit.expand,
             children: [
               // ── Compact NavigationCard (fades out as nav content fades in) ──
               Opacity(
-                opacity: (1.0 - navContentOpacity.value).clamp(0.0, 1.0),
+                opacity: (1.0 - widget.navContentOpacity.value).clamp(0.0, 1.0),
                 child: const NavigationCard(),
               ),
 
               // ── Full-screen navigation content (fades in) ─────────────────
-              if (navContentOpacity.value > 0) child!,
+              if (keepContent)
+                Offstage(
+                  // Hidden from layout/paint (and from test finders) only once
+                  // the close animation has finished; state and tickers stay
+                  // alive so the trip continues on the home card.
+                  offstage: fullyHidden,
+                  child: IgnorePointer(
+                    ignoring: !widget.navigationExpanded,
+                    child: child!,
+                  ),
+                ),
             ],
           );
         },
