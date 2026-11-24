@@ -21,6 +21,7 @@ class MapViewState extends ChangeNotifier {
   double _rotation = 0;
   LatLng _puck = defaultCenter;
   double _heading = 0;
+  List<LatLng> _route = const [];
 
   LatLng get center => _center;
   double get zoom => _zoom;
@@ -29,6 +30,9 @@ class MapViewState extends ChangeNotifier {
   double get rotation => _rotation;
   LatLng get puck => _puck;
   double get heading => _heading;
+
+  /// Route geometry shared with the home card. Empty when no trip is planned.
+  List<LatLng> get route => _route;
 
   void updateCamera({
     required LatLng center,
@@ -57,21 +61,37 @@ class MapViewState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateRoute(List<LatLng> route) {
+    if (_sameRoute(route, _route)) return;
+    _route = List<LatLng>.unmodifiable(route);
+    notifyListeners();
+  }
+
   void reset() {
     final alreadyDefault = _samePoint(_center, defaultCenter) &&
         _zoom == defaultZoom &&
         _rotation == 0 &&
         _samePoint(_puck, defaultCenter) &&
-        _heading == 0;
+        _heading == 0 &&
+        _route.isEmpty;
     if (alreadyDefault) return;
     _center = defaultCenter;
     _zoom = defaultZoom;
     _rotation = 0;
     _puck = defaultCenter;
     _heading = 0;
+    _route = const [];
     notifyListeners();
   }
 
   static bool _samePoint(LatLng a, LatLng b) =>
       a.latitude == b.latitude && a.longitude == b.longitude;
+
+  static bool _sameRoute(List<LatLng> a, List<LatLng> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!_samePoint(a[i], b[i])) return false;
+    }
+    return true;
+  }
 }

@@ -153,6 +153,21 @@ class _DashboardMapState extends State<DashboardMap> {
           alignment: Alignment.topRight,
           text: MapStyle.attribution,
         ),
+        if (MapViewState.instance.route.isNotEmpty)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: MapViewState.instance.route,
+                strokeWidth: 9,
+                color: Colors.white.withValues(alpha: 0.75),
+              ),
+              Polyline(
+                points: MapViewState.instance.route,
+                strokeWidth: 5,
+                color: const Color(0xFFFF8A00),
+              ),
+            ],
+          ),
         MarkerLayer(
           markers: [
             Marker(
@@ -164,6 +179,19 @@ class _DashboardMapState extends State<DashboardMap> {
                 child: const MapVehiclePuck(),
               ),
             ),
+            if (MapViewState.instance.route.isNotEmpty)
+              Marker(
+                point: MapViewState.instance.route.last,
+                width: 18,
+                height: 18,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF8A00),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
           ],
         ),
       ],

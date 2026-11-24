@@ -43,6 +43,27 @@ void main() {
     expect(view.rotation, -45);
   });
 
+  test('the route is shared and cleared by reset', () {
+    final route = <LatLng>[
+      const LatLng(44.78, 20.44),
+      const LatLng(44.79, 20.45),
+    ];
+    var notifications = 0;
+    void listener() => notifications++;
+    view.addListener(listener);
+    addTearDown(() => view.removeListener(listener));
+
+    view.updateRoute(route);
+    expect(view.route, route);
+    expect(notifications, 1);
+
+    view.updateRoute(List<LatLng>.of(route));
+    expect(notifications, 1, reason: 'identical geometry is not a change');
+
+    view.reset();
+    expect(view.route, isEmpty);
+  });
+
   test('the puck and heading update independently of the camera', () {
     var notifications = 0;
     void listener() => notifications++;

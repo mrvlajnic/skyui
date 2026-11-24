@@ -269,7 +269,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     // Setup travel glide animation
     _travelController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3600),
+      duration: const Duration(milliseconds: 7200),
     );
 
     _travelAnimation = CurvedAnimation(
@@ -286,6 +286,12 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     _targetPuckLatLng = _destinations[_selectedDestIndex].coordinates;
 
     DriveModeService.instance.state.addListener(_onDriveModeChanged);
+
+    // Share the initial simulated route with the home card. The map is not
+    // ready yet, so only the route and puck are published on this first pass.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _publishView();
+    });
   }
 
   /// Search and route changes are parked-only interactions; the map and an
@@ -451,6 +457,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
 
     _travelController.stop();
     _travelController.forward(from: 0.0);
+    _publishView();
   }
 
   void _openSearch() => setState(() => _searchOpen = true);
@@ -517,7 +524,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         _liveRouteProgress = null;
         if (!_livePosition) {
           _travelController.duration = Duration(
-            milliseconds: (route.distanceKm * 3200).clamp(6000, 24000).round(),
+            milliseconds: (route.distanceKm * 6400).clamp(12000, 48000).round(),
           );
         }
       });
@@ -542,6 +549,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     _targetPuckLatLng = destination;
     _travelController.stop();
     _travelController.forward(from: 0.0);
+    _publishView();
   }
 
   void _fitRoute(RoutePlan route) {
@@ -655,6 +663,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       _liveRouteProgress = null;
     });
     if (_useRealMap && _mapReady) _mapController.rotate(0);
+    MapViewState.instance.updateRoute(const []);
   }
 
   String get _positionSourceLabel => _livePosition ? 'GPS' : 'simulated';
@@ -984,6 +993,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   void _publishView() {
     final view = MapViewState.instance;
     view.updatePuck(position: _currentPuckLatLng, heading: _puckHeading);
+    view.updateRoute(_sharedRoute);
     if (_useRealMap && _mapReady) {
       final camera = _mapController.camera;
       view.updateCamera(
@@ -992,6 +1002,15 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         rotation: camera.rotation,
       );
     }
+  }
+
+  /// Geometry the home card should draw: the provider route when one exists,
+  /// otherwise the simulated bezier the puck is travelling along.
+  List<LatLng> get _sharedRoute {
+    final route = _route;
+    if (route != null) return route.geometry;
+    if (_startPuckLatLng == _targetPuckLatLng) return const [];
+    return _routePoints();
   }
 
   void _onCameraChanged(MapPosition position, bool hasGesture) {

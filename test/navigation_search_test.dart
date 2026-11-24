@@ -217,8 +217,9 @@ void main() {
     expect(routing.requestedDestination, knez.coordinates);
     expect(tester.takeException(), isNull);
 
-    // Run the simulated drive to arrival.
-    await tester.pump(const Duration(seconds: 13));
+    // Run the simulated drive to arrival (8.4 km at 6.4 s/km hits the 48 s
+    // cap).
+    await tester.pump(const Duration(seconds: 49));
     await tester.pump();
     expect(find.text('You have arrived at your destination.'), findsOneWidget);
 
