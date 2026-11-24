@@ -134,10 +134,20 @@ bool Win32Window::Create(const std::wstring& title,
   UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
   double scale_factor = dpi / 96.0;
 
+  const int scaled_width = Scale(size.width, scale_factor);
+  const int scaled_height = Scale(size.height, scale_factor);
+
+  // `size` is the client area the layout is designed for (1680x720 for the
+  // 21:9 cockpit). CreateWindow takes the outer size, so expand it by the
+  // title bar and frame; otherwise the chrome steals layout space and the
+  // bottom climate bar is clipped.
+  RECT frame = {0, 0, scaled_width, scaled_height};
+  AdjustWindowRectEx(&frame, WS_OVERLAPPEDWINDOW, FALSE, 0);
+
   HWND window = CreateWindow(
       window_class, title.c_str(), WS_OVERLAPPEDWINDOW,
       Scale(origin.x, scale_factor), Scale(origin.y, scale_factor),
-      Scale(size.width, scale_factor), Scale(size.height, scale_factor),
+      frame.right - frame.left, frame.bottom - frame.top,
       nullptr, nullptr, GetModuleHandle(nullptr), this);
 
   if (!window) {
