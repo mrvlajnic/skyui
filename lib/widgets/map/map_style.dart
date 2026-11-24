@@ -49,6 +49,10 @@ abstract final class MapStyle {
   static String? _resolvedKey;
 
   static String _resolveApiKey() {
+    // `flutter test` prints failing request URLs, including the `key` query
+    // parameter. Never resolve a real provider key in that environment; the
+    // painted fixture is the correct map for tests anyway.
+    if (!kIsWeb && Platform.environment['FLUTTER_TEST'] == 'true') return '';
     if (_compiledKey.isNotEmpty) return _compiledKey;
     if (kIsWeb) return '';
     final fromEnvironment = Platform.environment['MAPTILER_KEY'];
