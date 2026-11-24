@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:skyui/models/place.dart';
+import 'package:skyui/models/route_plan.dart';
 import 'package:skyui/screens/navigation/navigation_screen_content.dart';
 import 'package:skyui/screens/navigation/place_search_panel.dart';
 import 'package:skyui/services/geocoding_service.dart';
+import 'package:skyui/services/routing_service.dart';
 
 class _FakeGeocodingService implements GeocodingService {
   final List<Place> results;
@@ -16,6 +18,26 @@ class _FakeGeocodingService implements GeocodingService {
   Future<List<Place>> search(String query, {int limit = 5}) async {
     calls++;
     return results;
+  }
+
+  @override
+  void dispose() {}
+}
+
+class _FakeRoutingService implements RoutingService {
+  final RoutePlan plan;
+  int calls = 0;
+  LatLng? requestedStart;
+  LatLng? requestedDestination;
+
+  _FakeRoutingService(this.plan);
+
+  @override
+  Future<RoutePlan> route(LatLng start, LatLng destination) async {
+    calls++;
+    requestedStart = start;
+    requestedDestination = destination;
+    return plan;
   }
 
   @override
@@ -116,12 +138,35 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final service = _FakeGeocodingService([knez]);
+    final routing = _FakeRoutingService(
+      const RoutePlan(
+        geometry: [
+          LatLng(44.7866, 20.4489),
+          LatLng(44.8000, 20.4550),
+          LatLng(44.8178, 20.4573),
+        ],
+        distanceKm: 8.4,
+        durationSeconds: 900,
+        steps: [
+          RouteStep(
+            instruction: 'Drive north on Knez Mihailova.',
+            maneuverType: 'start',
+            distanceKm: 8.4,
+            durationSeconds: 900,
+            beginIndex: 0,
+            endIndex: 2,
+          ),
+        ],
+      ),
+    );
+
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: NavigationScreenContent(
             onClose: () {},
             geocodingService: service,
+            routingService: routing,
           ),
         ),
       ),
@@ -141,10 +186,13 @@ void main() {
 
     await tester.tap(find.text('Knez Mihailova'));
     await tester.pump();
+    await tester.pump();
 
     expect(find.text('Plan a route'), findsNothing);
     expect(find.text('Knez Mihailova'), findsOneWidget);
-    expect(find.text('Search result · simulated route'), findsOneWidget);
+    expect(find.text('8.4 km · 15 min · simulated'), findsOneWidget);
+    expect(routing.calls, 1);
+    expect(routing.requestedDestination, knez.coordinates);
     expect(tester.takeException(), isNull);
 
     await tester.pumpWidget(const SizedBox.shrink());

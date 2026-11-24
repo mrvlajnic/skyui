@@ -6,7 +6,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../models/place.dart';
+import '../../models/route_plan.dart';
 import '../../services/geocoding_service.dart';
+import '../../services/routing_service.dart';
 import '../../widgets/map/map_attribution.dart';
 import '../../widgets/map/map_style.dart';
 import '../../widgets/map/map_vehicle_puck.dart';
@@ -58,10 +60,15 @@ class NavigationScreenContent extends StatefulWidget {
   /// builds a MapTiler service if a key is configured.
   final GeocodingService? geocodingService;
 
+  /// Optional injected routing service, used by tests. When null the screen
+  /// builds a MapTiler service if a key is configured.
+  final RoutingService? routingService;
+
   const NavigationScreenContent({
     super.key,
     required this.onClose,
     this.geocodingService,
+    this.routingService,
   });
 
   @override
@@ -177,20 +184,37 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   Place? _destinationPlace;
   bool _searchOpen = false;
 
+  // ── Routing ───────────────────────────────────────────────────────────────
+  late final RoutingService? _routing;
+  late final bool _ownsRouting;
+  RoutePlan? _route;
+  List<double> _routeCumulativeKm = const [];
+  bool _routeLoading = false;
+  String? _routeError;
+  int _routeRequestId = 0;
+
   @override
   void initState() {
     super.initState();
 
     _mapController = MapController();
 
-    // Search is provider-backed and key-gated; without a key the panel explains
-    // why it is unavailable instead of failing silently.
-    final injected = widget.geocodingService;
-    _ownsGeocoding = injected == null && MapStyle.hasApiKey;
+    // Search and routing are provider-backed and key-gated; without a key the
+    // UI explains why they are unavailable instead of failing silently.
+    final injectedGeocoding = widget.geocodingService;
+    _ownsGeocoding = injectedGeocoding == null && MapStyle.hasApiKey;
     _geocoding =
-        injected ??
+        injectedGeocoding ??
         (MapStyle.hasApiKey
             ? MapTilerGeocodingService(apiKey: MapStyle.apiKey)
+            : null);
+
+    final injectedRouting = widget.routingService;
+    _ownsRouting = injectedRouting == null && MapStyle.hasApiKey;
+    _routing =
+        injectedRouting ??
+        (MapStyle.hasApiKey
+            ? MapTilerRoutingService(apiKey: MapStyle.apiKey)
             : null);
 
     // Reachability probe: can we reach the OSM tile server? If not, fall back
@@ -228,6 +252,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   @override
   void dispose() {
     if (_ownsGeocoding) _geocoding?.dispose();
+    if (_ownsRouting) _routing?.dispose();
     _travelController.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -235,6 +260,15 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
 
   void _onTravelTick() {
     final t = _travelAnimation.value;
+
+    final route = _route;
+    if (route != null &&
+        _routeCumulativeKm.length == route.geometry.length &&
+        _routeCumulativeKm.last > 0) {
+      _travelAlongRoute(route, t);
+      setState(() {});
+      return;
+    }
 
     // Generate smooth bezier curve trajectory between start and target
     final p0 = _startPuckLatLng;
@@ -292,8 +326,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
 
   void _closeSearch() => setState(() => _searchOpen = false);
 
-  /// Applies a search result. Routing is not implemented yet, so the existing
-  /// simulated travel runs between the chosen points.
+  /// Applies a search result and asks the provider for a route between the
+  /// chosen points.
   void _selectPlace(SearchTarget target, Place place) {
     setState(() {
       switch (target) {
@@ -312,12 +346,138 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     });
 
     if (target == SearchTarget.destination) {
-      if (_useRealMap) {
-        _mapController.move(place.coordinates, _zoom);
-      }
-      _travelController.stop();
-      _travelController.forward(from: 0.0);
+      _requestRoute(place);
+    } else if (_destinationPlace != null) {
+      _requestRoute(_destinationPlace!);
     }
+  }
+
+  Future<void> _requestRoute(Place destination) async {
+    final start = _startPlace?.coordinates ?? _currentPuckLatLng;
+    final service = _routing;
+    final requestId = ++_routeRequestId;
+
+    setState(() {
+      _route = null;
+      _routeCumulativeKm = const [];
+      _routeError = null;
+      _routeLoading = service != null;
+    });
+
+    if (service == null) {
+      setState(() {
+        _routeError = 'Routing unavailable';
+        _routeLoading = false;
+      });
+      _beginTravel(start, destination.coordinates);
+      return;
+    }
+
+    try {
+      final route = await service.route(start, destination.coordinates);
+      if (!mounted || requestId != _routeRequestId) return;
+      setState(() {
+        _route = route;
+        _routeCumulativeKm = _cumulativeDistances(route.geometry);
+        _routeLoading = false;
+      });
+      _fitRoute(route);
+      _beginTravel(start, destination.coordinates);
+    } on RoutingException catch (error) {
+      if (!mounted || requestId != _routeRequestId) return;
+      setState(() {
+        _routeError = error.message;
+        _routeLoading = false;
+      });
+      _beginTravel(start, destination.coordinates);
+    }
+  }
+
+  void _beginTravel(LatLng start, LatLng destination) {
+    _startPuckLatLng = start;
+    _targetPuckLatLng = destination;
+    _travelController.stop();
+    _travelController.forward(from: 0.0);
+  }
+
+  void _fitRoute(RoutePlan route) {
+    if (!_useRealMap || route.geometry.length < 2) return;
+    _mapController.fitCamera(
+      CameraFit.coordinates(
+        coordinates: route.geometry,
+        padding: const EdgeInsets.all(70),
+      ),
+    );
+  }
+
+  /// Cumulative distance (km) at each geometry point, used to move the puck at
+  /// a constant pace along the route rather than per segment.
+  List<double> _cumulativeDistances(List<LatLng> geometry) {
+    const distance = Distance();
+    final result = <double>[0];
+    for (var index = 1; index < geometry.length; index++) {
+      result.add(
+        result.last +
+            distance.as(
+                  LengthUnit.Meter,
+                  geometry[index - 1],
+                  geometry[index],
+                ) /
+                1000,
+      );
+    }
+    return result;
+  }
+
+  void _travelAlongRoute(RoutePlan route, double t) {
+    final total = _routeCumulativeKm.last;
+    if (total <= 0) return;
+
+    final target = t * total;
+    var index = 1;
+    while (index < _routeCumulativeKm.length - 1 &&
+        _routeCumulativeKm[index] < target) {
+      index++;
+    }
+
+    final segmentStart = _routeCumulativeKm[index - 1];
+    final segmentEnd = _routeCumulativeKm[index];
+    final segmentLength = segmentEnd - segmentStart;
+    final localT = segmentLength == 0
+        ? 0.0
+        : ((target - segmentStart) / segmentLength).clamp(0.0, 1.0);
+
+    final from = route.geometry[index - 1];
+    final to = route.geometry[index];
+    _currentPuckLatLng = LatLng(
+      from.latitude + (to.latitude - from.latitude) * localT,
+      from.longitude + (to.longitude - from.longitude) * localT,
+    );
+
+    final deltaLat = to.latitude - from.latitude;
+    final deltaLng = to.longitude - from.longitude;
+    if (deltaLat != 0 || deltaLng != 0) {
+      _puckHeading = math.atan2(deltaLat, deltaLng) + math.pi / 2;
+    }
+  }
+
+  String _formatDuration(double seconds) {
+    final minutes = (seconds / 60).round();
+    if (minutes < 60) return '$minutes min';
+    final hours = minutes ~/ 60;
+    final rest = minutes % 60;
+    return rest == 0 ? '$hours h' : '$hours h $rest min';
+  }
+
+  String get _routeSubtitle {
+    if (_routeLoading) return 'Calculating route…';
+    final route = _route;
+    if (route != null) {
+      return '${route.distanceKm.toStringAsFixed(1)} km · '
+          '${_formatDuration(route.durationSeconds)} · simulated';
+    }
+    if (_routeError != null) return 'Routing unavailable · simulated route';
+    return 'Search result · simulated route';
   }
 
   @override
@@ -345,7 +505,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
             child: _MinimalTopBar(
               title: _destinationPlace?.name ?? activeDest.title,
               subtitle: hasSearchedDestination
-                  ? 'Search result · simulated route'
+                  ? _routeSubtitle
                   : activeDest.nextManeuver,
               maneuverIcon: hasSearchedDestination
                   ? Icons.place_outlined
@@ -482,9 +642,15 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         ),
         PolylineLayer(
           polylines: [
+            if (_route != null)
+              Polyline(
+                points: _route!.geometry,
+                strokeWidth: 9,
+                color: Colors.white.withValues(alpha: 0.75),
+              ),
             Polyline(
-              points: _routePoints(),
-              strokeWidth: 4,
+              points: _route?.geometry ?? _routePoints(),
+              strokeWidth: 5,
               color: const Color(0xFFFF8A00),
             ),
           ],

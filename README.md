@@ -62,7 +62,7 @@ The current application implements no backend, remote telemetry, crash reporting
 | Vehicle card | Demo data | Static render and fixtures; no CAN/OBD source; quick actions are disabled |
 | Media studio | Local simulation | Source, queue, playback, and audio labels are local state; no audio HAL or persistent session |
 | Phone cockpit | Local simulation | Dialer, synthetic recents, and explicit demo call; no telephony, contacts, DTMF, or carrier service |
-| Navigation | Local simulation | MapTiler basemap and place search when a key is configured, painted fixture otherwise; fixture route and telemetry; no GPS, routing engine, or live traffic |
+| Navigation | Local simulation | MapTiler basemap, place search and driving routes when a key is configured, painted fixture otherwise; simulated position and guidance; no GPS or live traffic |
 | Climate bar | Local simulation | Visual controls only; no HVAC commands, validated limits, or automatic regulation |
 | Local web launcher | Development tool | Loopback server, CSP-compatible build, local CanvasKit, and enforced build stamp |
 | Android release | Blocked | Placeholder `com.example.skyui` identity and debug signing |
@@ -102,12 +102,13 @@ Vehicle and Settings sidebar entries are visibly disabled because their screens 
 ### Navigation
 
 - Real basemap in the compact Navigation panel: MapTiler `basic-v2` tiles on desktop and web, the MapLibre platform view on Android/iOS, and a painted fixture map when no key is configured or the tile host is unreachable.
-- Start/destination search uses MapTiler geocoding with debounced input; selecting a result moves the simulated puck to that place. Routing and positioning are not implemented yet, so the route line and guidance remain simulated.
+- Start/destination search uses MapTiler geocoding with debounced input; selecting a result requests a driving route from MapTiler directions and draws the provider geometry with distance and ETA.
+- The vehicle puck follows the route geometry at a simulated pace. Position, speed and guidance timing are simulated on desktop; no positioning source exists.
 - The close control in the expanded module now closes Navigation; previously it replayed the fixture route.
-- Fixture destinations and local destination transition; the displayed position, route, maneuver, speed, limit, ETA, distance, and arrival values are simulated.
+- Fixture destinations and local destination transition; the displayed route, maneuver, speed, limit, ETA, distance, and arrival values are simulated.
 - Traffic toggles a painted fixture layer; it is not a traffic feed.
 - Recalculate replays motion to the selected fixture destination; it does not calculate a route.
-- Zoom, Recenter, and 3D controls are disabled until a real map-camera model exists.
+- Zoom and Recenter drive the map camera; 3D is not implemented.
 
 ### Vehicle and climate
 
@@ -128,10 +129,12 @@ lib/
 │   ├── navigation/
 │   └── phone/
 ├── models/
-│   └── place.dart
+│   ├── place.dart
+│   └── route_plan.dart
 ├── services/
 │   ├── drive_mode_service.dart
-│   └── geocoding_service.dart
+│   ├── geocoding_service.dart
+│   └── routing_service.dart
 ├── widgets/
 │   ├── cards/
 │   ├── climate/
