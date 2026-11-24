@@ -31,6 +31,18 @@ void main() {
     expect(notifications, 1);
   });
 
+  test('camera rotation is shared and kept when omitted', () {
+    view.updateCamera(
+      center: MapViewState.defaultCenter,
+      zoom: 15,
+      rotation: -45,
+    );
+    expect(view.rotation, -45);
+
+    view.updateCamera(center: MapViewState.defaultCenter, zoom: 15);
+    expect(view.rotation, -45);
+  });
+
   test('the puck and heading update independently of the camera', () {
     var notifications = 0;
     void listener() => notifications++;

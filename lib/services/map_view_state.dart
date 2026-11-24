@@ -18,18 +18,32 @@ class MapViewState extends ChangeNotifier {
 
   LatLng _center = defaultCenter;
   double _zoom = defaultZoom;
+  double _rotation = 0;
   LatLng _puck = defaultCenter;
   double _heading = 0;
 
   LatLng get center => _center;
   double get zoom => _zoom;
+
+  /// Map rotation in degrees, clockwise. Non-zero in heading-up chase mode.
+  double get rotation => _rotation;
   LatLng get puck => _puck;
   double get heading => _heading;
 
-  void updateCamera({required LatLng center, required double zoom}) {
-    if (_samePoint(center, _center) && (zoom - _zoom).abs() < 0.0001) return;
+  void updateCamera({
+    required LatLng center,
+    required double zoom,
+    double? rotation,
+  }) {
+    final nextRotation = rotation ?? _rotation;
+    if (_samePoint(center, _center) &&
+        (zoom - _zoom).abs() < 0.0001 &&
+        (nextRotation - _rotation).abs() < 0.0001) {
+      return;
+    }
     _center = center;
     _zoom = zoom;
+    _rotation = nextRotation;
     notifyListeners();
   }
 
@@ -46,11 +60,13 @@ class MapViewState extends ChangeNotifier {
   void reset() {
     final alreadyDefault = _samePoint(_center, defaultCenter) &&
         _zoom == defaultZoom &&
+        _rotation == 0 &&
         _samePoint(_puck, defaultCenter) &&
         _heading == 0;
     if (alreadyDefault) return;
     _center = defaultCenter;
     _zoom = defaultZoom;
+    _rotation = 0;
     _puck = defaultCenter;
     _heading = 0;
     notifyListeners();

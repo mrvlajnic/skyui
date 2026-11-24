@@ -206,7 +206,13 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   bool _routeLoading = false;
   String? _routeError;
   int _routeRequestId = 0;
-  bool _followPuck = false;
+
+  /// Heading-up chase mode: close to the vehicle, rotated so the puck's
+  /// direction of travel points up. Toggled by the Recenter control.
+  bool _chaseMode = false;
+  final double _chaseZoom = 16.5;
+  double _mapRotationDegrees = 0;
+  double? _appliedRotation;
 
   // ── Device positioning ────────────────────────────────────────────────────
   late final PositioningService? _positioning;
@@ -263,7 +269,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     // Setup travel glide animation
     _travelController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 3600),
     );
 
     _travelAnimation = CurvedAnimation(
@@ -342,10 +348,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         position: fix.coordinates,
       );
       setState(() => _liveRouteProgress = progress);
-      if (_followPuck && _useRealMap) {
-        _mapController.move(fix.coordinates, _zoom);
-      }
     }
+    if (_chaseMode) _applyChase();
     _publishView();
   }
 
@@ -417,13 +421,11 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
 
     if (dLat != 0 || dLng != 0) {
       _currentPuckLatLng = LatLng(currentLat, currentLng);
-      _puckHeading = math.atan2(dLat, dLng) + math.pi / 2;
+      _puckHeading = math.atan2(dLng, dLat);
     } else {
       _currentPuckLatLng = LatLng(currentLat, currentLng);
     }
-    if (_route != null && _followPuck && _useRealMap) {
-      _mapController.move(_currentPuckLatLng, _zoom);
-    }
+    if (_chaseMode) _applyChase();
     // flutter_map reads these fields on rebuild; keep the puck + route moving.
     setState(() {});
     _syncFollowingView();
@@ -510,11 +512,12 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         _route = route;
         _routeCumulativeKm = _cumulativeDistances(route.geometry);
         _routeLoading = false;
-        _followPuck = false;
+        _chaseMode = false;
+        _appliedRotation = null;
         _liveRouteProgress = null;
         if (!_livePosition) {
           _travelController.duration = Duration(
-            milliseconds: (route.distanceKm * 1500).clamp(3000, 12000).round(),
+            milliseconds: (route.distanceKm * 3200).clamp(6000, 24000).round(),
           );
         }
       });
@@ -599,7 +602,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     final deltaLat = to.latitude - from.latitude;
     final deltaLng = to.longitude - from.longitude;
     if (deltaLat != 0 || deltaLng != 0) {
-      _puckHeading = math.atan2(deltaLat, deltaLng) + math.pi / 2;
+      _puckHeading = math.atan2(deltaLng, deltaLat);
     }
   }
 
@@ -646,9 +649,12 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       _routeError = null;
       _routeLoading = false;
       _destinationPlace = null;
-      _followPuck = false;
+      _chaseMode = false;
+      _appliedRotation = null;
+      _mapRotationDegrees = 0;
       _liveRouteProgress = null;
     });
+    if (_useRealMap && _mapReady) _mapController.rotate(0);
   }
 
   String get _positionSourceLabel => _livePosition ? 'GPS' : 'simulated';
@@ -770,6 +776,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
             top: 70,
             child: _CompactMapControls(
               isTrafficEnabled: _isTrafficEnabled,
+              isChasing: _chaseMode,
               onToggleTraffic: () =>
                   setState(() => _isTrafficEnabled = !_isTrafficEnabled),
               onRecenter: _recenter,
@@ -916,21 +923,56 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   }
 
   /// Camera controls wired to [MapController].
+  /// Toggles heading-up chase: close to the puck, rotated so the direction of
+  /// travel points up. A second tap returns to north-up.
   void _recenter() {
-    _followPuck = true;
-    _mapController.move(_currentPuckLatLng, _zoom);
+    final startChase = !_chaseMode;
+    setState(() {
+      _chaseMode = startChase;
+      _appliedRotation = null;
+      if (startChase) {
+        _zoom = _chaseZoom;
+      } else {
+        _mapRotationDegrees = 0;
+      }
+    });
+    if (_useRealMap && _mapReady) {
+      _mapController.move(_currentPuckLatLng, _zoom);
+      _mapController.rotate(_mapRotationDegrees);
+    }
+    if (startChase) _applyChase();
     _publishView();
   }
 
   void _zoomIn() {
     _zoom = (_zoom + 1).clamp(1, 19);
-    _mapController.move(_currentPuckLatLng, _zoom);
+    if (_useRealMap && _mapReady) {
+      _mapController.move(_currentPuckLatLng, _zoom);
+    }
     _publishView();
   }
 
   void _zoomOut() {
     _zoom = (_zoom - 1).clamp(1, 19);
+    if (_useRealMap && _mapReady) {
+      _mapController.move(_currentPuckLatLng, _zoom);
+    }
+    _publishView();
+  }
+
+  /// Moves the camera with the vehicle and rotates so travel points up.
+  ///
+  /// The rotation is only issued when the bearing moves by more than a degree,
+  /// so a straight road does not re-rotate the map every frame.
+  void _applyChase() {
+    if (!_useRealMap || !_mapReady) return;
     _mapController.move(_currentPuckLatLng, _zoom);
+    final target = -_puckHeading * 180 / math.pi;
+    final applied = _appliedRotation;
+    if (applied != null && (target - applied).abs() < 1.0) return;
+    _appliedRotation = target;
+    _mapRotationDegrees = target;
+    _mapController.rotate(target);
     _publishView();
   }
 
@@ -944,7 +986,11 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     view.updatePuck(position: _currentPuckLatLng, heading: _puckHeading);
     if (_useRealMap && _mapReady) {
       final camera = _mapController.camera;
-      view.updateCamera(center: camera.center, zoom: camera.zoom);
+      view.updateCamera(
+        center: camera.center,
+        zoom: camera.zoom,
+        rotation: camera.rotation,
+      );
     }
   }
 
@@ -953,9 +999,22 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     final center = position.center;
     if (zoom == null || center == null) return;
     _zoom = zoom;
-    if (hasGesture) {
-      MapViewState.instance.updateCamera(center: center, zoom: zoom);
+    if (!hasGesture) return;
+    // A manual pan or pinch leaves chase mode; the user asked for that view.
+    if (_chaseMode) {
+      setState(() {
+        _chaseMode = false;
+        _appliedRotation = null;
+      });
     }
+    if (_mapReady) {
+      _mapRotationDegrees = _mapController.camera.rotation;
+    }
+    MapViewState.instance.updateCamera(
+      center: center,
+      zoom: zoom,
+      rotation: _mapRotationDegrees,
+    );
   }
 
   /// Publishes the last view, then closes the full-screen navigation.
@@ -1574,6 +1633,7 @@ class _MinimalTopBar extends StatelessWidget {
 
 class _CompactMapControls extends StatelessWidget {
   final bool isTrafficEnabled;
+  final bool isChasing;
   final VoidCallback onToggleTraffic;
   final VoidCallback onRecenter;
   final VoidCallback onZoomIn;
@@ -1581,6 +1641,7 @@ class _CompactMapControls extends StatelessWidget {
 
   const _CompactMapControls({
     required this.isTrafficEnabled,
+    required this.isChasing,
     required this.onToggleTraffic,
     required this.onRecenter,
     required this.onZoomIn,
@@ -1595,7 +1656,8 @@ class _CompactMapControls extends StatelessWidget {
         _MapControlButton(
           icon: Icons.my_location_rounded,
           onTap: onRecenter,
-          tooltip: 'Recenter',
+          active: isChasing,
+          tooltip: isChasing ? 'North up' : 'Chase mode',
         ),
         const SizedBox(height: 6),
         _MapControlButton(

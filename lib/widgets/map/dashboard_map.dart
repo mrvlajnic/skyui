@@ -75,6 +75,7 @@ class _DashboardMapState extends State<DashboardMap> {
     final view = MapViewState.instance;
     if (_mapReady) {
       _mapController.move(view.center, view.zoom);
+      _mapController.rotate(view.rotation);
     }
     setState(() {});
   }
@@ -135,6 +136,7 @@ class _DashboardMapState extends State<DashboardMap> {
       options: MapOptions(
         initialCenter: MapViewState.instance.center,
         initialZoom: MapViewState.instance.zoom,
+        initialRotation: MapViewState.instance.rotation,
         backgroundColor: const Color(0xFFEFEEEA),
         interactionOptions:
             const InteractionOptions(flags: InteractiveFlag.none),
