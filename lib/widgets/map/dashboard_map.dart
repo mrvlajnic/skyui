@@ -16,8 +16,8 @@ import 'tile_probe.dart';
 ///
 /// Uses the `maplibre_gl` platform view on Android and iOS, the only platforms
 /// that plugin supports, and `flutter_map` with MapTiler raster tiles on
-/// desktop and web. When tiles are unreachable (no API key, offline, or the
-/// local launcher CSP that blocks external imagery) the painted
+/// desktop and web. When tiles are unreachable (no API key, offline, or a
+/// provider rejection) the painted
 /// [RoutePreviewMap] fixture is shown so the panel never renders a broken
 /// surface.
 ///
