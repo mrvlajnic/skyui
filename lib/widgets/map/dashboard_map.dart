@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as maplibre;
 
+import '../../services/map_view_state.dart';
 import 'map_attribution.dart';
 import 'map_style.dart';
 import 'map_vehicle_puck.dart';
@@ -36,6 +37,10 @@ class DashboardMap extends StatefulWidget {
 class _DashboardMapState extends State<DashboardMap> {
   bool _tilesReachable = false;
 
+  /// Mirrors the navigation screen's camera and vehicle pose.
+  final MapController _mapController = MapController();
+  bool _mapReady = false;
+
   /// `maplibre_gl` only has a native platform view on Android and iOS.
   ///
   /// Widget tests report the Android target without a registered plugin
@@ -52,9 +57,26 @@ class _DashboardMapState extends State<DashboardMap> {
   @override
   void initState() {
     super.initState();
+    MapViewState.instance.addListener(_onViewStateChanged);
     // Widget tests stay offline and deterministic.
     if (_usesMaplibre || const bool.fromEnvironment('FLUTTER_TEST')) return;
     _probeTileServer();
+  }
+
+  @override
+  void dispose() {
+    MapViewState.instance.removeListener(_onViewStateChanged);
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  void _onViewStateChanged() {
+    if (!mounted) return;
+    final view = MapViewState.instance;
+    if (_mapReady) {
+      _mapController.move(view.center, view.zoom);
+    }
+    setState(() {});
   }
 
   /// Short reachability probe; on failure the painted fixture is used.
@@ -84,10 +106,10 @@ class _DashboardMapState extends State<DashboardMap> {
           styleString: MapStyle.vectorStyleUrl,
           initialCameraPosition: maplibre.CameraPosition(
             target: maplibre.LatLng(
-              DashboardMap.center.latitude,
-              DashboardMap.center.longitude,
+              MapViewState.instance.center.latitude,
+              MapViewState.instance.center.longitude,
             ),
-            zoom: DashboardMap.zoom,
+            zoom: MapViewState.instance.zoom,
           ),
           // The compact card expands on tap; map gestures stay out of the way.
           dragEnabled: false,
@@ -109,11 +131,14 @@ class _DashboardMapState extends State<DashboardMap> {
 
   Widget _tileMap(BuildContext context) {
     return FlutterMap(
-      options: const MapOptions(
-        initialCenter: DashboardMap.center,
-        initialZoom: DashboardMap.zoom,
-        backgroundColor: Color(0xFFEFEEEA),
-        interactionOptions: InteractionOptions(flags: InteractiveFlag.none),
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: MapViewState.instance.center,
+        initialZoom: MapViewState.instance.zoom,
+        backgroundColor: const Color(0xFFEFEEEA),
+        interactionOptions:
+            const InteractionOptions(flags: InteractiveFlag.none),
+        onMapReady: () => _mapReady = true,
       ),
       children: [
         TileLayer(
@@ -129,10 +154,13 @@ class _DashboardMapState extends State<DashboardMap> {
         MarkerLayer(
           markers: [
             Marker(
-              point: DashboardMap.center,
+              point: MapViewState.instance.puck,
               width: 32,
               height: 32,
-              child: const MapVehiclePuck(),
+              child: Transform.rotate(
+                angle: MapViewState.instance.heading,
+                child: const MapVehiclePuck(),
+              ),
             ),
           ],
         ),

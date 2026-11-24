@@ -13,6 +13,7 @@ import '../../models/route_plan.dart';
 import '../../models/route_progress.dart';
 import '../../services/drive_mode_service.dart';
 import '../../services/geocoding_service.dart';
+import '../../services/map_view_state.dart';
 import '../../services/positioning_service.dart';
 import '../../services/routing_service.dart';
 import '../../widgets/map/map_attribution.dart';
@@ -164,11 +165,10 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   // ── GPS Puck & Vehicle Movement State ──────────────────────────────────────
   // Real-world positions used by flutter_map; the simulated painter projects
   // them back to normalized 0-1 canvas coords via _project().
-  static const LatLng _belgradeCenter = LatLng(44.7866, 20.4489);
-  LatLng _currentPuckLatLng = _belgradeCenter;
-  LatLng _startPuckLatLng = _belgradeCenter;
-  LatLng _targetPuckLatLng = _belgradeCenter;
-  double _puckHeading = -math.pi / 4; // Angle in radians
+  LatLng _currentPuckLatLng = MapViewState.instance.puck;
+  LatLng _startPuckLatLng = MapViewState.instance.puck;
+  LatLng _targetPuckLatLng = MapViewState.instance.puck;
+  double _puckHeading = MapViewState.instance.heading; // Angle in radians
 
   /// Whether the basemap host is reachable. Falls back to the hand-painted
   /// simulated map when the tile server can't be contacted or no API key is
@@ -176,9 +176,11 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   bool _useRealMap = MapStyle.hasApiKey;
 
   /// Current zoom level for flutter_map (driven by the +/- buttons).
-  double _zoom = 13;
+  double _zoom = MapViewState.instance.zoom;
 
   late final MapController _mapController;
+  bool _mapReady = false;
+  int _viewSyncTicks = 0;
   late final AnimationController _travelController;
   late final Animation<double> _travelAnimation;
 
@@ -344,6 +346,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         _mapController.move(fix.coordinates, _zoom);
       }
     }
+    _publishView();
   }
 
   void _updateLiveRouteProgress() {
@@ -380,6 +383,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         _routeCumulativeKm.last > 0) {
       _travelAlongRoute(route, t);
       setState(() {});
+      _syncFollowingView();
       return;
     }
 
@@ -422,6 +426,15 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     }
     // flutter_map reads these fields on rebuild; keep the puck + route moving.
     setState(() {});
+    _syncFollowingView();
+  }
+
+  /// Publishes the followed camera and puck a few times per second. Syncing
+  /// every animation tick would rebuild the hidden home card at 60 fps for no
+  /// visible benefit.
+  void _syncFollowingView() {
+    if (++_viewSyncTicks % 30 != 0) return;
+    _publishView();
   }
 
   /// Triggered when the user selects a destination or taps a waypoint
@@ -536,6 +549,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         padding: const EdgeInsets.all(70),
       ),
     );
+    _publishView();
   }
 
   /// Cumulative distance (km) at each geometry point, used to move the puck at
@@ -722,7 +736,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
                   ? Icons.place_outlined
                   : activeDest.maneuverIcon,
               onOpenSearch: driving ? null : _openSearch,
-              onClose: widget.onClose,
+              onClose: _close,
               onToggleVoice: () =>
                   setState(() => _isVoiceMuted = !_isVoiceMuted),
               isVoiceMuted: _isVoiceMuted,
@@ -778,12 +792,14 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     return FlutterMap(
       mapController: _mapController,
       options: MapOptions(
-        initialCenter: _currentPuckLatLng,
-        initialZoom: _zoom,
+        initialCenter: MapViewState.instance.center,
+        initialZoom: MapViewState.instance.zoom,
         backgroundColor: const Color(0xFFEFEEEA),
         interactionOptions: const InteractionOptions(
           flags: InteractiveFlag.all,
         ),
+        onMapReady: () => _mapReady = true,
+        onPositionChanged: _onCameraChanged,
       ),
       children: [
         TileLayer(
@@ -903,16 +919,49 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   void _recenter() {
     _followPuck = true;
     _mapController.move(_currentPuckLatLng, _zoom);
+    _publishView();
   }
 
   void _zoomIn() {
     _zoom = (_zoom + 1).clamp(1, 19);
     _mapController.move(_currentPuckLatLng, _zoom);
+    _publishView();
   }
 
   void _zoomOut() {
     _zoom = (_zoom - 1).clamp(1, 19);
     _mapController.move(_currentPuckLatLng, _zoom);
+    _publishView();
+  }
+
+  /// Keeps the home card on the same camera and vehicle pose.
+  ///
+  /// Gesture-driven camera moves publish directly; programmatic moves (zoom
+  /// buttons, recenter, fit-to-route, following the puck) call this explicitly
+  /// so the home preview does not have to rebuild on every animation tick.
+  void _publishView() {
+    final view = MapViewState.instance;
+    view.updatePuck(position: _currentPuckLatLng, heading: _puckHeading);
+    if (_useRealMap && _mapReady) {
+      final camera = _mapController.camera;
+      view.updateCamera(center: camera.center, zoom: camera.zoom);
+    }
+  }
+
+  void _onCameraChanged(MapPosition position, bool hasGesture) {
+    final zoom = position.zoom;
+    final center = position.center;
+    if (zoom == null || center == null) return;
+    _zoom = zoom;
+    if (hasGesture) {
+      MapViewState.instance.updateCamera(center: center, zoom: zoom);
+    }
+  }
+
+  /// Publishes the last view, then closes the full-screen navigation.
+  void _close() {
+    _publishView();
+    widget.onClose();
   }
 
   /// Hand-painted simulated map used when the OSM tile server is unreachable.
