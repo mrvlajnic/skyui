@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../models/place.dart';
 import '../../models/route_plan.dart';
+import '../../services/drive_mode_service.dart';
 import '../../services/geocoding_service.dart';
 import '../../services/routing_service.dart';
 import '../../widgets/map/map_attribution.dart';
@@ -241,6 +242,19 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     )..repeat();
 
     _targetPuckLatLng = _destinations[_selectedDestIndex].coordinates;
+
+    DriveModeService.instance.state.addListener(_onDriveModeChanged);
+  }
+
+  /// Search and route changes are parked-only interactions; the map and an
+  /// active guidance session stay visible while driving.
+  void _onDriveModeChanged() {
+    if (!mounted) return;
+    setState(() {
+      if (DriveModeService.instance.isDriving) {
+        _searchOpen = false;
+      }
+    });
   }
 
   /// Lightly probes the basemap tile host. On success the real map is used; on
@@ -253,6 +267,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
 
   @override
   void dispose() {
+    DriveModeService.instance.state.removeListener(_onDriveModeChanged);
     if (_ownsGeocoding) _geocoding?.dispose();
     if (_ownsRouting) _routing?.dispose();
     _travelController.dispose();
@@ -334,6 +349,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   /// Applies a search result and asks the provider for a route between the
   /// chosen points.
   void _selectPlace(SearchTarget target, Place place) {
+    if (DriveModeService.instance.isDriving) return;
     setState(() {
       switch (target) {
         case SearchTarget.start:
@@ -532,6 +548,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   Widget build(BuildContext context) {
     final activeDest = _destinations[_selectedDestIndex];
     final hasSearchedDestination = _destinationPlace != null;
+    final driving = DriveModeService.instance.isDriving;
 
     final route = _route;
     NavigationGuidanceBanner? guidance;
@@ -594,7 +611,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
               maneuverIcon: hasSearchedDestination
                   ? Icons.place_outlined
                   : activeDest.maneuverIcon,
-              onOpenSearch: _openSearch,
+              onOpenSearch: driving ? null : _openSearch,
               onClose: widget.onClose,
               onToggleVoice: () =>
                   setState(() => _isVoiceMuted = !_isVoiceMuted),
@@ -686,7 +703,9 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
                 width: 22,
                 height: 22,
                 child: GestureDetector(
-                  onTap: () => _navigateToDestination(i),
+                  onTap: DriveModeService.instance.isDriving
+                      ? null
+                      : () => _navigateToDestination(i),
                   child: Container(
                     decoration: BoxDecoration(
                       color: i == _selectedDestIndex
@@ -1240,7 +1259,7 @@ class _MinimalTopBar extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData maneuverIcon;
-  final VoidCallback onOpenSearch;
+  final VoidCallback? onOpenSearch;
   final VoidCallback onClose;
   final VoidCallback onToggleVoice;
   final bool isVoiceMuted;
@@ -1316,20 +1335,29 @@ class _MinimalTopBar extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             // Search
-            Tooltip(
-              message: 'Search start and destination',
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  key: const ValueKey('navigation-search-button'),
-                  onTap: onOpenSearch,
-                  borderRadius: BorderRadius.circular(6),
-                  child: const Padding(
-                    padding: EdgeInsets.all(6),
-                    child: Icon(
-                      Icons.search_rounded,
-                      color: Colors.white70,
-                      size: 18,
+            Semantics(
+              button: true,
+              enabled: onOpenSearch != null,
+              label: 'Search start and destination',
+              child: Tooltip(
+                message: onOpenSearch == null
+                    ? 'Search unavailable while driving'
+                    : 'Search start and destination',
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: const ValueKey('navigation-search-button'),
+                    onTap: onOpenSearch,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.search_rounded,
+                        color: onOpenSearch == null
+                            ? Colors.white24
+                            : Colors.white70,
+                        size: 18,
+                      ),
                     ),
                   ),
                 ),

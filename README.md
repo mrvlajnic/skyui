@@ -105,6 +105,7 @@ Vehicle and Settings sidebar entries are visibly disabled because their screens 
 - Start/destination search uses MapTiler geocoding with debounced input; selecting a result requests a driving route from MapTiler directions and draws the provider geometry with distance and ETA.
 - The vehicle puck follows the route geometry at a simulated pace. Position, speed and guidance timing are simulated on desktop; no positioning source exists.
 - While a route is active, the guidance banner shows the provider instruction for the current step, the distance to the next maneuver, and remaining distance/time; it switches to an arrival state and can be ended in place.
+- Search and route changes are parked-only: while the debug `DRIVING` state is active the search control is disabled, an open search panel closes, and fixture waypoint taps are ignored. An active guidance session stays visible.
 - The close control in the expanded module now closes Navigation; previously it replayed the fixture route.
 - Fixture destinations and local destination transition; the displayed route, maneuver, speed, limit, ETA, distance, and arrival values are simulated.
 - Traffic toggles a painted fixture layer; it is not a traffic feed.

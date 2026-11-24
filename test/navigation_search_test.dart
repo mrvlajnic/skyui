@@ -5,6 +5,7 @@ import 'package:skyui/models/place.dart';
 import 'package:skyui/models/route_plan.dart';
 import 'package:skyui/screens/navigation/navigation_screen_content.dart';
 import 'package:skyui/screens/navigation/place_search_panel.dart';
+import 'package:skyui/services/drive_mode_service.dart';
 import 'package:skyui/services/geocoding_service.dart';
 import 'package:skyui/services/routing_service.dart';
 
@@ -43,6 +44,26 @@ class _FakeRoutingService implements RoutingService {
   @override
   void dispose() {}
 }
+
+const _sampleRoute = RoutePlan(
+  geometry: [
+    LatLng(44.7866, 20.4489),
+    LatLng(44.8000, 20.4550),
+    LatLng(44.8178, 20.4573),
+  ],
+  distanceKm: 8.4,
+  durationSeconds: 900,
+  steps: [
+    RouteStep(
+      instruction: 'Drive north on Knez Mihailova.',
+      maneuverType: 'start',
+      distanceKm: 8.4,
+      durationSeconds: 900,
+      beginIndex: 0,
+      endIndex: 2,
+    ),
+  ],
+);
 
 void main() {
   const knez = Place(
@@ -138,27 +159,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final service = _FakeGeocodingService([knez]);
-    final routing = _FakeRoutingService(
-      const RoutePlan(
-        geometry: [
-          LatLng(44.7866, 20.4489),
-          LatLng(44.8000, 20.4550),
-          LatLng(44.8178, 20.4573),
-        ],
-        distanceKm: 8.4,
-        durationSeconds: 900,
-        steps: [
-          RouteStep(
-            instruction: 'Drive north on Knez Mihailova.',
-            maneuverType: 'start',
-            distanceKm: 8.4,
-            durationSeconds: 900,
-            beginIndex: 0,
-            endIndex: 2,
-          ),
-        ],
-      ),
-    );
+    final routing = _FakeRoutingService(_sampleRoute);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -207,6 +208,64 @@ void main() {
     await tester.pump();
     expect(find.byKey(const ValueKey('guidance-end-button')), findsNothing);
     expect(find.text('City Center Mall'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('navigation search is disabled while driving', (tester) async {
+    final driveMode = DriveModeService.instance;
+    addTearDown(() => driveMode.update(VehicleState.parked));
+    driveMode.update(VehicleState.driving);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: NavigationScreenContent(
+            onClose: () {},
+            geocodingService: _FakeGeocodingService(const []),
+            routingService: _FakeRoutingService(_sampleRoute),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final button = tester.widget<InkWell>(
+      find.byKey(const ValueKey('navigation-search-button')),
+    );
+    expect(button.onTap, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('navigation-search-button')));
+    await tester.pump();
+    expect(find.text('Plan a route'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('starting to drive closes an open search panel', (tester) async {
+    final driveMode = DriveModeService.instance;
+    addTearDown(() => driveMode.update(VehicleState.parked));
+    driveMode.update(VehicleState.parked);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: NavigationScreenContent(
+            onClose: () {},
+            geocodingService: _FakeGeocodingService(const []),
+            routingService: _FakeRoutingService(_sampleRoute),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('navigation-search-button')));
+    await tester.pump();
+    expect(find.text('Plan a route'), findsOneWidget);
+
+    driveMode.update(VehicleState.driving);
+    await tester.pump();
+    expect(find.text('Plan a route'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
