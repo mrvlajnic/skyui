@@ -103,7 +103,7 @@ Vehicle and Settings sidebar entries are visibly disabled because their screens 
 
 - Real basemap in the compact Navigation panel: MapTiler `basic-v2` tiles on desktop and web, the MapLibre platform view on Android/iOS, and a painted fixture map when no key is configured or the tile host is unreachable.
 - Start/destination search uses MapTiler geocoding with debounced input; selecting a result requests a driving route from MapTiler directions and draws the provider geometry with distance and ETA.
-- The vehicle puck follows the route geometry at a simulated pace. Position, speed and guidance timing are simulated on desktop; no positioning source exists.
+- The vehicle puck follows the route geometry at a simulated pace on desktop and in the browser. On Android and iOS it uses device positioning (`geolocator`) when permission is granted; guidance progress is projected from each fix onto the route. With no permission the simulated drive is used.
 - While a route is active, the guidance banner shows the provider instruction for the current step, the distance to the next maneuver, and remaining distance/time; it switches to an arrival state and can be ended in place.
 - Search and route changes are parked-only: while the debug `DRIVING` state is active the search control is disabled, an open search panel closes, and fixture waypoint taps are ignored. An active guidance session stays visible.
 - The close control in the expanded module now closes Navigation; previously it replayed the fixture route.
@@ -132,10 +132,12 @@ lib/
 │   └── phone/
 ├── models/
 │   ├── place.dart
-│   └── route_plan.dart
+│   ├── route_plan.dart
+│   └── route_progress.dart
 ├── services/
 │   ├── drive_mode_service.dart
 │   ├── geocoding_service.dart
+│   ├── positioning_service.dart
 │   └── routing_service.dart
 ├── widgets/
 │   ├── cards/

@@ -63,6 +63,8 @@ The only outbound requests are:
 
 No personal data, vehicle identifiers, or diagnostics are sent to any of these hosts.
 
+On Android and iOS the app asks for device location permission to show the current position on the map. The position is processed on the device and is not uploaded to a backend; the map provider indirectly receives the displayed area through the tile requests. Location is not stored by the app.
+
 No future telemetry or diagnostic collection is authorized by this notice. Before implementation, the owner must document:
 
 - data inventory and purpose;

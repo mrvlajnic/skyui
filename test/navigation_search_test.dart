@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
@@ -7,6 +9,7 @@ import 'package:skyui/screens/navigation/navigation_screen_content.dart';
 import 'package:skyui/screens/navigation/place_search_panel.dart';
 import 'package:skyui/services/drive_mode_service.dart';
 import 'package:skyui/services/geocoding_service.dart';
+import 'package:skyui/services/positioning_service.dart';
 import 'package:skyui/services/routing_service.dart';
 
 class _FakeGeocodingService implements GeocodingService {
@@ -43,6 +46,22 @@ class _FakeRoutingService implements RoutingService {
 
   @override
   void dispose() {}
+}
+
+class _FakePositioningService implements PositioningService {
+  final StreamController<PositionFix> controller =
+      StreamController<PositionFix>.broadcast();
+
+  @override
+  Future<bool> ensurePermission() async => true;
+
+  @override
+  Stream<PositionFix> positions() => controller.stream;
+
+  @override
+  void dispose() {
+    controller.close();
+  }
 }
 
 const _sampleRoute = RoutePlan(
@@ -266,6 +285,49 @@ void main() {
     driveMode.update(VehicleState.driving);
     await tester.pump();
     expect(find.text('Plan a route'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('device positioning switches guidance to GPS', (tester) async {
+    final positioning = _FakePositioningService();
+    addTearDown(positioning.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: NavigationScreenContent(
+            onClose: () {},
+            geocodingService: _FakeGeocodingService([knez]),
+            routingService: _FakeRoutingService(_sampleRoute),
+            positioningService: positioning,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('navigation-search-button')));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('place-search-destination')),
+      'Knez',
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump();
+    await tester.tap(find.text('Knez Mihailova'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('8.4 km · 15 min · simulated'), findsOneWidget);
+
+    positioning.controller.add(
+      const PositionFix(coordinates: LatLng(44.8000, 20.4550)),
+    );
+    await tester.pump();
+
+    expect(find.text('8.4 km · 15 min · GPS'), findsOneWidget);
+    expect(find.textContaining('GPS'), findsWidgets);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

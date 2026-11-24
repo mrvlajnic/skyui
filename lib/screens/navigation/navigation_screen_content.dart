@@ -1,14 +1,19 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../models/place.dart';
 import '../../models/route_plan.dart';
+import '../../models/route_progress.dart';
 import '../../services/drive_mode_service.dart';
 import '../../services/geocoding_service.dart';
+import '../../services/positioning_service.dart';
 import '../../services/routing_service.dart';
 import '../../widgets/map/map_attribution.dart';
 import '../../widgets/map/map_style.dart';
@@ -66,11 +71,16 @@ class NavigationScreenContent extends StatefulWidget {
   /// builds a MapTiler service if a key is configured.
   final RoutingService? routingService;
 
+  /// Optional injected positioning service. When null, device positioning is
+  /// used on Android and iOS and the simulated drive is used elsewhere.
+  final PositioningService? positioningService;
+
   const NavigationScreenContent({
     super.key,
     required this.onClose,
     this.geocodingService,
     this.routingService,
+    this.positioningService,
   });
 
   @override
@@ -196,6 +206,13 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   int _routeRequestId = 0;
   bool _followPuck = false;
 
+  // ── Device positioning ────────────────────────────────────────────────────
+  late final PositioningService? _positioning;
+  late final bool _ownsPositioning;
+  StreamSubscription<PositionFix>? _positionSubscription;
+  bool _livePosition = false;
+  double? _liveRouteProgress;
+
   @override
   void initState() {
     super.initState();
@@ -219,6 +236,23 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         (MapStyle.hasApiKey
             ? MapTilerRoutingService(apiKey: MapStyle.apiKey)
             : null);
+
+    // Device positioning runs on Android/iOS; desktop and tests keep the
+    // simulated drive unless a service is injected.
+    final injectedPositioning = widget.positioningService;
+    if (injectedPositioning != null) {
+      _ownsPositioning = false;
+      _positioning = injectedPositioning;
+    } else if (_platformSupportsPositioning) {
+      _ownsPositioning = true;
+      _positioning = GeolocatorPositioningService();
+    } else {
+      _ownsPositioning = false;
+      _positioning = null;
+    }
+    if (_positioning != null) {
+      _startPositioning();
+    }
 
     // Reachability probe: can we reach the OSM tile server? If not, fall back
     // to the hand-painted simulated map so the screen still renders offline.
@@ -265,9 +299,69 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     setState(() => _useRealMap = reachable);
   }
 
+  /// Whether the platform can provide device positioning. Widget tests report
+  /// the Android target without a platform channel, so the test marker opts
+  /// out; injected services bypass this check.
+  bool get _platformSupportsPositioning {
+    if (kIsWeb) return false;
+    if (Platform.environment['FLUTTER_TEST'] == 'true') return false;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
+
+  Future<void> _startPositioning() async {
+    final service = _positioning;
+    if (service == null) return;
+    try {
+      final granted = await service.ensurePermission();
+      if (!mounted || !granted) return;
+      _positionSubscription = service.positions().listen(_onPositionFix);
+    } catch (_) {
+      // Permission or plugin failure: keep the simulated drive.
+    }
+  }
+
+  void _onPositionFix(PositionFix fix) {
+    if (!mounted) return;
+    setState(() {
+      _livePosition = true;
+      _currentPuckLatLng = fix.coordinates;
+      final heading = fix.headingDegrees;
+      if (heading != null) {
+        _puckHeading = heading * math.pi / 180;
+      }
+    });
+
+    final route = _route;
+    if (route != null) {
+      final progress = routeProgressForPosition(
+        route: route,
+        cumulativeKm: _routeCumulativeKm,
+        position: fix.coordinates,
+      );
+      setState(() => _liveRouteProgress = progress);
+      if (_followPuck && _useRealMap) {
+        _mapController.move(fix.coordinates, _zoom);
+      }
+    }
+  }
+
+  void _updateLiveRouteProgress() {
+    final route = _route;
+    if (route == null) return;
+    final progress = routeProgressForPosition(
+      route: route,
+      cumulativeKm: _routeCumulativeKm,
+      position: _currentPuckLatLng,
+    );
+    setState(() => _liveRouteProgress = progress);
+  }
+
   @override
   void dispose() {
     DriveModeService.instance.state.removeListener(_onDriveModeChanged);
+    _positionSubscription?.cancel();
+    if (_ownsPositioning) _positioning?.dispose();
     if (_ownsGeocoding) _geocoding?.dispose();
     if (_ownsRouting) _routing?.dispose();
     _travelController.dispose();
@@ -276,6 +370,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   }
 
   void _onTravelTick() {
+    if (_livePosition) return;
+
     final t = _travelAnimation.value;
 
     final route = _route;
@@ -402,12 +498,19 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         _routeCumulativeKm = _cumulativeDistances(route.geometry);
         _routeLoading = false;
         _followPuck = false;
-        _travelController.duration = Duration(
-          milliseconds: (route.distanceKm * 1500).clamp(3000, 12000).round(),
-        );
+        _liveRouteProgress = null;
+        if (!_livePosition) {
+          _travelController.duration = Duration(
+            milliseconds: (route.distanceKm * 1500).clamp(3000, 12000).round(),
+          );
+        }
       });
       _fitRoute(route);
-      _beginTravel(start, destination.coordinates);
+      if (_livePosition) {
+        _updateLiveRouteProgress();
+      } else {
+        _beginTravel(start, destination.coordinates);
+      }
     } on RoutingException catch (error) {
       if (!mounted || requestId != _routeRequestId) return;
       setState(() {
@@ -530,15 +633,19 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       _routeLoading = false;
       _destinationPlace = null;
       _followPuck = false;
+      _liveRouteProgress = null;
     });
   }
+
+  String get _positionSourceLabel => _livePosition ? 'GPS' : 'simulated';
 
   String get _routeSubtitle {
     if (_routeLoading) return 'Calculating route…';
     final route = _route;
     if (route != null) {
       return '${route.distanceKm.toStringAsFixed(1)} km · '
-          '${_formatDuration(route.durationSeconds)} · simulated';
+          '${_formatDuration(route.durationSeconds)} · '
+          '$_positionSourceLabel';
     }
     if (_routeError != null) return 'Routing unavailable · simulated route';
     return 'Search result · simulated route';
@@ -553,7 +660,9 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     final route = _route;
     NavigationGuidanceBanner? guidance;
     if (route != null && !_routeLoading) {
-      final t = _travelAnimation.value.clamp(0.0, 1.0);
+      final t =
+          (_livePosition ? _liveRouteProgress : null) ??
+          _travelAnimation.value.clamp(0.0, 1.0);
       final arrived = t >= 0.999;
       final step = route.steps.isEmpty
           ? null
@@ -580,7 +689,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         remainingLabel: arrived
             ? 'Trip complete · ${route.distanceKm.toStringAsFixed(1)} km'
             : '${_formatDistance(remainingKm)} · '
-                  '${_formatDuration(remainingSeconds)} remaining · simulated',
+                  '${_formatDuration(remainingSeconds)} remaining · '
+                  '$_positionSourceLabel',
         arrived: arrived,
         onEnd: _endGuidance,
       );
