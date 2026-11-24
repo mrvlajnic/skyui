@@ -10,12 +10,13 @@ import '../navigation/navigation_screen_content.dart';
 import '../phone/phone_screen.dart';
 import '../media/media_screen_content.dart';
 import '../vehicle/vehicle_screen.dart';
+import '../settings/settings_screen_content.dart';
 
 // ── Shared layout constants ───────────────────────────────────────────────────
 const double _kPadding = 24.0;
 const double _kSpacing = 24.0;
 
-enum _HomeDestination { home, navigation, media, phone, vehicle }
+enum _HomeDestination { home, navigation, media, phone, vehicle, settings }
 
 /// Home dashboard screen.
 ///
@@ -60,6 +61,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late final Animation<double> _vehicleOtherCardsOpacity;
   late final Animation<double> _vehicleContentOpacity;
   bool _vehicleExpanded = false;
+
+  // ── Settings Expansion Animation ──────────────────────────────────────────
+  late final AnimationController _settingsController;
+  late final Animation<double> _settingsExpandProgress;
+  late final Animation<double> _settingsContentOpacity;
+  bool _settingsExpanded = false;
 
   _HomeDestination _activeDestination = _HomeDestination.home;
   _HomeDestination? _pendingDestination;
@@ -157,6 +164,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         curve: const Interval(0.65, 1.0, curve: Curves.easeOut),
       ),
     );
+
+    // ── Setup Settings Animation ────────────────────────────────────────────
+    _settingsController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _settingsExpandProgress = CurvedAnimation(
+      parent: _settingsController,
+      curve: Curves.easeInOutCubic,
+    );
+    _settingsContentOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _settingsController,
+        curve: const Interval(0.15, 1.0, curve: Curves.easeOut),
+      ),
+    );
   }
 
   @override
@@ -165,6 +188,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _phoneController.dispose();
     _mediaController.dispose();
     _vehicleController.dispose();
+    _settingsController.dispose();
     super.dispose();
   }
 
@@ -180,6 +204,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         return _phoneController;
       case _HomeDestination.vehicle:
         return _vehicleController;
+      case _HomeDestination.settings:
+        return _settingsController;
       case _HomeDestination.home:
         throw StateError('Home does not have an expansion controller');
     }
@@ -198,6 +224,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         break;
       case _HomeDestination.vehicle:
         _vehicleExpanded = expanded;
+        break;
+      case _HomeDestination.settings:
+        _settingsExpanded = expanded;
         break;
       case _HomeDestination.home:
         break;
@@ -255,6 +284,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _HomeDestination.media => 2,
       _HomeDestination.phone => 3,
       _HomeDestination.vehicle => 4,
+      _HomeDestination.settings => 5,
       _HomeDestination.home => 0,
     };
 
@@ -314,6 +344,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _requestDestination(_HomeDestination.home);
   }
 
+  void _closeSettings() {
+    _requestDestination(_HomeDestination.home);
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -348,6 +382,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   2 => _HomeDestination.media,
                   3 => _HomeDestination.phone,
                   4 => _HomeDestination.vehicle,
+                  5 => _HomeDestination.settings,
                   _ => null,
                 };
                 if (destination != null) {
@@ -643,6 +678,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     );
                   }
 
+                  // ── Settings overlay: full content, fade + slight scale ─────
+                  Widget buildSettingsOverlay() {
+                    return Positioned.fill(
+                      child: IgnorePointer(
+                        ignoring: !_settingsExpanded,
+                        child: FadeTransition(
+                          opacity: _settingsContentOpacity,
+                          child: ScaleTransition(
+                            scale: Tween<double>(begin: 0.98, end: 1.0).animate(
+                              _settingsExpandProgress,
+                            ),
+                            child: SettingsScreenContent(
+                              onClose: _closeSettings,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
                   return Column(
                     children: [
                       // ── Content area ────────────────────────────────────────
@@ -685,6 +740,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 buildVehicleOverlay(),
                                 buildNavOverlay(),
                               ],
+                              buildSettingsOverlay(),
                             ],
                           ),
                         ),

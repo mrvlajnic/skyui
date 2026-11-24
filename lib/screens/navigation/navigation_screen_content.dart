@@ -16,6 +16,7 @@ import '../../services/geocoding_service.dart';
 import '../../services/map_view_state.dart';
 import '../../services/positioning_service.dart';
 import '../../services/routing_service.dart';
+import '../../services/simulation_settings.dart';
 import '../../widgets/map/map_attribution.dart';
 import '../../widgets/map/map_style.dart';
 import '../../widgets/map/map_vehicle_puck.dart';
@@ -455,6 +456,11 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       _targetPuckLatLng = _destinations[index].coordinates;
     });
 
+    if (!_livePosition) {
+      _travelController.duration = _playbackDuration(
+        _route?.durationSeconds ?? 150,
+      );
+    }
     _travelController.stop();
     _travelController.forward(from: 0.0);
     _publishView();
@@ -523,8 +529,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         _appliedRotation = null;
         _liveRouteProgress = null;
         if (!_livePosition) {
-          _travelController.duration = Duration(
-            milliseconds: (route.distanceKm * 6400).clamp(12000, 48000).round(),
+          _travelController.duration = _playbackDuration(
+            route.durationSeconds,
           );
         }
       });
@@ -547,9 +553,27 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   void _beginTravel(LatLng start, LatLng destination) {
     _startPuckLatLng = start;
     _targetPuckLatLng = destination;
+    if (!_livePosition) {
+      _travelController.duration = _playbackDuration(
+        _route?.durationSeconds ?? 150,
+      );
+    }
     _travelController.stop();
     _travelController.forward(from: 0.0);
     _publishView();
+  }
+
+  /// Length of the simulated drive for a real trip duration.
+  ///
+  /// The multiplier comes from the demo Settings panel; the result is clamped
+  /// so a misconfigured value can neither flash past nor hang the demo.
+  Duration _playbackDuration(double realSeconds) {
+    final playback = SimulationSettings.instance.playbackDuration(
+      Duration(milliseconds: (realSeconds * 1000).round()),
+    );
+    return Duration(
+      milliseconds: playback.inMilliseconds.clamp(1500, 3600000),
+    );
   }
 
   void _fitRoute(RoutePlan route) {

@@ -14,13 +14,20 @@ import 'package:skyui/screens/navigation/navigation_screen_content.dart';
 import 'package:skyui/screens/phone/phone_screen.dart';
 import 'package:skyui/screens/vehicle/vehicle_screen.dart';
 import 'package:skyui/services/drive_mode_service.dart';
+import 'package:skyui/services/simulation_settings.dart';
 import 'package:skyui/widgets/cards/vehicle_card.dart';
 
 void main() {
   final driveMode = DriveModeService.instance;
 
-  setUp(() => driveMode.update(VehicleState.parked));
-  tearDown(() => driveMode.update(VehicleState.parked));
+  setUp(() {
+    driveMode.update(VehicleState.parked);
+    SimulationSettings.instance.reset();
+  });
+  tearDown(() {
+    driveMode.update(VehicleState.parked);
+    SimulationSettings.instance.reset();
+  });
 
   test('Drive mode notifies only on state changes', () {
     var notifications = 0;
@@ -290,7 +297,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Unavailable sidebar destinations are disabled', (tester) async {
+  testWidgets('Sidebar destinations are enabled', (tester) async {
     tester.view.physicalSize = const Size(1680, 720);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -308,7 +315,35 @@ void main() {
     );
 
     expect(vehicleTap.onTap, isNotNull);
-    expect(settingsTap.onTap, isNull);
+    expect(settingsTap.onTap, isNotNull);
+  });
+
+  testWidgets('Settings exposes the demo route speed control', (tester) async {
+    tester.view.physicalSize = const Size(1680, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SimulationSettings.instance.reset();
+    addTearDown(SimulationSettings.instance.reset);
+
+    await tester.pumpWidget(const SkyUIApp());
+
+    await tester.tap(find.byKey(const ValueKey('sidebar-Settings')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('ROUTE SIMULATION'), findsOneWidget);
+    expect(find.text('Real time'), findsOneWidget);
+    expect(SimulationSettings.instance.routeSpeed, 20);
+
+    await tester.tap(find.byKey(const ValueKey('speed-preset-60')));
+    await tester.pump();
+    expect(SimulationSettings.instance.routeSpeed, 60);
+
+    await tester.tap(find.byKey(const ValueKey('settings-close-button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Vehicle module opens, shows demo-labeled telemetry, closes', (

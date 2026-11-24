@@ -45,7 +45,7 @@ class _SidebarState extends State<Sidebar> {
     ];
 
     const bottomItems = [
-      SidebarData(SkyIcons.settings, 'Settings', enabled: false),
+      SidebarData(SkyIcons.settings, 'Settings'),
     ];
 
     return Container(
