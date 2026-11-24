@@ -191,9 +191,22 @@ void main() {
     expect(find.text('Plan a route'), findsNothing);
     expect(find.text('Knez Mihailova'), findsOneWidget);
     expect(find.text('8.4 km · 15 min · simulated'), findsOneWidget);
+    expect(find.text('Drive north on Knez Mihailova.'), findsOneWidget);
+    expect(find.textContaining('remaining'), findsOneWidget);
     expect(routing.calls, 1);
     expect(routing.requestedDestination, knez.coordinates);
     expect(tester.takeException(), isNull);
+
+    // Run the simulated drive to arrival.
+    await tester.pump(const Duration(seconds: 13));
+    await tester.pump();
+    expect(find.text('You have arrived at your destination.'), findsOneWidget);
+
+    // Ending guidance restores the fixture destination.
+    await tester.tap(find.byKey(const ValueKey('guidance-end-button')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('guidance-end-button')), findsNothing);
+    expect(find.text('City Center Mall'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

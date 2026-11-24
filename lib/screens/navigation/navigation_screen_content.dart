@@ -14,6 +14,7 @@ import '../../widgets/map/map_style.dart';
 import '../../widgets/map/map_vehicle_puck.dart';
 import '../../widgets/map/tile_probe.dart';
 import 'place_search_panel.dart';
+import 'navigation_hud.dart';
 
 /// Comprehensive destination model with spatial and telemetry properties
 class NavDestination {
@@ -192,6 +193,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   bool _routeLoading = false;
   String? _routeError;
   int _routeRequestId = 0;
+  bool _followPuck = false;
 
   @override
   void initState() {
@@ -304,6 +306,9 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     } else {
       _currentPuckLatLng = LatLng(currentLat, currentLng);
     }
+    if (_route != null && _followPuck && _useRealMap) {
+      _mapController.move(_currentPuckLatLng, _zoom);
+    }
     // flutter_map reads these fields on rebuild; keep the puck + route moving.
     setState(() {});
   }
@@ -380,6 +385,10 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         _route = route;
         _routeCumulativeKm = _cumulativeDistances(route.geometry);
         _routeLoading = false;
+        _followPuck = false;
+        _travelController.duration = Duration(
+          milliseconds: (route.distanceKm * 1500).clamp(3000, 12000).round(),
+        );
       });
       _fitRoute(route);
       _beginTravel(start, destination.coordinates);
@@ -469,6 +478,45 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     return rest == 0 ? '$hours h' : '$hours h $rest min';
   }
 
+  String _formatDistance(double km) {
+    if (km < 1) return '${(km * 1000).round()} m';
+    return '${km.toStringAsFixed(1)} km';
+  }
+
+  int _currentStepIndex(double t) {
+    final route = _route;
+    if (route == null || route.steps.isEmpty) return 0;
+    final geometryIndex = (t * (route.geometry.length - 1)).round();
+    var index = 0;
+    for (var i = 0; i < route.steps.length; i++) {
+      if (route.steps[i].beginIndex <= geometryIndex) index = i;
+    }
+    return index;
+  }
+
+  double _distanceToNextStepKm(double t) {
+    final route = _route;
+    if (route == null || route.steps.isEmpty || _routeCumulativeKm.isEmpty) {
+      return 0;
+    }
+    final step = route.steps[_currentStepIndex(t)];
+    final index = step.endIndex.clamp(0, _routeCumulativeKm.length - 1);
+    final remaining = _routeCumulativeKm[index] - t * _routeCumulativeKm.last;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  void _endGuidance() {
+    _travelController.stop();
+    setState(() {
+      _route = null;
+      _routeCumulativeKm = const [];
+      _routeError = null;
+      _routeLoading = false;
+      _destinationPlace = null;
+      _followPuck = false;
+    });
+  }
+
   String get _routeSubtitle {
     if (_routeLoading) return 'Calculating route…';
     final route = _route;
@@ -484,6 +532,42 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   Widget build(BuildContext context) {
     final activeDest = _destinations[_selectedDestIndex];
     final hasSearchedDestination = _destinationPlace != null;
+
+    final route = _route;
+    NavigationGuidanceBanner? guidance;
+    if (route != null && !_routeLoading) {
+      final t = _travelAnimation.value.clamp(0.0, 1.0);
+      final arrived = t >= 0.999;
+      final step = route.steps.isEmpty
+          ? null
+          : route.steps[_currentStepIndex(t)];
+      final remainingKm = (route.distanceKm * (1 - t)).clamp(
+        0.0,
+        route.distanceKm,
+      );
+      final remainingSeconds = (route.durationSeconds * (1 - t)).clamp(
+        0.0,
+        route.durationSeconds,
+      );
+
+      guidance = NavigationGuidanceBanner(
+        icon: arrived
+            ? Icons.flag_rounded
+            : maneuverIconFor(step?.maneuverType ?? 'none'),
+        instruction: arrived
+            ? 'You have arrived at your destination.'
+            : (step?.instruction ?? 'Follow the route'),
+        distanceLabel: arrived
+            ? 'Arrived'
+            : 'in ${_formatDistance(_distanceToNextStepKm(t))}',
+        remainingLabel: arrived
+            ? 'Trip complete · ${route.distanceKm.toStringAsFixed(1)} km'
+            : '${_formatDistance(remainingKm)} · '
+                  '${_formatDuration(remainingSeconds)} remaining · simulated',
+        arrived: arrived,
+        onEnd: _endGuidance,
+      );
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -517,6 +601,9 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
               isVoiceMuted: _isVoiceMuted,
             ),
           ),
+
+          if (guidance != null && !_searchOpen)
+            Positioned(left: 10, top: 78, width: 380, child: guidance),
 
           if (_searchOpen)
             Positioned(
@@ -685,6 +772,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
 
   /// Camera controls wired to [MapController].
   void _recenter() {
+    _followPuck = true;
     _mapController.move(_currentPuckLatLng, _zoom);
   }
 

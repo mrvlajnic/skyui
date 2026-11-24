@@ -16,6 +16,7 @@ Status: prototype-only; no signed or approved vehicle release artifact.
 - Semantics labels, enabled/disabled states, unavailable reasons, and 48 dp hit areas for key controls.
 - Disabled Vehicle/Settings destinations, Vehicle quick actions, and unsupported map camera controls.
 - CSP-compatible web bootstrap with local CanvasKit and a hash-based launcher build stamp.
+- Navigation guidance: provider instructions bound to the active step, distance to the next maneuver, remaining distance/time, arrival state, an End control, and camera follow when Recenter is pressed.
 - Navigation routing: MapTiler directions for the searched start and destination, precision-6 polyline decoding, a cased route line, fit-to-route camera, and a distance/ETA summary; the puck follows the route geometry at a simulated pace.
 - Navigation place search: MapTiler geocoding for start and destination, debounced with typed errors and a key-gated unavailable state; selecting a result drives the existing simulated travel.
 - Regression tests for rapid navigation, system Back, call locking, call-exit races, unavailable destinations, and media timer behavior.

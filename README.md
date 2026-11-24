@@ -104,11 +104,12 @@ Vehicle and Settings sidebar entries are visibly disabled because their screens 
 - Real basemap in the compact Navigation panel: MapTiler `basic-v2` tiles on desktop and web, the MapLibre platform view on Android/iOS, and a painted fixture map when no key is configured or the tile host is unreachable.
 - Start/destination search uses MapTiler geocoding with debounced input; selecting a result requests a driving route from MapTiler directions and draws the provider geometry with distance and ETA.
 - The vehicle puck follows the route geometry at a simulated pace. Position, speed and guidance timing are simulated on desktop; no positioning source exists.
+- While a route is active, the guidance banner shows the provider instruction for the current step, the distance to the next maneuver, and remaining distance/time; it switches to an arrival state and can be ended in place.
 - The close control in the expanded module now closes Navigation; previously it replayed the fixture route.
 - Fixture destinations and local destination transition; the displayed route, maneuver, speed, limit, ETA, distance, and arrival values are simulated.
 - Traffic toggles a painted fixture layer; it is not a traffic feed.
 - Recalculate replays motion to the selected fixture destination; it does not calculate a route.
-- Zoom and Recenter drive the map camera; 3D is not implemented.
+- Zoom and Recenter drive the map camera; Recenter also enables follow mode. 3D is not implemented.
 
 ### Vehicle and climate
 
