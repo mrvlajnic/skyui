@@ -68,6 +68,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late final Animation<double> _settingsContentOpacity;
   bool _settingsExpanded = false;
 
+  /// True once navigation has been opened; keeps its module mounted so the
+  /// simulated trip survives closing the panel.
+  bool _navEverOpened = false;
+
   _HomeDestination _activeDestination = _HomeDestination.home;
   _HomeDestination? _pendingDestination;
   bool _isTransitioning = false;
@@ -292,6 +296,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _setExpandedState(destination, true);
       _activeDestination = destination;
       _currentNavIndex = currentNavIndex;
+      if (destination == _HomeDestination.navigation) _navEverOpened = true;
     });
 
     _controllerFor(destination).forward().whenCompleteOrCancel(() {
@@ -472,9 +477,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         );
                       },
                       child: _NavCardOverlay(
+                        key: const ValueKey('nav-overlay'),
                         expandProgress: _navExpandProgress,
                         navContentOpacity: _navContentOpacity,
                         navigationExpanded: _navigationExpanded,
+                        keepMounted: _navEverOpened || _navigationExpanded,
                         onTap: _openNavigation,
                         onClose: _closeNavigation,
                       ),
@@ -527,6 +534,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         );
                       },
                       child: _PhoneCardOverlay(
+                        key: const ValueKey('phone-overlay'),
                         expandProgress: _phoneExpandProgress,
                         phoneContentOpacity: _phoneContentOpacity,
                         phoneExpanded: _phoneExpanded,
@@ -601,6 +609,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         );
                       },
                       child: _MediaCardOverlay(
+                        key: const ValueKey('media-overlay'),
                         expandProgress: _mediaExpandProgress,
                         mediaContentOpacity: _mediaContentOpacity,
                         mediaExpanded: _mediaExpanded,
@@ -669,6 +678,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         );
                       },
                       child: _VehicleCardOverlay(
+                        key: const ValueKey('vehicle-overlay'),
                         expandProgress: _vehicleExpandProgress,
                         vehicleContentOpacity: _vehicleContentOpacity,
                         vehicleExpanded: _vehicleExpanded,
@@ -821,66 +831,54 @@ class _AnimatedRow extends StatelessWidget {
 // The nav card overlay that starts as the compact card and expands full-screen
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _NavCardOverlay extends StatefulWidget {
+class _NavCardOverlay extends StatelessWidget {
   final Animation<double> expandProgress;
   final Animation<double> navContentOpacity;
   final bool navigationExpanded;
+
+  /// Kept in the tree (hidden) after the first open so the simulated trip
+  /// survives closing the panel. Lifted to `HomeScreen` because this widget is
+  /// rebuilt when the stack branch changes.
+  final bool keepMounted;
   final VoidCallback onTap;
   final VoidCallback onClose;
 
   const _NavCardOverlay({
+    super.key,
     required this.expandProgress,
     required this.navContentOpacity,
     required this.navigationExpanded,
+    required this.keepMounted,
     required this.onTap,
     required this.onClose,
   });
 
   @override
-  State<_NavCardOverlay> createState() => _NavCardOverlayState();
-}
-
-class _NavCardOverlayState extends State<_NavCardOverlay> {
-  /// Keeps the navigation module alive after it has been opened once.
-  ///
-  /// Disposing it on collapse stopped its travel controller: the home card kept
-  /// a frozen route, and reopening navigation started a fresh trip from that
-  /// frozen point. Mounted-but-hidden preserves the trip across visits.
-  bool _keepContentMounted = false;
-
-  @override
-  void didUpdateWidget(covariant _NavCardOverlay oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.navigationExpanded) _keepContentMounted = true;
-  }
-
-  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       // Only tappable when in the compact state
-      onTap: widget.navigationExpanded ? null : widget.onTap,
+      onTap: navigationExpanded ? null : onTap,
       child: AnimatedBuilder(
-        animation: widget.expandProgress,
+        animation: expandProgress,
         // Built once per parent rebuild instead of once per animation tick.
         // Rebuilding the whole module here caused the visible hitch at the
         // end of the expansion.
         child: FadeTransition(
-          opacity: widget.navContentOpacity,
-          child: NavigationScreenContent(onClose: widget.onClose),
+          opacity: navContentOpacity,
+          child: NavigationScreenContent(onClose: onClose),
         ),
         builder: (context, child) {
           // Evaluated per tick: the first expansion starts at opacity 0 and
           // must mount the module as the fade begins.
-          final keepContent = _keepContentMounted ||
-              widget.navContentOpacity.value > 0;
-          final fullyHidden = !widget.navigationExpanded &&
-              widget.navContentOpacity.value == 0;
+          final keepContent = keepMounted || navContentOpacity.value > 0;
+          final fullyHidden =
+              !navigationExpanded && navContentOpacity.value == 0;
           return Stack(
             fit: StackFit.expand,
             children: [
               // ── Compact NavigationCard (fades out as nav content fades in) ──
               Opacity(
-                opacity: (1.0 - widget.navContentOpacity.value).clamp(0.0, 1.0),
+                opacity: (1.0 - navContentOpacity.value).clamp(0.0, 1.0),
                 child: const NavigationCard(),
               ),
 
@@ -892,7 +890,7 @@ class _NavCardOverlayState extends State<_NavCardOverlay> {
                   // alive so the trip continues on the home card.
                   offstage: fullyHidden,
                   child: IgnorePointer(
-                    ignoring: !widget.navigationExpanded,
+                    ignoring: !navigationExpanded,
                     child: child!,
                   ),
                 ),
@@ -918,6 +916,7 @@ class _PhoneCardOverlay extends StatelessWidget {
   final ValueChanged<bool> onCallStateChanged;
 
   const _PhoneCardOverlay({
+    super.key,
     required this.expandProgress,
     required this.phoneContentOpacity,
     required this.phoneExpanded,
@@ -975,6 +974,7 @@ class _MediaCardOverlay extends StatelessWidget {
   final VoidCallback onClose;
 
   const _MediaCardOverlay({
+    super.key,
     required this.expandProgress,
     required this.mediaContentOpacity,
     required this.mediaExpanded,
@@ -1028,6 +1028,7 @@ class _VehicleCardOverlay extends StatelessWidget {
   final VoidCallback onClose;
 
   const _VehicleCardOverlay({
+    super.key,
     required this.expandProgress,
     required this.vehicleContentOpacity,
     required this.vehicleExpanded,
