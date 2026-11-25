@@ -334,6 +334,8 @@ void main() {
 
     expect(find.text('ROUTE SIMULATION'), findsOneWidget);
     expect(find.text('Real time'), findsOneWidget);
+    expect(find.byKey(const ValueKey('build-stamp')), findsOneWidget);
+    expect(find.textContaining('SkyUI v'), findsOneWidget);
     expect(SimulationSettings.instance.routeSpeed, 20);
 
     await tester.tap(find.byKey(const ValueKey('speed-preset-60')));

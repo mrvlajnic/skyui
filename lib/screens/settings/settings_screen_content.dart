@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_version.dart';
 import '../../core/theme/colors.dart';
 import '../../services/simulation_settings.dart';
 
@@ -29,7 +30,14 @@ class SettingsScreenContent extends StatelessWidget {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 820),
-                  child: const _SimulationCard(),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _SimulationCard(),
+                      SizedBox(height: 16),
+                      _BuildStamp(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -272,6 +280,42 @@ class _SimulationCard extends StatelessWidget {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
     return seconds == 0 ? '$minutes min' : '$minutes min $seconds s';
+  }
+}
+
+class _BuildStamp extends StatelessWidget {
+  const _BuildStamp();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      key: const ValueKey('build-stamp'),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            'SkyUI v${AppVersion.version}',
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            'build ${AppVersion.buildStamp}',
+            style: const TextStyle(color: Colors.white38, fontSize: 12),
+          ),
+          const Text(
+            'If this timestamp is older than your latest build, the app did not '
+            'refresh.',
+            style: TextStyle(color: Colors.white24, fontSize: 11),
+          ),
+        ],
+      ),
+    );
   }
 }
 

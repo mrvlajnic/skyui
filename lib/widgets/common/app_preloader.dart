@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_version.dart';
 import 'veltron_logo.dart';
 
 /// Full-screen startup gate shown before the main interface is revealed.
@@ -122,6 +123,20 @@ class _AppPreloaderState extends State<AppPreloader>
                             ),
                             const SizedBox(height: 42),
                             _ProgressLine(progress: _progress.value),
+                            const SizedBox(height: 22),
+                            Opacity(
+                              opacity: _wordmarkOpacity.value,
+                              child: Text(
+                                AppVersion.label,
+                                style: const TextStyle(
+                                  color: Color(0x66FFFFFF),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w400,
+                                  letterSpacing: 0.4,
+                                  decoration: TextDecoration.none,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
