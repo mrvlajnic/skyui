@@ -314,7 +314,10 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     // Share the initial simulated route with the home card. The map is not
     // ready yet, so only the route and puck are published on this first pass.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _publishView();
+      if (mounted) {
+        _publishView();
+        _publishSummary();
+      }
     });
   }
 
@@ -380,6 +383,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       setState(() => _liveRouteProgress = progress);
     }
     _publishView();
+    _publishSummary();
   }
 
   void _updateLiveRouteProgress() {
@@ -474,6 +478,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   void _syncFollowingView() {
     if (++_viewSyncTicks % 30 != 0) return;
     _publishView();
+    _publishSummary();
   }
 
   /// Triggered when the user selects a destination or taps a waypoint
@@ -494,6 +499,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     _travelController.stop();
     _travelController.forward(from: 0.0);
     _publishView();
+    _publishSummary();
   }
 
   void _openSearch() => setState(() => _searchOpen = true);
@@ -564,8 +570,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
           );
         }
       });
-      _fitRoute(route);
-      if (_livePosition) {
+      _fitRoute(route);      if (_livePosition) {
         _updateLiveRouteProgress();
       } else {
         _beginTravel(start, destination.coordinates);
@@ -591,6 +596,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     _travelController.stop();
     _travelController.forward(from: 0.0);
     _publishView();
+    _publishSummary();
   }
 
   /// Length of the simulated drive for a real trip duration.
@@ -615,6 +621,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       ),
     );
     _publishView();
+    _publishSummary();
   }
 
   /// Cumulative distance (km) at each geometry point, used to move the puck at
@@ -765,6 +772,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     });
     if (_useRealMap && _mapReady) _mapController.rotate(0);
     MapViewState.instance.updateRoute(const []);
+    MapViewState.instance.updateSummary(null);
   }
 
   String get _positionSourceLabel => _livePosition ? 'GPS' : 'simulated';
@@ -1147,6 +1155,68 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     }
   }
 
+  /// Text mirror of the navigation guidance for the compact home card.
+  RouteSummary _buildSummary() {
+    final activeDest = _destinations[_selectedDestIndex];
+    final destination = _destinationPlace?.name ?? activeDest.title;
+    final route = _route;
+
+    if (route != null) {
+      final t =
+          (_livePosition ? _liveRouteProgress : null) ??
+          _travelAnimation.value.clamp(0.0, 1.0);
+      final arrived = t >= 0.999;
+      final step = route.steps.isEmpty
+          ? null
+          : route.steps[_currentStepIndex(t)];
+      final remainingKm = (route.distanceKm * (1 - t)).clamp(
+        0.0,
+        route.distanceKm,
+      );
+      final remainingSeconds = (route.durationSeconds * (1 - t)).clamp(
+        0.0,
+        route.durationSeconds,
+      );
+      return RouteSummary(
+        destination: destination,
+        instruction: arrived
+            ? 'You have arrived at your destination.'
+            : (step?.instruction ?? 'Follow the route'),
+        remaining:
+            '${_formatDistance(remainingKm)} · '
+            '${_formatDuration(remainingSeconds)}',
+        upcoming: arrived
+            ? 'Arrived'
+            : 'in ${_formatDistance(_distanceToNextStepKm(t))}',
+        trip:
+            '${route.distanceKm.toStringAsFixed(1)} km · '
+            '${_formatDuration(route.durationSeconds)}',
+        arrived: arrived,
+      );
+    }
+
+    final t = _travelAnimation.value.clamp(0.0, 1.0);
+    final arrived = t >= 0.999;
+    return RouteSummary(
+      destination: destination,
+      instruction: arrived
+          ? 'You have arrived at your destination.'
+          : activeDest.nextManeuver,
+      remaining:
+          '${_formatDistance(activeDest.distanceKm * (1 - t))} · '
+          '${_formatDuration(activeDest.durationMinutes * 60 * (1 - t))}',
+      upcoming: arrived ? 'Arrived' : activeDest.maneuverDistance,
+      trip:
+          '${activeDest.distanceKm.toStringAsFixed(1)} km · '
+          '${activeDest.durationMinutes} min',
+      arrived: arrived,
+    );
+  }
+
+  void _publishSummary() {
+    MapViewState.instance.updateSummary(_buildSummary());
+  }
+
   /// Geometry the home card should draw: the provider route when one exists,
   /// otherwise the simulated bezier the puck is travelling along.
   List<LatLng> get _sharedRoute {
@@ -1178,6 +1248,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   /// Publishes the last view, then closes the full-screen navigation.
   void _close() {
     _publishView();
+    _publishSummary();
     widget.onClose();
   }
 

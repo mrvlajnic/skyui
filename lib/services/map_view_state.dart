@@ -1,6 +1,49 @@
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 
+/// Text shown by the compact route card on the home screen.
+///
+/// The navigation screen is the writer; the card is a read-only mirror, so the
+/// two can never disagree about destination, instruction, remaining time or
+/// arrival state.
+class RouteSummary {
+  final String destination;
+  final String instruction;
+  final String remaining;
+  final String upcoming;
+  final String trip;
+  final bool arrived;
+
+  const RouteSummary({
+    required this.destination,
+    required this.instruction,
+    required this.remaining,
+    required this.upcoming,
+    required this.trip,
+    this.arrived = false,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is RouteSummary &&
+      other.destination == destination &&
+      other.instruction == instruction &&
+      other.remaining == remaining &&
+      other.upcoming == upcoming &&
+      other.trip == trip &&
+      other.arrived == arrived;
+
+  @override
+  int get hashCode => Object.hash(
+    destination,
+    instruction,
+    remaining,
+    upcoming,
+    trip,
+    arrived,
+  );
+}
+
 /// Camera and vehicle pose shared by the compact home map and the full-screen
 /// navigation map.
 ///
@@ -22,6 +65,13 @@ class MapViewState extends ChangeNotifier {
   LatLng _puck = defaultCenter;
   double _heading = 0;
   List<LatLng> _route = const [];
+  RouteSummary? _summary;
+
+  /// Separate from the map notifier: summary text changes a few times a second,
+  /// while the puck publishes every frame. The compact card listens here so it
+  /// does not rebuild 60 times a second.
+  final ValueNotifier<RouteSummary?> summaryListenable =
+      ValueNotifier<RouteSummary?>(null);
 
   LatLng get center => _center;
   double get zoom => _zoom;
@@ -33,6 +83,9 @@ class MapViewState extends ChangeNotifier {
 
   /// Route geometry shared with the home card. Empty when no trip is planned.
   List<LatLng> get route => _route;
+
+  /// Compact route text. Null until the navigation screen has published one.
+  RouteSummary? get summary => _summary;
 
   void updateCamera({
     required LatLng center,
@@ -67,13 +120,20 @@ class MapViewState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateSummary(RouteSummary? summary) {
+    if (summary == _summary) return;
+    _summary = summary;
+    summaryListenable.value = summary;
+  }
+
   void reset() {
     final alreadyDefault = _samePoint(_center, defaultCenter) &&
         _zoom == defaultZoom &&
         _rotation == 0 &&
         _samePoint(_puck, defaultCenter) &&
         _heading == 0 &&
-        _route.isEmpty;
+        _route.isEmpty &&
+        _summary == null;
     if (alreadyDefault) return;
     _center = defaultCenter;
     _zoom = defaultZoom;
@@ -81,6 +141,8 @@ class MapViewState extends ChangeNotifier {
     _puck = defaultCenter;
     _heading = 0;
     _route = const [];
+    _summary = null;
+    summaryListenable.value = null;
     notifyListeners();
   }
 

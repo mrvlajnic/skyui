@@ -64,6 +64,37 @@ void main() {
     expect(view.route, isEmpty);
   });
 
+  test('summary updates are kept off the map notifier', () {
+    var mapNotifications = 0;
+    var summaryNotifications = 0;
+    void mapListener() => mapNotifications++;
+    void summaryListener() => summaryNotifications++;
+    view.addListener(mapListener);
+    view.summaryListenable.addListener(summaryListener);
+    addTearDown(() => view.removeListener(mapListener));
+    addTearDown(() => view.summaryListenable.removeListener(summaryListener));
+
+    const summary = RouteSummary(
+      destination: 'City Center Mall',
+      instruction: 'Turn right onto Main Street',
+      remaining: '8.4 km · 15 min',
+      upcoming: 'in 350 m',
+      trip: '8.4 km · 15 min',
+    );
+    view.updateSummary(summary);
+    expect(view.summary, summary);
+    expect(summaryNotifications, 1);
+    expect(mapNotifications, 0);
+
+    view.updateSummary(summary);
+    expect(summaryNotifications, 1, reason: 'identical text is not a change');
+
+    // A pose update must not touch the summary listeners.
+    view.updateCamera(center: const LatLng(44.8, 20.5), zoom: 15);
+    expect(summaryNotifications, 1);
+    expect(mapNotifications, 1);
+  });
+
   test('the puck and heading update independently of the camera', () {
     var notifications = 0;
     void listener() => notifications++;

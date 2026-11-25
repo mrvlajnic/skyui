@@ -36,6 +36,8 @@ void main() {
 
     await tester.pumpWidget(const SkyUIApp());
 
+    expect(find.text('No route'), findsOneWidget);
+
     await open(tester, 'Navigation');
     expect(find.byType(NavigationScreenContent), findsOneWidget);
     final stateBefore = tester.state(
@@ -43,6 +45,7 @@ void main() {
     );
     final route = List.of(MapViewState.instance.route);
     expect(route, isNotEmpty);
+    expect(MapViewState.instance.summary, isNotNull);
 
     await open(tester, 'Home');
 
@@ -56,6 +59,10 @@ void main() {
     expect(hidden, findsOneWidget);
     expect(identical(tester.state(hidden), stateBefore), isTrue);
     expect(MapViewState.instance.route, route);
+
+    // The compact card mirrors the navigation summary.
+    expect(find.text('No route'), findsNothing);
+    expect(find.text('City Center Mall'), findsOneWidget);
 
     await open(tester, 'Navigation');
     expect(find.byType(NavigationScreenContent), findsOneWidget);
