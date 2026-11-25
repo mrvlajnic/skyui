@@ -395,6 +395,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     _travelController.dispose();
     _pulseController.dispose();
     _chaseController.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
