@@ -307,7 +307,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       duration: const Duration(milliseconds: 16),
     )..addListener(_onChaseTick);
 
-    _targetPuckLatLng = _destinations[_selectedDestIndex].coordinates;
+    _targetPuckLatLng = _currentPuckLatLng;
 
     DriveModeService.instance.state.addListener(_onDriveModeChanged);
 
@@ -769,6 +769,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       _destinationPlace = null;
       _chaseMode = false;
       _liveRouteProgress = null;
+      _startPuckLatLng = _currentPuckLatLng;
+      _targetPuckLatLng = _currentPuckLatLng;
     });
     if (_useRealMap && _mapReady) _mapController.rotate(0);
     MapViewState.instance.updateRoute(const []);
@@ -793,6 +795,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   Widget build(BuildContext context) {
     final activeDest = _destinations[_selectedDestIndex];
     final hasSearchedDestination = _destinationPlace != null;
+    final hasTrip = _hasTrip;
     final driving = DriveModeService.instance.isDriving;
 
     final route = _route;
@@ -852,13 +855,19 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
             left: 10,
             right: 10,
             child: _MinimalTopBar(
-              title: _destinationPlace?.name ?? activeDest.title,
-              subtitle: hasSearchedDestination
-                  ? _routeSubtitle
-                  : activeDest.nextManeuver,
-              maneuverIcon: hasSearchedDestination
-                  ? Icons.place_outlined
-                  : activeDest.maneuverIcon,
+              title: hasTrip
+                  ? (_destinationPlace?.name ?? activeDest.title)
+                  : 'Select a destination',
+              subtitle: hasTrip
+                  ? (hasSearchedDestination
+                        ? _routeSubtitle
+                        : activeDest.nextManeuver)
+                  : 'Tap a marker or search',
+              maneuverIcon: hasTrip
+                  ? (hasSearchedDestination
+                        ? Icons.place_outlined
+                        : activeDest.maneuverIcon)
+                  : Icons.touch_app_rounded,
               onOpenSearch: driving ? null : _openSearch,
               onClose: _close,
               onToggleVoice: () =>
@@ -964,18 +973,18 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
                       : () => _navigateToDestination(i),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: i == _selectedDestIndex
+                      color: _hasTrip && i == _selectedDestIndex
                           ? const Color(0xFFFF8A00)
                           : Colors.white,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: i == _selectedDestIndex
+                        color: _hasTrip && i == _selectedDestIndex
                             ? Colors.white
                             : const Color(0xFF9AA0A6),
                         width: 2,
                       ),
                     ),
-                    child: i == _selectedDestIndex
+                    child: _hasTrip && i == _selectedDestIndex
                         ? const Icon(
                             Icons.navigation,
                             color: Colors.white,
@@ -1155,6 +1164,10 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     }
   }
 
+  /// Whether a trip is planned: a provider route or a simulated target.
+  bool get _hasTrip =>
+      _route != null || _startPuckLatLng != _targetPuckLatLng;
+
   /// Text mirror of the navigation guidance for the compact home card.
   RouteSummary _buildSummary() {
     final activeDest = _destinations[_selectedDestIndex];
@@ -1214,6 +1227,10 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   }
 
   void _publishSummary() {
+    if (!_hasTrip) {
+      MapViewState.instance.updateSummary(null);
+      return;
+    }
     MapViewState.instance.updateSummary(_buildSummary());
   }
 

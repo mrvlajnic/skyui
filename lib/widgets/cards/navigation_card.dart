@@ -65,7 +65,11 @@ class _RouteInfoCard extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Icon(
-                      arrived ? Icons.flag_rounded : Icons.turn_right,
+                      summary == null
+                          ? Icons.explore_outlined
+                          : arrived
+                          ? Icons.flag_rounded
+                          : Icons.turn_right,
                       color: Colors.white,
                       size: 28,
                     ),
@@ -174,7 +178,9 @@ class _TripInfoBar extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(
-                        summary?.arrived == true
+                        summary == null
+                            ? Icons.explore_outlined
+                            : summary.arrived
                             ? Icons.flag_rounded
                             : Icons.turn_left,
                         color: const Color(0xFF00A3FF),

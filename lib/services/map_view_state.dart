@@ -56,7 +56,9 @@ class MapViewState extends ChangeNotifier {
 
   static final MapViewState instance = MapViewState._();
 
-  static const LatLng defaultCenter = LatLng(44.7866, 20.4489); // Belgrade
+  /// Kula Beograd (Belgrade Waterfront). The car starts parked beside the
+  /// tower, with no route until the driver picks a destination.
+  static const LatLng defaultCenter = LatLng(44.80530, 20.44645);
   static const double defaultZoom = 13;
 
   LatLng _center = defaultCenter;

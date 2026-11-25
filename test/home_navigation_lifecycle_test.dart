@@ -44,8 +44,8 @@ void main() {
       find.byType(NavigationScreenContent, skipOffstage: false),
     );
     final route = List.of(MapViewState.instance.route);
-    expect(route, isNotEmpty);
-    expect(MapViewState.instance.summary, isNotNull);
+    expect(route, isEmpty);
+    expect(MapViewState.instance.summary, isNull);
 
     await open(tester, 'Home');
 
@@ -60,9 +60,9 @@ void main() {
     expect(identical(tester.state(hidden), stateBefore), isTrue);
     expect(MapViewState.instance.route, route);
 
-    // The compact card mirrors the navigation summary.
-    expect(find.text('No route'), findsNothing);
-    expect(find.text('City Center Mall'), findsOneWidget);
+    // No trip is planned yet: the car sits at Kula Beograd and the compact
+    // card keeps its empty state.
+    expect(find.text('No route'), findsOneWidget);
 
     await open(tester, 'Navigation');
     expect(find.byType(NavigationScreenContent), findsOneWidget);

@@ -223,11 +223,12 @@ void main() {
     await tester.pump();
     expect(find.text('You have arrived at your destination.'), findsOneWidget);
 
-    // Ending guidance restores the fixture destination.
+    // Ending guidance returns to the idle state: no route is planned, so the
+    // top bar asks for a destination instead of restoring a fixture route.
     await tester.tap(find.byKey(const ValueKey('guidance-end-button')));
     await tester.pump();
     expect(find.byKey(const ValueKey('guidance-end-button')), findsNothing);
-    expect(find.text('City Center Mall'), findsOneWidget);
+    expect(find.text('Select a destination'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
