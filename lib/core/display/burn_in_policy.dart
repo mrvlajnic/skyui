@@ -74,6 +74,9 @@ class BurnInPolicy {
   Offset shiftForStep(int step) {
     if (shiftPeriod <= Duration.zero || shiftSteps <= 1) return Offset.zero;
     final micros = (shiftPeriod.inMicroseconds * step / shiftSteps).round();
-    return shiftFor(Duration(microseconds: micros));
+    final point = shiftFor(Duration(microseconds: micros));
+    // Whole logical pixels: a fractional translation makes the whole app
+    // composite at subpixel offsets, which can shimmer over moving map tiles.
+    return Offset(point.dx.roundToDouble(), point.dy.roundToDouble());
   }
 }

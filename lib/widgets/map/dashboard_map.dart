@@ -172,6 +172,9 @@ class _DashboardMapState extends State<DashboardMap> {
           userAgentPackageName: 'skyui',
           maxZoom: MapStyle.maxZoom,
           retinaMode: RetinaMode.isHighDensity(context),
+          // No per-tile fade: the preview follows a moving camera every frame.
+          tileDisplay: const TileDisplay.instantaneous(),
+          panBuffer: 2,
         ),
         const MapAttribution(
           alignment: Alignment.topRight,

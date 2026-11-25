@@ -926,6 +926,11 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
           maxNativeZoom: MapStyle.maxNativeZoom,
           userAgentPackageName: 'skyui',
           retinaMode: RetinaMode.isHighDensity(context),
+          // Chase constantly pulls in new tiles. The default fade-in made each
+          // one appear with an animation, which reads as a shimmer while the
+          // camera moves; display them as soon as they are decoded instead.
+          tileDisplay: const TileDisplay.instantaneous(),
+          panBuffer: 2,
         ),
         MarkerLayer(
           markers: [
