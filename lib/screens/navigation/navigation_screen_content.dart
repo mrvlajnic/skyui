@@ -223,6 +223,14 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   /// puck below the centre of the screen instead of dead-centre.
   static const double _chaseLookAheadMeters = 120;
 
+  /// Distance used to derive a stable heading instead of the current polyline
+  /// segment. Short segments make the bearing jump at every vertex, which the
+  /// camera and puck would visibly chase.
+  static const double _headingLookAheadMeters = 30;
+
+  /// Per-tick weight when easing the heading towards the look-ahead bearing.
+  static const double _headingLerp = 0.35;
+
   // ── Device positioning ────────────────────────────────────────────────────
   late final PositioningService? _positioning;
   late final bool _ownsPositioning;
@@ -656,8 +664,56 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     final deltaLat = to.latitude - from.latitude;
     final deltaLng = to.longitude - from.longitude;
     if (deltaLat != 0 || deltaLng != 0) {
-      _puckHeading = math.atan2(deltaLng, deltaLat);
+      // Follow the tangent a little ahead of the vehicle, not the current
+      // polyline edge: edges are only a few metres long and their bearing
+      // changes abruptly at every vertex.
+      final ahead = _pointAlongRoute(
+        route,
+        target + _headingLookAheadMeters / 1000,
+      );
+      final headingLat = ahead.latitude - _currentPuckLatLng.latitude;
+      final headingLng = ahead.longitude - _currentPuckLatLng.longitude;
+      if (headingLat != 0 || headingLng != 0) {
+        final targetHeading = math.atan2(headingLng, headingLat);
+        _puckHeading = _smoothAngle(
+          _puckHeading,
+          targetHeading,
+          _headingLerp,
+        );
+      }
     }
+  }
+
+  /// Point at [km] along the route, clamped to its ends.
+  LatLng _pointAlongRoute(RoutePlan route, double km) {
+    final total = _routeCumulativeKm.last;
+    final clamped = km.clamp(0.0, total);
+    var index = 1;
+    while (index < _routeCumulativeKm.length - 1 &&
+        _routeCumulativeKm[index] < clamped) {
+      index++;
+    }
+    final start = _routeCumulativeKm[index - 1];
+    final end = _routeCumulativeKm[index];
+    final length = end - start;
+    final localT = length == 0
+        ? 0.0
+        : ((clamped - start) / length).clamp(0.0, 1.0);
+    final from = route.geometry[index - 1];
+    final to = route.geometry[index];
+    return LatLng(
+      from.latitude + (to.latitude - from.latitude) * localT,
+      from.longitude + (to.longitude - from.longitude) * localT,
+    );
+  }
+
+  /// Eases [current] towards [target] along the shortest arc, in radians.
+  static double _smoothAngle(double current, double target, double t) {
+    final deltaDegrees = _shortestDelta(
+      current * 180 / math.pi,
+      target * 180 / math.pi,
+    );
+    return current + deltaDegrees * math.pi / 180 * t;
   }
 
   String _formatDuration(double seconds) {
