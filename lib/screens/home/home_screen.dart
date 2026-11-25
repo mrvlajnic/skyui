@@ -446,6 +446,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   // ── Animated Nav Overlay (Section 3 or Fullscreen) ────────────
                   Widget buildNavOverlay() {
                     return AnimatedBuilder(
+                      key: const ValueKey('nav-overlay-frame'),
                       animation: _navExpandProgress,
                       builder: (context, child) {
                         final t = _navExpandProgress.value;
@@ -491,6 +492,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   // ── Animated Phone Overlay ───────────────────────────────────
                   Widget buildPhoneOverlay() {
                     return AnimatedBuilder(
+                      key: const ValueKey('phone-overlay-frame'),
                       animation: _phoneExpandProgress,
                       builder: (context, child) {
                         final t = _phoneExpandProgress.value;
@@ -554,6 +556,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   // ── Animated Media / Music Overlay (Sections 1 & 2) ─────────
                   Widget buildMediaOverlay() {
                     return AnimatedBuilder(
+                      key: const ValueKey('media-overlay-frame'),
                       animation: _mediaExpandProgress,
                       builder: (context, child) {
                         final t = _mediaExpandProgress.value;
@@ -631,6 +634,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     final vehicleCardHeight = availableHeight;
 
                     return AnimatedBuilder(
+                      key: const ValueKey('vehicle-overlay-frame'),
                       animation: _vehicleExpandProgress,
                       builder: (context, child) {
                         final t = _vehicleExpandProgress.value;
