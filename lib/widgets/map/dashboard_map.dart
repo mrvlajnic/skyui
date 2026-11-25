@@ -40,6 +40,9 @@ class _DashboardMapState extends State<DashboardMap> {
   /// Mirrors the navigation screen's camera and vehicle pose.
   final MapController _mapController = MapController();
   bool _mapReady = false;
+  LatLng? _lastCenter;
+  double? _lastZoom;
+  double? _lastRotation;
 
   /// `maplibre_gl` only has a native platform view on Android and iOS.
   ///
@@ -71,13 +74,28 @@ class _DashboardMapState extends State<DashboardMap> {
   }
 
   void _onViewStateChanged() {
-    if (!mounted) return;
+    if (!mounted || !_mapReady) return;
     final view = MapViewState.instance;
-    if (_mapReady) {
-      _mapController.move(view.center, view.zoom);
+
+    // Camera changes are applied only when they actually changed. The puck and
+    // route rebuild through their own listeners, so a per-frame puck update
+    // does not rebuild the whole map.
+    final center = view.center;
+    final lastCenter = _lastCenter;
+    if (lastCenter == null ||
+        lastCenter.latitude != center.latitude ||
+        lastCenter.longitude != center.longitude ||
+        _lastZoom != view.zoom) {
+      _lastCenter = center;
+      _lastZoom = view.zoom;
+      _mapController.move(center, view.zoom);
+    }
+    final lastRotation = _lastRotation;
+    if (lastRotation == null ||
+        (lastRotation - view.rotation).abs() > 0.01) {
+      _lastRotation = view.rotation;
       _mapController.rotate(view.rotation);
     }
-    setState(() {});
   }
 
   /// Short reachability probe; on failure the painted fixture is used.
@@ -140,7 +158,13 @@ class _DashboardMapState extends State<DashboardMap> {
         backgroundColor: const Color(0xFFEFEEEA),
         interactionOptions:
             const InteractionOptions(flags: InteractiveFlag.none),
-        onMapReady: () => _mapReady = true,
+        onMapReady: () {
+          final view = MapViewState.instance;
+          _lastCenter = view.center;
+          _lastZoom = view.zoom;
+          _lastRotation = view.rotation;
+          _mapReady = true;
+        },
       ),
       children: [
         TileLayer(
@@ -153,46 +177,58 @@ class _DashboardMapState extends State<DashboardMap> {
           alignment: Alignment.topRight,
           text: MapStyle.attribution,
         ),
-        if (MapViewState.instance.route.isNotEmpty)
-          PolylineLayer(
-            polylines: [
-              Polyline(
-                points: MapViewState.instance.route,
-                strokeWidth: 9,
-                color: Colors.white.withValues(alpha: 0.75),
-              ),
-              Polyline(
-                points: MapViewState.instance.route,
-                strokeWidth: 5,
-                color: const Color(0xFFFF8A00),
-              ),
-            ],
-          ),
-        MarkerLayer(
-          markers: [
-            Marker(
-              point: MapViewState.instance.puck,
-              width: 32,
-              height: 32,
-              child: Transform.rotate(
-                angle: MapViewState.instance.heading,
-                child: const MapVehiclePuck(),
-              ),
-            ),
-            if (MapViewState.instance.route.isNotEmpty)
-              Marker(
-                point: MapViewState.instance.route.last,
-                width: 18,
-                height: 18,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF8A00),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+        ListenableBuilder(
+          listenable: MapViewState.instance,
+          builder: (context, _) {
+            final route = MapViewState.instance.route;
+            if (route.isEmpty) return const SizedBox.shrink();
+            return PolylineLayer(
+              polylines: [
+                Polyline(
+                  points: route,
+                  strokeWidth: 9,
+                  color: Colors.white.withValues(alpha: 0.75),
+                ),
+                Polyline(
+                  points: route,
+                  strokeWidth: 5,
+                  color: const Color(0xFFFF8A00),
+                ),
+              ],
+            );
+          },
+        ),
+        ListenableBuilder(
+          listenable: MapViewState.instance,
+          builder: (context, _) {
+            final view = MapViewState.instance;
+            return MarkerLayer(
+              markers: [
+                Marker(
+                  point: view.puck,
+                  width: 32,
+                  height: 32,
+                  child: Transform.rotate(
+                    angle: view.heading,
+                    child: const MapVehiclePuck(),
                   ),
                 ),
-              ),
-          ],
+                if (view.route.isNotEmpty)
+                  Marker(
+                    point: view.route.last,
+                    width: 18,
+                    height: 18,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF8A00),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ],
     );

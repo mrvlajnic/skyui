@@ -188,6 +188,9 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   // Radar Pulse Animation
   late final AnimationController _pulseController;
 
+  /// Drives the smoothed chase camera while the mode is active.
+  late final AnimationController _chaseController;
+
   // ── Navigation Preferences ────────────────────────────────────────────────
   bool _isVoiceMuted = false;
   bool _isTrafficEnabled = true;
@@ -212,8 +215,13 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   /// direction of travel points up. Toggled by the Recenter control.
   bool _chaseMode = false;
   final double _chaseZoom = 16.5;
-  double _mapRotationDegrees = 0;
-  double? _appliedRotation;
+
+  /// Fraction of the remaining distance the chase camera closes per frame.
+  static const double _chaseLerp = 0.18;
+
+  /// How far ahead of the vehicle the chase camera looks, in metres. Keeps the
+  /// puck below the centre of the screen instead of dead-centre.
+  static const double _chaseLookAheadMeters = 120;
 
   // ── Device positioning ────────────────────────────────────────────────────
   late final PositioningService? _positioning;
@@ -283,6 +291,13 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     )..repeat();
+
+    // Chase camera: one callback per frame while active, lerping towards the
+    // vehicle instead of jumping to it.
+    _chaseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 16),
+    )..addListener(_onChaseTick);
 
     _targetPuckLatLng = _destinations[_selectedDestIndex].coordinates;
 
@@ -356,7 +371,6 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       );
       setState(() => _liveRouteProgress = progress);
     }
-    if (_chaseMode) _applyChase();
     _publishView();
   }
 
@@ -380,6 +394,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     if (_ownsRouting) _routing?.dispose();
     _travelController.dispose();
     _pulseController.dispose();
+    _chaseController.dispose();
     super.dispose();
   }
 
@@ -432,15 +447,21 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     } else {
       _currentPuckLatLng = LatLng(currentLat, currentLng);
     }
-    if (_chaseMode) _applyChase();
+    // Publish the puck every frame. The home card listens to the marker layer
+    // only, so this is what makes the arrow move smoothly there instead of
+    // jumping a few times per second.
+    MapViewState.instance.updatePuck(
+      position: _currentPuckLatLng,
+      heading: _puckHeading,
+    );
     // flutter_map reads these fields on rebuild; keep the puck + route moving.
     setState(() {});
     _syncFollowingView();
   }
 
-  /// Publishes the followed camera and puck a few times per second. Syncing
-  /// every animation tick would rebuild the hidden home card at 60 fps for no
-  /// visible benefit.
+  /// Publishes the camera and route a few times per second. The puck is
+  /// published every frame separately, so the home arrow stays smooth without
+  /// forcing the whole preview to follow at camera speed.
   void _syncFollowingView() {
     if (++_viewSyncTicks % 30 != 0) return;
     _publishView();
@@ -521,12 +542,12 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     try {
       final route = await service.route(start, destination.coordinates);
       if (!mounted || requestId != _routeRequestId) return;
+      _chaseController.stop();
       setState(() {
         _route = route;
         _routeCumulativeKm = _cumulativeDistances(route.geometry);
         _routeLoading = false;
         _chaseMode = false;
-        _appliedRotation = null;
         _liveRouteProgress = null;
         if (!_livePosition) {
           _travelController.duration = _playbackDuration(
@@ -675,6 +696,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
 
   void _endGuidance() {
     _travelController.stop();
+    _chaseController.stop();
     setState(() {
       _route = null;
       _routeCumulativeKm = const [];
@@ -682,8 +704,6 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       _routeLoading = false;
       _destinationPlace = null;
       _chaseMode = false;
-      _appliedRotation = null;
-      _mapRotationDegrees = 0;
       _liveRouteProgress = null;
     });
     if (_useRealMap && _mapReady) _mapController.rotate(0);
@@ -955,31 +975,31 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     });
   }
 
-  /// Camera controls wired to [MapController].
   /// Toggles heading-up chase: close to the puck, rotated so the direction of
   /// travel points up. A second tap returns to north-up.
   void _recenter() {
     final startChase = !_chaseMode;
     setState(() {
       _chaseMode = startChase;
-      _appliedRotation = null;
       if (startChase) {
         _zoom = _chaseZoom;
+        _chaseController.repeat();
       } else {
-        _mapRotationDegrees = 0;
+        _chaseController.stop();
       }
     });
-    if (_useRealMap && _mapReady) {
-      _mapController.move(_currentPuckLatLng, _zoom);
-      _mapController.rotate(_mapRotationDegrees);
+    if (!_useRealMap || !_mapReady) return;
+    if (startChase) {
+      _applyChase(snap: true);
+    } else {
+      _mapController.rotate(0);
+      _publishView();
     }
-    if (startChase) _applyChase();
-    _publishView();
   }
 
   void _zoomIn() {
     _zoom = (_zoom + 1).clamp(1, 19);
-    if (_useRealMap && _mapReady) {
+    if (!_chaseMode && _useRealMap && _mapReady) {
       _mapController.move(_currentPuckLatLng, _zoom);
     }
     _publishView();
@@ -987,26 +1007,63 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
 
   void _zoomOut() {
     _zoom = (_zoom - 1).clamp(1, 19);
-    if (_useRealMap && _mapReady) {
+    if (!_chaseMode && _useRealMap && _mapReady) {
       _mapController.move(_currentPuckLatLng, _zoom);
     }
     _publishView();
   }
 
-  /// Moves the camera with the vehicle and rotates so travel points up.
+  void _onChaseTick() {
+    if (_chaseMode) _applyChase();
+  }
+
+  /// Smoothly moves the chase camera towards a point ahead of the vehicle and
+  /// rotates the map towards the direction of travel.
   ///
-  /// The rotation is only issued when the bearing moves by more than a degree,
-  /// so a straight road does not re-rotate the map every frame.
-  void _applyChase() {
-    if (!_useRealMap || !_mapReady) return;
-    _mapController.move(_currentPuckLatLng, _zoom);
-    final target = -_puckHeading * 180 / math.pi;
-    final applied = _appliedRotation;
-    if (applied != null && (target - applied).abs() < 1.0) return;
-    _appliedRotation = target;
-    _mapRotationDegrees = target;
-    _mapController.rotate(target);
+  /// Google-Maps-like behaviour comes from three details: the camera eases
+  /// towards its target instead of snapping, the target is ahead of the car so
+  /// the puck sits below centre, and the map rotation is interpolated along the
+  /// shortest arc instead of stepping in whole degrees.
+  void _applyChase({bool snap = false}) {
+    if (!_chaseMode || !_useRealMap || !_mapReady) return;
+
+    final camera = _mapController.camera;
+    final t = snap ? 1.0 : _chaseLerp;
+    final center = _lerpPoint(camera.center, _lookAheadPoint(), t);
+    final targetRotation = -_puckHeading * 180 / math.pi;
+    final delta = _shortestDelta(camera.rotation, targetRotation);
+    final rotation = camera.rotation + delta * t;
+
+    _mapController.move(center, _zoom);
+    if (snap || delta.abs() > 0.05) {
+      _mapController.rotate(rotation);
+    }
     _publishView();
+  }
+
+  /// Point a little ahead of the vehicle along its heading.
+  LatLng _lookAheadPoint() {
+    const distance = Distance();
+    return distance.offset(
+      _currentPuckLatLng,
+      _chaseLookAheadMeters,
+      _puckHeading * 180 / math.pi,
+    );
+  }
+
+  static LatLng _lerpPoint(LatLng a, LatLng b, double t) {
+    return LatLng(
+      a.latitude + (b.latitude - a.latitude) * t,
+      a.longitude + (b.longitude - a.longitude) * t,
+    );
+  }
+
+  /// Shortest signed rotation from [from] to [to], in degrees.
+  static double _shortestDelta(double from, double to) {
+    var delta = (to - from) % 360;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+    return delta;
   }
 
   /// Keeps the home card on the same camera and vehicle pose.
@@ -1045,18 +1102,14 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     if (!hasGesture) return;
     // A manual pan or pinch leaves chase mode; the user asked for that view.
     if (_chaseMode) {
-      setState(() {
-        _chaseMode = false;
-        _appliedRotation = null;
-      });
+      _chaseController.stop();
+      setState(() => _chaseMode = false);
     }
-    if (_mapReady) {
-      _mapRotationDegrees = _mapController.camera.rotation;
-    }
+    final rotation = _mapReady ? _mapController.camera.rotation : 0.0;
     MapViewState.instance.updateCamera(
       center: center,
       zoom: zoom,
-      rotation: _mapRotationDegrees,
+      rotation: rotation,
     );
   }
 
