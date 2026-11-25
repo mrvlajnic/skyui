@@ -58,7 +58,7 @@ Kriterijum ozbiljnosti:
 - Ako se demo poziv aktivira dok Phone već zatvara, prelaz se abortuje i Phone se vraća u otvoreno stanje.
 - Android/system Back sada zatvara aktivan modul umesto da zatvori root rutu.
 - Dok je demo poziv aktivan, ostali sidebar destination-i imaju disabled Semantics/Tooltip stanje sa razlogom.
-- Vehicle i Settings sidebar stavke su eksplicitno disabled jer njihovi ekrani ne postoje.
+- Vehicle i Settings sidebar stavke su sada otvorene; Settings sadrži demo kontrolu brzine rute i build stamp.
 - Dodatni Vehicle quick action prikazi su disabled i označeni kao unavailable.
 - Dodat je regresioni test za brze Media → Phone → Navigation zahteve i system Back.
 
@@ -448,7 +448,7 @@ Bez ključa aplikacija ne vrši zahtev i prikazuje lokalnu slikanu mapu, pa offl
 
 - Baseline pre izmena: `flutter analyze` bez grešaka; postojeći testovi prošli.
 - Finalna Dart provera: `flutter analyze` bez grešaka.
-- Finalni widget testovi: svih 9 testova prošlo.
+- Finalni widget testovi: svih 68 testova prošlo.
 - Python launcher syntax: `python -m py_compile run_app.py` prošao.
 - Launcher HTTP smoke: dozvoljen loopback Host vratio 200 i CSP/security header-e; nevalidan Host vratio 403.
 - Web release build: `flutter build web --release --no-web-resources-cdn --csp` prošao.

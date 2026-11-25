@@ -15,20 +15,17 @@ import 'tile_probe.dart';
 
 /// Real map shown by the compact navigation card.
 ///
-/// Uses the `maplibre_gl` platform view on Android and iOS, the only platforms
-/// that plugin supports, and `flutter_map` with MapTiler raster tiles on
-/// desktop and web. When tiles are unreachable (no API key, offline, or a
-/// provider rejection) the painted
-/// [RoutePreviewMap] fixture is shown so the panel never renders a broken
-/// surface.
+/// Uses the `maplibre_gl` platform view on the Android/iOS compact card and
+/// `flutter_map` with MapTiler raster tiles on desktop, web and the full-screen
+/// navigation module. When tiles are unreachable (no API key, offline, or a
+/// provider rejection) the painted [RoutePreviewMap] fixture is shown so the
+/// panel never renders a broken surface.
 ///
-/// All route, position, and trip values remain simulated fixtures; no GPS,
-/// map provider, or route engine is integrated.
+/// Camera, puck and route come from [MapViewState], which the navigation screen
+/// publishes. Device GPS drives the puck on Android/iOS; desktop and web use the
+/// simulated drive.
 class DashboardMap extends StatefulWidget {
   const DashboardMap({super.key});
-
-  static const LatLng center = LatLng(44.7866, 20.4489); // Belgrade
-  static const double zoom = 13;
 
   @override
   State<DashboardMap> createState() => _DashboardMapState();

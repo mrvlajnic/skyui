@@ -28,7 +28,7 @@ Status: UI implemented for internal evaluation; integrations incomplete
 
 - [x] Coordinated single-module expansion and system Back.
 - [x] Rapid module-request coordination and active-call transition guard.
-- [x] Disabled Vehicle and Settings destinations.
+- [x] Vehicle and Settings modules opened; Settings hosts the demo route-speed control.
 - [x] Disabled Vehicle quick actions.
 - [x] Local Media queue, playback, volume, and source state.
 - [x] Media browsing guard for debug `driving` state.
@@ -99,7 +99,8 @@ These activities precede any actuator integration or vehicle pilot; they are not
 Status: blocked by Phases 2.5 and 3
 
 - [ ] Vehicle signal adapter with freshness, validity, fault, and provenance.
-- [ ] GPS, routing, and live-traffic services (basemap imagery already comes from MapTiler).
+- [x] GPS positioning (Android/iOS) and MapTiler routing.
+- [ ] Live-traffic service (basemap imagery already comes from MapTiler).
 - [ ] Audio HAL and media service adapter.
 - [ ] Bluetooth, telephony, contacts, and carrier adapter.
 - [ ] HVAC, charging, and diagnostics adapter.

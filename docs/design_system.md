@@ -156,7 +156,7 @@ The current Semantics improvements are a foundation, not an accessibility certif
 
 ## Images and custom painting
 
-Current imagery is the static V1 exterior render, custom-painted map fixtures, and a light MapTiler `basic-v2` basemap when an API key is configured. The displayed map position, route, and all vehicle values remain fixtures; there is no live weather, album-art, camera, or positioning source.
+Current imagery is the static V1 exterior render, custom-painted map fixtures, and a light MapTiler `basic-v2` basemap when an API key is configured. The displayed map position and route are simulated on desktop/web and use device GPS on Android/iOS; there is no live weather, album-art, camera, or traffic source.
 
 Map surfaces sit on a light background rather than the dark shell. Route emphasis and the vehicle puck use saturated blue (`#0A84FF`) with a white ring so they stay legible on the light cartography; provider credit is a 7 px chip and must remain visible while OSM-derived tiles are shown.
 

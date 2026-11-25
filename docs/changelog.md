@@ -14,7 +14,7 @@ Status: prototype-only; no signed or approved vehicle release artifact.
 - Active demo-call navigation guard, including a race-safe Phone reopen during module exit.
 - Synthetic Phone fixtures and explicit demo-call confirmation.
 - Semantics labels, enabled/disabled states, unavailable reasons, and 48 dp hit areas for key controls.
-- Disabled Vehicle/Settings destinations, Vehicle quick actions, and unsupported map camera controls.
+- Vehicle and Settings modules, Vehicle quick-action placeholders, and 3D left unimplemented.
 - CSP-compatible web bootstrap with local CanvasKit and a hash-based launcher build stamp.
 - Mobile positioning: `geolocator`-backed position stream with Android/iOS permissions, a live puck, route-progress projection for guidance, and graceful fallback to the simulated drive when permission is denied.
 - Navigation guidance: provider instructions bound to the active step, distance to the next maneuver, remaining distance/time, arrival state, an End control, and camera follow when Recenter is pressed.
@@ -53,7 +53,7 @@ Status: prototype-only; no signed or approved vehicle release artifact.
 ### Verification
 
 - `flutter analyze` passes.
-- Thirty-three Flutter tests pass.
+- 68 Flutter tests pass.
 - `python -m py_compile run_app.py` passes.
 - CSP-compatible web release build passes.
 - Loopback Host validation and security-header smoke test pass.

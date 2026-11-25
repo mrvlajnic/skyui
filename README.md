@@ -58,28 +58,28 @@ The current application implements no backend, remote telemetry, crash reporting
 | :--- | :---: | :--- |
 | System shell and dark theme | Prototype | Connected `AppTheme`; much of the UI still uses inline style values |
 | Dashboard layout | Smoke-tested at 1680×720 | Fixed 7:4:5 baseline; no physical-display or resolution-matrix validation |
-| Header and sidebar | Prototype | Simulated status values, debug-only drive mode, and explicit disabled destinations |
+| Header and sidebar | Prototype | Simulated status values, debug-only drive mode, and explicitly disabled unsupported controls |
 | Vehicle card | Demo data | Static render and fixtures; no CAN/OBD source; quick actions are disabled |
 | Media studio | Local simulation | Source, queue, playback, and audio labels are local state; no audio HAL or persistent session |
 | Phone cockpit | Local simulation | Dialer, synthetic recents, and explicit demo call; no telephony, contacts, DTMF, or carrier service |
-| Navigation | Local simulation | MapTiler basemap, place search and driving routes when a key is configured, painted fixture otherwise; simulated position and guidance; no GPS or live traffic |
+| Navigation | Local simulation | MapTiler basemap, place search and driving routes when a key is configured, painted fixture otherwise; device GPS on Android/iOS, simulated position on desktop/web; no live traffic |
 | Climate bar | Local simulation | Visual controls only; no HVAC commands, validated limits, or automatic regulation |
 | Local web launcher | Development tool | Loopback server, CSP-compatible build, local CanvasKit, and enforced build stamp |
 | Android release | Blocked | Placeholder `com.example.skyui` identity and debug signing |
 | Hardware, CAN, OTA, AI, backend | Not integrated | No service, trust boundary, or production contract exists |
 
-Vehicle and Settings sidebar entries are visibly disabled because their screens do not exist. Unsupported map camera controls and unavailable vehicle actions are also disabled rather than presented as working features.
+Settings is enabled and hosts the demo-only route-speed control and the build stamp; Vehicle opens its telemetry module. Unsupported vehicle actions and the 3D map mode remain disabled rather than presented as working features.
 
 ## Implemented prototype behavior
 
 ### Shell and transitions
 
 - Persistent Header, Sidebar, Home dashboard, and Climate bar.
-- One coordinated expanded module at a time: Navigation, Media, or Phone.
+- One coordinated expanded module at a time: Navigation, Media, Phone, Vehicle, or Settings.
 - Latest destination request wins during rapid navigation.
 - System Back closes an expanded module instead of leaving the root route.
 - An active demo call blocks module navigation until the call is ended.
-- Vehicle and Settings are disabled placeholders.
+- Settings hosts the demo route-speed control and the build stamp; Vehicle opens its telemetry module.
 
 ### Media
 
@@ -106,11 +106,9 @@ Vehicle and Settings sidebar entries are visibly disabled because their screens 
 - The vehicle puck follows the route geometry at a simulated pace on desktop and in the browser. On Android and iOS it uses device positioning (`geolocator`) when permission is granted; guidance progress is projected from each fix onto the route. With no permission the simulated drive is used.
 - While a route is active, the guidance banner shows the provider instruction for the current step, the distance to the next maneuver, and remaining distance/time; it switches to an arrival state and can be ended in place.
 - Search and route changes are parked-only: while the debug `DRIVING` state is active the search control is disabled, an open search panel closes, and fixture waypoint taps are ignored. An active guidance session stays visible.
-- The close control in the expanded module now closes Navigation; previously it replayed the fixture route.
-- Fixture destinations and local destination transition; the displayed route, maneuver, speed, limit, ETA, distance, and arrival values are simulated.
+- Fixture destinations and local destination transition; the displayed route, maneuver, speed, limit, ETA, distance, and arrival values are simulated until a provider route is requested.
 - Traffic toggles a painted fixture layer; it is not a traffic feed.
-- Recalculate replays motion to the selected fixture destination; it does not calculate a route.
-- Zoom and Recenter drive the map camera; Recenter also enables follow mode. 3D is not implemented.
+- Zoom, Recenter and the heading-up chase drive the map camera. There is no Recalculate control; changing the destination starts a new trip. 3D is not implemented.
 
 ### Vehicle and climate
 
@@ -129,7 +127,9 @@ lib/
 │   ├── home/
 │   ├── media/
 │   ├── navigation/
-│   └── phone/
+│   ├── phone/
+│   ├── settings/
+│   └── vehicle/
 ├── models/
 │   ├── place.dart
 │   ├── route_plan.dart
@@ -137,8 +137,10 @@ lib/
 ├── services/
 │   ├── drive_mode_service.dart
 │   ├── geocoding_service.dart
+│   ├── map_view_state.dart
 │   ├── positioning_service.dart
-│   └── routing_service.dart
+│   ├── routing_service.dart
+│   └── simulation_settings.dart
 ├── widgets/
 │   ├── cards/
 │   ├── climate/
@@ -148,13 +150,16 @@ lib/
 └── main.dart
 
 test/
-└── widget_test.dart
+└── *.dart (14 files: app_version, burn_in_policy, burn_in_guard, geocoding_service,
+    home_navigation_lifecycle, map_style, map_view_state, navigation_card,
+    navigation_search, route_progress, routing_service, simulation_settings,
+    tile_probe, widget)
 
 web/
 └── flutter_bootstrap.js
 ```
 
-`DriveModeService` is a debug/demo notifier used by the Media browsing guard. It is not a vehicle state, trust, or safety source. `widgets/map/` holds the basemap surfaces: `DashboardMap` (renderer selection), `MapStyle` (style ID, attribution, key lookup), `tile_probe.dart` (reachability), `route_preview_map.dart` (offline fixture), `map_attribution.dart`, and `map_vehicle_puck.dart`. There is currently no `lib/models/` directory or shared media, call, route, climate, or hardware session layer.
+`DriveModeService` is a debug/demo notifier used by the Media browsing guard. It is not a vehicle state, trust, or safety source. `widgets/map/` holds the basemap surfaces: `DashboardMap` (renderer selection), `MapStyle` (style ID, attribution, key lookup), `tile_probe.dart` (reachability), `route_preview_map.dart` (offline fixture), `map_attribution.dart`, and `map_vehicle_puck.dart`. `lib/models/` holds the place, route-plan and route-progress models; `lib/services/` holds the runtime services (drive mode, geocoding, routing, positioning, simulation settings, shared map state). There is no shared media, call, climate, or hardware session layer yet.
 
 ## State ownership
 
@@ -163,7 +168,7 @@ web/
 | Expanded dashboard destination | `HomeScreen` state | Root app route |
 | Demo call | `PhoneScreen` state | Phone overlay |
 | Media playback and queue | `MediaScreenContent` state | Media overlay |
-| Navigation destination | `NavigationScreenContent` state | Navigation overlay |
+| Navigation destination, camera and route summary | `MapViewState` (shared with the compact card) | Process lifetime after the first Navigation open |
 | Climate controls | Local widget state | Home widget lifetime |
 | Debug parked/driving state | `DriveModeService` | Process lifetime |
 | Compact media progress | `MediaCard` fixture state | Card lifetime |
@@ -234,7 +239,7 @@ For day-to-day desktop work, no build flag is needed: put the key in a git-ignor
 ## Verification currently completed
 
 - `flutter analyze` passes.
-- Thirteen Flutter tests pass.
+- 68 Flutter tests pass.
 - `python -m py_compile run_app.py` passes.
 - The enforced CSP-compatible web release build passes.
 - The loopback server returns security headers and rejects an untrusted Host header.

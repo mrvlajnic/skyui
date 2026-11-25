@@ -19,7 +19,9 @@ lib/
 │   ├── home/
 │   ├── media/
 │   ├── navigation/
-│   └── phone/
+│   ├── phone/
+│   ├── settings/
+│   └── vehicle/
 ├── models/
 │   ├── place.dart
 │   ├── route_plan.dart
@@ -27,8 +29,10 @@ lib/
 ├── services/
 │   ├── drive_mode_service.dart
 │   ├── geocoding_service.dart
+│   ├── map_view_state.dart
 │   ├── positioning_service.dart
-│   └── routing_service.dart
+│   ├── routing_service.dart
+│   └── simulation_settings.dart
 ├── widgets/
 │   ├── cards/
 │   ├── climate/
@@ -38,24 +42,23 @@ lib/
 └── main.dart
 
 test/
-└── widget_test.dart
+└── *.dart (14 test files, including widget, navigation lifecycle, map state and version)
 
 web/
 └── flutter_bootstrap.js
 ```
 
-There is no current `lib/models/` directory or shared media, call, navigation, climate, hardware, or backend service layer. `DriveModeService` is a debug/demo notifier, not a vehicle trust source.
+`lib/models/` holds the place, route-plan and route-progress models. There is no shared media, call, navigation session, climate, hardware, or backend service layer beyond `MapViewState`. `DriveModeService` is a debug/demo notifier, not a vehicle trust source.
 
-The map layer in `lib/widgets/map/` is presentation-only. It requests MapTiler tiles only when a key is injected at build time (`--dart-define=MAPTILER_KEY=...`) or supplied through the `MAPTILER_KEY` environment variable on desktop; with no key, or when the tile host is unreachable, it renders the local painted fixture. The key must never be committed, and provider credit must stay visible.
+The map layer in `lib/widgets/map/` is presentation-only. It requests MapTiler tiles when a key is injected at build time (`--dart-define=MAPTILER_KEY=...`), supplied through the `MAPTILER_KEY` environment variable on desktop, or read from a git-ignored `maptiler_key.txt` / `.maptiler_key`; with no key, or when the tile host is unreachable, it renders the local painted fixture. The key must never be committed, and provider credit must stay visible.
 
 ## Implemented prototype surface
 
 - Header, sidebar, Home dashboard, cards, and climate strip.
-- Local Navigation, Media, and Phone prototype modules.
+- Local Navigation, Media, Phone, Vehicle and Settings prototype modules.
 - Coordinated single-module transitions and system Back handling.
-- Local fixture data and local state.
-- Disabled Vehicle and Settings destinations.
-- Disabled unavailable vehicle actions and unsupported map camera controls.
+- Local fixture data and local state; the map camera, puck and route summary are shared through `MapViewState`.
+- Disabled unavailable vehicle actions; 3D is not implemented.
 - Debug-only parked/driving state that currently affects Media browsing.
 - Loopback web-app launcher with an enforced CSP-compatible build.
 - Widget, launcher, and headless-browser verification.

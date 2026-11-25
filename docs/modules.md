@@ -6,7 +6,7 @@ Status: Veltron Auto V1 SportLine HMI concept inventory
 
 ## System overview
 
-SkyUI is a dashboard shell with reusable cards and three large stateful prototype screens. The modules are not yet decoupled domain applications and do not have a shared session/service layer.
+SkyUI is a dashboard shell with reusable cards and five module screens (Navigation, Media, Phone, Vehicle, Settings). The modules are not yet decoupled domain applications and do not have a shared session/service layer beyond the map state.
 
 ```text
 Header
@@ -47,8 +47,8 @@ Current destinations:
 - Navigation;
 - Media;
 - Phone;
-- Vehicle — disabled because the screen does not exist;
-- Settings — disabled because the screen does not exist.
+- Vehicle — opens the telemetry module (demo values, no CAN/OBD source);
+- Settings — opens the demo configuration panel (route-speed control and build stamp).
 
 The selected item uses a subtle neutral rounded highlight behind a bright icon; there is no edge bar, border, glow, or accent color. There is no verified global sliding cursor between items.
 
@@ -129,15 +129,15 @@ Current behavior:
 
 - real basemap in the compact panel: MapTiler `basic-v2` raster tiles through `flutter_map` on desktop and web, the `maplibre_gl` platform view on Android/iOS, and the painted fixture map when no API key is configured or the tile host is unreachable;
 - a short reachability probe chooses the painted fallback instead of a blank surface;
-- the basemap key is injected at build time (`--dart-define=MAPTILER_KEY=...`) or read from the `MAPTILER_KEY` environment variable on desktop, never stored in the repository;
+- the basemap key is injected at build time (`--dart-define=MAPTILER_KEY=...`), read from the `MAPTILER_KEY` environment variable on desktop, or read from a git-ignored `maptiler_key.txt` / `.maptiler_key`;
 - provider credit (`© MapTiler © OpenStreetMap contributors`) is shown as a small chip because the tile terms require it;
-- fixture destinations; selection animates the puck toward the selected fixture;
-- maneuver, speed, limit, ETA, distance, and arrival values are fixtures;
+- the vehicle starts parked beside Kula Beograd (Belgrade Waterfront) with no initial route; a destination marker or search starts a trip;
+- MapTiler geocoding and directions are used when a key is present; the provider geometry is drawn with distance and ETA;
+- on Android/iOS device positioning (`geolocator`) drives the puck and route progress; desktop and web use the simulated drive;
+- the compact home card mirrors the navigation route summary: destination, instruction, remaining distance/time, upcoming maneuver and total trip;
 - Traffic toggles a painted visual layer, not live traffic;
-- Recalculate replays the selected fixture destination, not a routing calculation;
-- Zoom, Recenter, and 3D controls are disabled because no map-camera model exists;
-- free map tap was removed because it changed only a hidden target;
-- no GPS, road graph, route engine, live traffic, or vehicle signal source exists; the basemap provider supplies imagery only.
+- Zoom, Recenter and a heading-up chase control the camera; 3D is not implemented;
+- no rerouting, voice guidance, live traffic or offline tiles exist; the basemap provider supplies imagery only.
 
 The route/status area explicitly labels the route as simulated.
 

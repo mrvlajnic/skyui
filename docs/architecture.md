@@ -18,7 +18,7 @@ Known gaps and release blockers are tracked in `docs/automotive_hmi_audit.md`.
 
 ## What SkyUI is
 
-SkyUI is an automotive-styled Flutter HMI prototype containing a dashboard and local Navigation, Media, Phone, Vehicle, and Climate UI simulations.
+SkyUI is an automotive-styled Flutter HMI prototype containing a dashboard and local Navigation, Media, Phone, Vehicle, Settings, and Climate UI simulations.
 
 It is not:
 
@@ -32,7 +32,7 @@ It is not:
 
 ### Modular boundaries
 
-Each major feature should eventually have an explicit domain boundary. Current Navigation, Media, Phone, and Climate modules are UI modules with local state, not complete independent applications.
+Each major feature should eventually have an explicit domain boundary. Current Navigation, Media, Phone, Vehicle, Settings, and Climate modules are UI modules with local state, not complete independent applications.
 
 ### Reuse and composition
 
@@ -76,34 +76,50 @@ Current routing is one `MaterialApp` route. There is no named-route graph, indep
 ```text
 lib/
 ├── core/
+│   ├── app_version.dart
+│   ├── display/
 │   ├── icons/
 │   └── theme/
+├── models/
+│   ├── place.dart
+│   ├── route_plan.dart
+│   └── route_progress.dart
 ├── screens/
 │   ├── home/
 │   ├── media/
 │   ├── navigation/
-│   └── phone/
+│   ├── phone/
+│   ├── settings/
+│   └── vehicle/
 ├── services/
-│   └── drive_mode_service.dart
+│   ├── drive_mode_service.dart
+│   ├── geocoding_service.dart
+│   ├── map_view_state.dart
+│   ├── positioning_service.dart
+│   ├── routing_service.dart
+│   └── simulation_settings.dart
 ├── widgets/
 │   ├── cards/
 │   ├── climate/
+│   ├── display/
 │   ├── header/
+│   ├── map/
 │   └── sidebar/
 └── main.dart
 ```
 
 Current responsibilities:
 
-- `core/`: shared theme and icon resources; it must not import screens.
-- `screens/`: stateful page-level UI and local prototype behavior.
-- `services/drive_mode_service.dart`: debug-only parked/driving notifier used by the Media browsing guard.
+- `core/`: shared theme, icons, version stamp and the burn-in display policy; it must not import screens.
+- `models/`: place, route-plan and route-progress value objects.
+- `screens/`: stateful page-level UI and local prototype behavior, including the Settings and Vehicle modules.
+- `services/`: drive-mode debugging, geocoding, routing, positioning, demo simulation settings, and the shared `MapViewState`.
 - `widgets/`: dashboard cards, shell, climate, header, sidebar, and map surfaces.
-- `widgets/map/`: presentation-only basemap layer. `DashboardMap` selects the renderer (MapLibre platform view on mobile, `flutter_map` raster tiles on desktop/web, painted fixture on failure), `MapStyle` owns the style ID, attribution text, and key lookup, and `tile_probe.dart` gates the fallback. It is not a domain/map adapter; no position, route, or traffic source exists behind it.
-- `test/`: widget and state-transition tests.
+- `widgets/map/`: basemap layer. `DashboardMap` selects the renderer (MapLibre platform view on the mobile compact card, `flutter_map` raster tiles elsewhere, painted fixture on failure), `MapStyle` owns the style ID, attribution text, and key lookup, and `tile_probe.dart` gates the fallback. `MapViewState` shares camera, puck, route and route summary with the compact card; geocoding, routing and positioning services sit behind it.
+- `test/`: widget, lifecycle, map-state and service tests.
 - `web/flutter_bootstrap.js`: CSP-compatible web bootstrap with local CanvasKit configuration.
 
-There is no current `lib/models/` directory. Media and Navigation value objects remain private to screen files, and Phone uses private local fixtures.
+`lib/models/` exists and holds the three value objects above; the navigation screen's private fixtures remain local to the screen.
 
 ## State ownership
 
@@ -112,8 +128,8 @@ There is no current `lib/models/` directory. Media and Navigation value objects 
 | Expanded destination | `HomeScreen` | Root route; coordinated but not a durable router |
 | Demo call | `PhoneScreen` | Phone overlay; not a telephony session |
 | Media playback and queue | `MediaScreenContent` | Media overlay; reset on teardown |
-| Navigation selection and map position | `NavigationScreenContent` | Navigation overlay; reset on teardown |
-| Basemap tiles | `DashboardMap` and `MapStyle` | Widget lifetime; build-time key, per-widget reachability probe, no position source |
+| Navigation selection, camera and route summary | `MapViewState` (shared with the compact card) | Process lifetime after the first Navigation open; reset only on app exit |
+| Basemap tiles | `DashboardMap` and `MapStyle` | Widget lifetime; build-time key, per-widget reachability probe; device GPS drives the puck on Android/iOS, desktop/web are simulated |
 | Climate values | `ClimateBar` child state | Home widget lifetime |
 | Debug parked/driving state | `DriveModeService` | Process lifetime; not a vehicle source |
 | Compact media card state | `MediaCard` fixture state | Card lifetime; not synchronized with expanded Media |

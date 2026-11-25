@@ -92,7 +92,7 @@ No APK, AAB, IPA, macOS bundle, Windows installer, Linux package, or web artifac
 
 ## 8. Local web launcher limitation
 
-The local launcher is a development web-app simulator, not a native embedded runtime. It builds a CSP-compatible local CanvasKit bundle, but Flutter fallback fonts may still use `https://fonts.gstatic.com`, and the launcher's CSP currently blocks the MapTiler tile host, so the browser build shows the painted map instead of tiles. Fully offline operation is not claimed until local fonts are bundled and a network trace confirms no external fetch.
+The local launcher is a development web-app simulator, not a native embedded runtime. It builds a CSP-compatible local CanvasKit bundle; Flutter fallback fonts may still use `https://fonts.gstatic.com`, and the launcher CSP allows `https://api.maptiler.com` for imagery and connections. The browser build still needs a MapTiler key at build time; without one it shows the painted map instead of tiles. Fully offline operation is not claimed until local fonts are bundled, offline tiles exist, and a network trace confirms no external fetch.
 
 ## 9. Warranty and liability boundary
 
