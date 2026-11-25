@@ -65,9 +65,22 @@ class _AppPreloaderState extends State<AppPreloader>
 
     if (widget.enabled) {
       // Start after the first frame so the minimum display time is measured
-      // from when the preloader is actually visible.
+      // from when the preloader is actually visible. Decode the dashboard's
+      // heavy images first: doing it under the boot cover avoids the first-run
+      // hitch when the overlay fades.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _controller.forward();
+        if (!mounted) return;
+        precacheImage(
+          const AssetImage('assets/images/car_render.png'),
+          context,
+          onError: (_, _) {},
+        );
+        precacheImage(
+          const AssetImage('assets/images/logo.png'),
+          context,
+          onError: (_, _) {},
+        );
+        _controller.forward();
       });
     }
   }
@@ -95,11 +108,15 @@ class _AppPreloaderState extends State<AppPreloader>
               child: AnimatedBuilder(
                 animation: _controller,
                 builder: (context, _) {
-                  return Opacity(
-                    opacity: _exitOpacity.value,
-                    child: ColoredBox(
-                      color: const Color(0xFF0B0B10),
-                      child: Center(
+                  final exit = _exitOpacity.value;
+                  // The full-screen overlay is deliberately not wrapped in an
+                  // Opacity: that creates a full-screen offscreen layer every
+                  // frame of the exit fade, which was the first-run hitch.
+                  return ColoredBox(
+                    color: const Color(0xFF0B0B10).withValues(alpha: exit),
+                    child: Center(
+                      child: Opacity(
+                        opacity: exit,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
