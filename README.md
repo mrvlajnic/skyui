@@ -30,7 +30,7 @@ from `logo.ico` now the app icon and the sidebar logo).
 
 | Screen | Before | After |
 | --- | --- | --- |
-| Home dashboard | ![Home before](docs/screenshots/before/home.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+| Dashboard | ![Home before](docs/screenshots/before/home.png) | ![Dashboard](docs/screenshots/dashboard.png) |
 | Navigation (simulated demo route) | ![Navigation before](docs/screenshots/before/navigation.png) | ![Navigation after](docs/screenshots/navigation.png) |
 | Media & Audio | ![Media before](docs/screenshots/before/media.png) | ![Media after](docs/screenshots/media.png) |
 | Phone dialer | ![Phone before](docs/screenshots/before/phone.png) | ![Phone after](docs/screenshots/phone.png) |
