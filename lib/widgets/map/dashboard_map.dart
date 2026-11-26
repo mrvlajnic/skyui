@@ -147,9 +147,9 @@ class _DashboardMapState extends State<DashboardMap> {
           myLocationEnabled: false,
           logoEnabled: false,
         ),
-        const MapAttribution(
+        MapAttribution(
           alignment: Alignment.topRight,
-          text: MapStyle.attribution,
+          text: MapStyle.resolvedAttribution,
         ),
       ],
     );
@@ -184,9 +184,9 @@ class _DashboardMapState extends State<DashboardMap> {
           tileDisplay: const TileDisplay.instantaneous(),
           panBuffer: 2,
         ),
-        const MapAttribution(
+        MapAttribution(
           alignment: Alignment.topRight,
-          text: MapStyle.attribution,
+          text: MapStyle.resolvedAttribution,
         ),
         ListenableBuilder(
           listenable: MapViewState.instance,

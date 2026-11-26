@@ -52,7 +52,12 @@ void main() {
     );
   });
 
-  test('without a key the probe does not touch the network', () async {
-    expect(await basemapTilesReachable(), isFalse);
+  test('the keyless fallback probes the fallback tile host', () async {
+    final client = MockClient((request) async {
+      expect(request.url.host, 'server.arcgisonline.com');
+      return http.Response('', 200);
+    });
+
+    expect(await basemapTilesReachable(client: client), isTrue);
   });
 }

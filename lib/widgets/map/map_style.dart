@@ -33,6 +33,16 @@ abstract final class MapStyle {
 
   static const String attribution = '© MapTiler © OpenStreetMap contributors';
 
+  /// Keyless prototype fallback used when MapTiler is not configured or its
+  /// monthly quota is exhausted. Esri's Light Gray canvas is a neutral raster
+  /// basemap; production distribution must use a licensed provider.
+  static const String _fallbackAttribution =
+      'Esri, HERE, Garmin, © OpenStreetMap contributors';
+
+  static const String _fallbackTileUrl =
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/'
+      'World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+
   static const double maxZoom = 20;
   static const int maxNativeZoom = 20;
 
@@ -92,8 +102,18 @@ abstract final class MapStyle {
 
   static bool get hasApiKey => apiKey.isNotEmpty;
 
-  static String get rasterTileUrl =>
-      'https://api.maptiler.com/maps/$mapId/{z}/{x}/{y}{r}.png?key=$apiKey';
+  /// A basemap is always available: MapTiler when a key is present, otherwise
+  /// the keyless prototype fallback.
+  static bool get hasBasemap => true;
+
+  static bool get usingFallback => !hasApiKey;
+
+  static String get resolvedAttribution =>
+      usingFallback ? _fallbackAttribution : attribution;
+
+  static String get rasterTileUrl => hasApiKey
+      ? 'https://api.maptiler.com/maps/$mapId/{z}/{x}/{y}{r}.png?key=$apiKey'
+      : _fallbackTileUrl;
 
   static String get vectorStyleUrl =>
       'https://api.maptiler.com/maps/$mapId/style.json?key=$apiKey';

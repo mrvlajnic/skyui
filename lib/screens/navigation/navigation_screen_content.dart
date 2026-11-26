@@ -175,7 +175,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   /// Whether the basemap host is reachable. Falls back to the hand-painted
   /// simulated map when the tile server can't be contacted or no API key is
   /// configured.
-  bool _useRealMap = MapStyle.hasApiKey;
+  bool _useRealMap = MapStyle.hasBasemap;
 
   /// Current zoom level for flutter_map (driven by the +/- buttons).
   double _zoom = MapViewState.instance.zoom;
@@ -1020,7 +1020,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
             ),
           ],
         ),
-        const MapAttribution(text: MapStyle.attribution),
+        MapAttribution(text: MapStyle.resolvedAttribution),
       ],
     );
   }

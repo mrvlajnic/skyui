@@ -14,8 +14,6 @@ import 'map_style.dart';
 /// browser as well: `HttpClient` is not available on the web target and would
 /// silently force the painted fixture on every web build.
 Future<bool> basemapTilesReachable({http.Client? client}) async {
-  if (!MapStyle.hasApiKey) return false;
-
   final url = MapStyle.rasterTileUrl
       .replaceFirst('{z}', '13')
       .replaceFirst('{x}', '4558')

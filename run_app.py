@@ -23,9 +23,9 @@ CONTENT_SECURITY_POLICY = (
     "style-src 'self' 'unsafe-inline'; "
     # The basemap (tiles, style, geocoding, routing) is fetched from MapTiler:
     # images for raster tiles and connect-src for style/geocoding/routing.
-    "img-src 'self' data: blob: https://api.maptiler.com; "
+    "img-src 'self' data: blob: https://api.maptiler.com https://server.arcgisonline.com; "
     "font-src 'self' data: https://fonts.gstatic.com; "
-    "connect-src 'self' blob: https://fonts.gstatic.com https://api.maptiler.com; "
+    "connect-src 'self' blob: https://fonts.gstatic.com https://api.maptiler.com https://server.arcgisonline.com; "
     "worker-src 'self' blob:; "
     "child-src 'self' blob:;"
 )
