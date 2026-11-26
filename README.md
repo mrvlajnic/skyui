@@ -269,3 +269,11 @@ Before any pilot or vehicle connection, close the release gates in `docs/automot
 SkyUI is intended for parked evaluation, desktop simulation, and controlled non-road development. It must not be used as a live driving interface, primary cluster, safety control, driver-monitoring aid, or vehicle actuator gateway.
 
 The current build is provided as-is for internal evaluation. The repository notice is not a substitute for legal review, corporate authorization, vehicle approval, or a complete distribution agreement.
+
+## License
+
+Copyright (c) 2026 Boris Vlajnić. All rights reserved.
+
+This repository is proprietary and confidential. No part of it may be copied,
+modified, distributed, sublicensed, or used without prior written permission.
+See [LICENSE](LICENSE) for the full terms.

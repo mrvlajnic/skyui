@@ -102,7 +102,7 @@ The repository owner must obtain legal review before publishing any warranty, li
 
 ## 10. Intellectual property and repository controls
 
-Repository ownership, third-party asset rights, and restrictions on reverse engineering, redistribution, or commercial use must be confirmed by the owner and legal counsel. This draft does not create or replace a license.
+Repository ownership, third-party asset rights, and restrictions on reverse engineering, redistribution, or commercial use must be confirmed by the owner and legal counsel. This draft does not create or replace a license. The repository-level `LICENSE` states the owner's proprietary terms and is not modified by this notice.
 
 Do not remove copyright, security, provenance, or version notices from approved artifacts.
 
