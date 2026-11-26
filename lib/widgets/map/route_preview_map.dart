@@ -1,8 +1,22 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 
 import 'map_vehicle_puck.dart';
+
+/// Projects a Belgrade coordinate into the 0–1 space used by the painted
+/// fallback map. Shared by the home card and the full-screen Navigation module
+/// so both fixtures agree on where the car and route are.
+Offset projectPreviewPoint(LatLng point) {
+  const south = 44.7450;
+  const north = 44.8300;
+  const west = 20.3900;
+  const east = 20.5100;
+  final x = ((point.longitude - west) / (east - west)).clamp(0.0, 1.0);
+  final y = ((north - point.latitude) / (north - south)).clamp(0.0, 1.0);
+  return Offset(x, y);
+}
 
 /// Decorative route-preview map used when tiles are unreachable.
 ///

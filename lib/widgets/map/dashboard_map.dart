@@ -88,8 +88,7 @@ class _DashboardMapState extends State<DashboardMap> {
       _mapController.move(center, view.zoom);
     }
     final lastRotation = _lastRotation;
-    if (lastRotation == null ||
-        (lastRotation - view.rotation).abs() > 0.01) {
+    if (lastRotation == null || (lastRotation - view.rotation).abs() > 0.01) {
       _lastRotation = view.rotation;
       _mapController.rotate(view.rotation);
     }
@@ -110,7 +109,18 @@ class _DashboardMapState extends State<DashboardMap> {
           ? _maplibreMap()
           : _tilesReachable
           ? _tileMap(context)
-          : const RoutePreviewMap(),
+          : ListenableBuilder(
+              listenable: MapViewState.instance,
+              builder: (context, _) {
+                final view = MapViewState.instance;
+                return RoutePreviewMap(
+                  route: view.route
+                      .map(projectPreviewPoint)
+                      .toList(growable: false),
+                  vehiclePosition: projectPreviewPoint(view.puck),
+                );
+              },
+            ),
     );
   }
 
@@ -153,8 +163,9 @@ class _DashboardMapState extends State<DashboardMap> {
         initialZoom: MapViewState.instance.zoom,
         initialRotation: MapViewState.instance.rotation,
         backgroundColor: const Color(0xFFEFEEEA),
-        interactionOptions:
-            const InteractionOptions(flags: InteractiveFlag.none),
+        interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.none,
+        ),
         onMapReady: () {
           final view = MapViewState.instance;
           _lastCenter = view.center;

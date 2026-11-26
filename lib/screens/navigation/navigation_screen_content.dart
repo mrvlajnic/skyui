@@ -20,6 +20,7 @@ import '../../services/simulation_settings.dart';
 import '../../widgets/map/map_attribution.dart';
 import '../../widgets/map/map_style.dart';
 import '../../widgets/map/map_vehicle_puck.dart';
+import '../../widgets/map/route_preview_map.dart';
 import '../../widgets/map/tile_probe.dart';
 import 'place_search_panel.dart';
 import 'navigation_hud.dart';
@@ -565,12 +566,11 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
         _chaseMode = false;
         _liveRouteProgress = null;
         if (!_livePosition) {
-          _travelController.duration = _playbackDuration(
-            route.durationSeconds,
-          );
+          _travelController.duration = _playbackDuration(route.durationSeconds);
         }
       });
-      _fitRoute(route);      if (_livePosition) {
+      _fitRoute(route);
+      if (_livePosition) {
         _updateLiveRouteProgress();
       } else {
         _beginTravel(start, destination.coordinates);
@@ -607,9 +607,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
     final playback = SimulationSettings.instance.playbackDuration(
       Duration(milliseconds: (realSeconds * 1000).round()),
     );
-    return Duration(
-      milliseconds: playback.inMilliseconds.clamp(1500, 3600000),
-    );
+    return Duration(milliseconds: playback.inMilliseconds.clamp(1500, 3600000));
   }
 
   void _fitRoute(RoutePlan route) {
@@ -682,11 +680,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
       final headingLng = ahead.longitude - _currentPuckLatLng.longitude;
       if (headingLat != 0 || headingLng != 0) {
         final targetHeading = math.atan2(headingLng, headingLat);
-        _puckHeading = _smoothAngle(
-          _puckHeading,
-          targetHeading,
-          _headingLerp,
-        );
+        _puckHeading = _smoothAngle(_puckHeading, targetHeading, _headingLerp);
       }
     }
   }
@@ -1165,8 +1159,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   }
 
   /// Whether a trip is planned: a provider route or a simulated target.
-  bool get _hasTrip =>
-      _route != null || _startPuckLatLng != _targetPuckLatLng;
+  bool get _hasTrip => _route != null || _startPuckLatLng != _targetPuckLatLng;
 
   /// Text mirror of the navigation guidance for the compact home card.
   RouteSummary _buildSummary() {
@@ -1288,6 +1281,7 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
               destinationTitles: _destinations.map((d) => d.title).toList(),
               selectedDestIndex: _selectedDestIndex,
               isTrafficEnabled: _isTrafficEnabled,
+              hasTrip: _hasTrip,
             ),
           ),
         );
@@ -1296,16 +1290,8 @@ class _NavigationScreenContentState extends State<NavigationScreenContent>
   }
 
   /// Projects a real-world [LatLng] onto the 0-1 normalized canvas used by the
-  /// simulated painter. Bounding box roughly covers central Belgrade.
-  Offset _project(LatLng p) {
-    const south = 44.7450;
-    const north = 44.8300;
-    const west = 20.3900;
-    const east = 20.5100;
-    final x = ((p.longitude - west) / (east - west)).clamp(0.0, 1.0);
-    final y = ((north - p.latitude) / (north - south)).clamp(0.0, 1.0);
-    return Offset(x, y);
-  }
+  /// simulated painter. Shared with the home card via [projectPreviewPoint].
+  Offset _project(LatLng p) => projectPreviewPoint(p);
 }
 
 class _VectorMapPainter extends CustomPainter {
@@ -1320,6 +1306,7 @@ class _VectorMapPainter extends CustomPainter {
   final List<String> destinationTitles;
   final int selectedDestIndex;
   final bool isTrafficEnabled;
+  final bool hasTrip;
 
   _VectorMapPainter({
     required this.puckPosition,
@@ -1330,15 +1317,16 @@ class _VectorMapPainter extends CustomPainter {
     required this.destinationTitles,
     required this.selectedDestIndex,
     required this.isTrafficEnabled,
+    required this.hasTrip,
   });
 
   // ── Cached paints ──────────────────────────────────────────────────────────
   // The radar pulse repaints this painter continuously, so constant styles are
   // allocated once instead of ~25 objects per frame (audit P-03).
-  static final Paint _bgPaint = Paint()..color = const Color(0xFF090B12);
+  static final Paint _bgPaint = Paint()..color = const Color(0xFFEFEEEA);
 
   static final Paint _gridPaint = Paint()
-    ..color = const Color(0x0AFFFFFF)
+    ..color = const Color(0x0F000000)
     ..strokeWidth = 0.8;
 
   static final Paint _riverPaint = Paint();
@@ -1346,22 +1334,22 @@ class _VectorMapPainter extends CustomPainter {
   static Shader? _riverShader;
 
   static final Paint _blockPaint = Paint()
-    ..color = const Color(0xFF131622)
+    ..color = const Color(0xFFE3E2DE)
     ..style = PaintingStyle.fill;
 
   static final Paint _blockBorderPaint = Paint()
-    ..color = const Color(0x08FFFFFF)
+    ..color = const Color(0xB3FFFFFF)
     ..strokeWidth = 1.0
     ..style = PaintingStyle.stroke;
 
   static final Paint _highwayUnderlay = Paint()
-    ..color = const Color(0xFF1B1E2E)
+    ..color = const Color(0xFFDAD5C9)
     ..strokeWidth = 18.0
     ..strokeCap = StrokeCap.round
     ..style = PaintingStyle.stroke;
 
   static final Paint _streetPaint = Paint()
-    ..color = const Color(0xFF161926)
+    ..color = Colors.white
     ..strokeWidth = 8.0
     ..style = PaintingStyle.stroke;
 
@@ -1376,20 +1364,20 @@ class _VectorMapPainter extends CustomPainter {
     ..style = PaintingStyle.stroke;
 
   static final Paint _routeGlow = Paint()
-    ..color = const Color(0x40FF8A00)
+    ..color = const Color(0x330A84FF)
     ..strokeWidth = 16.0
     ..strokeCap = StrokeCap.round
     ..style = PaintingStyle.stroke;
 
   static final Paint _routeOutline = Paint()
-    ..color = const Color(0xB3FF8A00)
-    ..strokeWidth = 6.0
+    ..color = const Color(0xE6FFFFFF)
+    ..strokeWidth = 8.0
     ..strokeCap = StrokeCap.round
     ..style = PaintingStyle.stroke;
 
   static final Paint _routeCore = Paint()
-    ..color = Colors.white
-    ..strokeWidth = 2.5
+    ..color = const Color(0xFF0A84FF)
+    ..strokeWidth = 5.0
     ..strokeCap = StrokeCap.round
     ..style = PaintingStyle.stroke;
 
@@ -1410,18 +1398,18 @@ class _VectorMapPainter extends CustomPainter {
     ..strokeWidth = 1
     ..style = PaintingStyle.stroke;
 
-  static final Paint _waypointIdleBg = Paint()..color = const Color(0xFF1E2234);
+  static final Paint _waypointIdleBg = Paint()..color = Colors.white;
 
   static final Paint _waypointIdleBorder = Paint()
-    ..color = const Color(0x4DFFFFFF)
+    ..color = const Color(0x66000000)
     ..strokeWidth = 1.5
     ..style = PaintingStyle.stroke;
 
   static final Paint _puckGlow = Paint()
-    ..color = const Color(0x4000E676)
+    ..color = const Color(0x260A84FF)
     ..style = PaintingStyle.fill;
 
-  static final Paint _puckBg = Paint()..color = const Color(0xFF00E676);
+  static final Paint _puckBg = Paint()..color = const Color(0xFF0A84FF);
 
   static final Paint _puckBorder = Paint()
     ..color = Colors.white
@@ -1447,7 +1435,7 @@ class _VectorMapPainter extends CustomPainter {
     if (_riverShaderSize != size || _riverShader == null) {
       _riverShaderSize = size;
       _riverShader = const LinearGradient(
-        colors: [Color(0xFF0B192E), Color(0xFF0E233E)],
+        colors: [Color(0xFFB9DDF2), Color(0xFF8CC6E8)],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     }
     return _riverShader!;
@@ -1606,36 +1594,45 @@ class _VectorMapPainter extends CustomPainter {
       targetPosition.dy * size.height,
     );
 
-    final midControl = Offset(
-      (startPt.dx + targetPt.dx) / 2 + (targetPt.dy - startPt.dy) * 0.2,
-      (startPt.dy + targetPt.dy) / 2 - (targetPt.dx - startPt.dx) * 0.2,
-    );
+    if (hasTrip) {
+      final midControl = Offset(
+        (startPt.dx + targetPt.dx) / 2 + (targetPt.dy - startPt.dy) * 0.2,
+        (startPt.dy + targetPt.dy) / 2 - (targetPt.dx - startPt.dx) * 0.2,
+      );
 
-    final ui.Path routePath = ui.Path();
-    routePath.moveTo(startPt.dx, startPt.dy);
-    routePath.quadraticBezierTo(
-      midControl.dx,
-      midControl.dy,
-      targetPt.dx,
-      targetPt.dy,
-    );
+      final ui.Path routePath = ui.Path();
+      routePath.moveTo(startPt.dx, startPt.dy);
+      routePath.quadraticBezierTo(
+        midControl.dx,
+        midControl.dy,
+        targetPt.dx,
+        targetPt.dy,
+      );
 
-    // Outer route halo glow
-    canvas.drawPath(routePath, _routeGlow);
+      // Outer route halo glow
+      canvas.drawPath(routePath, _routeGlow);
 
-    // Secondary bright orange boundary
-    canvas.drawPath(routePath, _routeOutline);
+      // White casing keeps the line readable on the light basemap.
+      canvas.drawPath(routePath, _routeOutline);
 
-    // Core bright neon route line
-    canvas.drawPath(routePath, _routeCore);
+      // Core route line
+      canvas.drawPath(routePath, _routeCore);
+    }
 
     // ── Destination Waypoint Markers ─────────────────────────────────────────
-    for (int i = 0; i < destinationPoints.length; i++) {
-      final pt = destinationPoints[i];
-      final title = destinationTitles[i];
-      final isSelected = i == selectedDestIndex;
+    // Only show pins during an active trip. In the "select a destination" state
+    // they sit outside the viewport and clip into stray slivers at the edges.
+    if (hasTrip) {
+      for (int i = 0; i < destinationPoints.length; i++) {
+        final pt = destinationPoints[i];
+        if (pt.dx < 0.03 || pt.dx > 0.97 || pt.dy < 0.16 || pt.dy > 0.97) {
+          continue;
+        }
+        final title = destinationTitles[i];
+        final isSelected = i == selectedDestIndex;
 
-      _drawWaypointPin(canvas, pt, isSelected, title);
+        _drawWaypointPin(canvas, pt, isSelected, title);
+      }
     }
 
     // ── Vehicle GPS Puck with Heading & Radar Ripple ─────────────────────────
@@ -1657,18 +1654,43 @@ class _VectorMapPainter extends CustomPainter {
       canvas.drawCircle(point, 4, _waypointCore);
 
       // Destination Tag Card above pin
-      final tagRect = Rect.fromCenter(
-        center: Offset(point.dx, point.dy - 24),
-        width: 100,
-        height: 22,
-      );
-      final tagRRect = RRect.fromRectAndRadius(
-        tagRect,
-        const Radius.circular(6),
-      );
+      // Destination Tag Card above pin, only when the whole tag fits inside
+      // the map. Near an edge it would clip to a stray sliver.
+      if (point.dy > 0.12 && point.dx > 0.06 && point.dx < 0.94) {
+        final tagRect = Rect.fromCenter(
+          center: Offset(point.dx, point.dy - 24),
+          width: 100,
+          height: 22,
+        );
+        final tagRRect = RRect.fromRectAndRadius(
+          tagRect,
+          const Radius.circular(6),
+        );
 
-      canvas.drawRRect(tagRRect, _tagBg);
-      canvas.drawRRect(tagRRect, _tagBorder);
+        canvas.drawRRect(tagRRect, _tagBg);
+        canvas.drawRRect(tagRRect, _tagBorder);
+
+        final labelPainter = TextPainter(
+          text: TextSpan(
+            text: label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          maxLines: 1,
+          ellipsis: '…',
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: tagRect.width - 12);
+        labelPainter.paint(
+          canvas,
+          Offset(
+            tagRect.center.dx - labelPainter.width / 2,
+            tagRect.center.dy - labelPainter.height / 2,
+          ),
+        );
+      }
     } else {
       // Unselected subtle waypoint
       canvas.drawCircle(point, 7, _waypointIdleBg);
@@ -1711,7 +1733,8 @@ class _VectorMapPainter extends CustomPainter {
         oldDelegate.puckHeading != puckHeading ||
         oldDelegate.radarPulseProgress != radarPulseProgress ||
         oldDelegate.selectedDestIndex != selectedDestIndex ||
-        oldDelegate.isTrafficEnabled != isTrafficEnabled;
+        oldDelegate.isTrafficEnabled != isTrafficEnabled ||
+        oldDelegate.hasTrip != hasTrip;
   }
 }
 
