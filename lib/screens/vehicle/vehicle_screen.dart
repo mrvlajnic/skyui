@@ -150,7 +150,6 @@ class _VehicleCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const _DemoBadge(),
               if (onClose != null) ...[
                 const SizedBox(width: 8),
                 _CloseButton(
@@ -166,33 +165,6 @@ class _VehicleCard extends StatelessWidget {
 
           Expanded(child: body),
         ],
-      ),
-    );
-  }
-}
-
-class _DemoBadge extends StatelessWidget {
-  const _DemoBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFC857).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: const Color(0xFFFFC857).withValues(alpha: 0.5),
-        ),
-      ),
-      child: const Text(
-        'DEMO DATA',
-        style: TextStyle(
-          color: Color(0xFFFFC857),
-          fontSize: 9,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
-        ),
       ),
     );
   }

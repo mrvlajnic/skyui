@@ -348,9 +348,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Vehicle module opens, shows demo-labeled telemetry, closes', (
-    tester,
-  ) async {
+  testWidgets('Vehicle module opens, shows telemetry, closes', (tester) async {
     tester.view.physicalSize = const Size(1680, 720);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -372,14 +370,14 @@ void main() {
     expect(find.text('385'), findsOneWidget);
     expect(find.text('FL'), findsOneWidget);
     expect(find.text('Comfort'), findsOneWidget);
-    // Every card carries the DEMO DATA badge (scoped to the module; the
-    // compact VehicleCards beneath the overlay are still in the tree).
+    // No persistent DEMO DATA badge on the cards; the marker lives on the
+    // startup preloader only.
     expect(
       find.descendant(
         of: find.byType(VehicleScreenContent),
         matching: find.text('DEMO DATA'),
       ),
-      findsNWidgets(3),
+      findsNothing,
     );
     // Parked drive state chip, driven by DriveModeService.
     expect(find.text('PARKED'), findsWidgets);
@@ -483,6 +481,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('app-preloader')), findsOneWidget);
     expect(find.byType(SafeArea), findsOneWidget);
+    expect(find.text('DEMO DATA'), findsOneWidget);
 
     // The boot ticker starts on the frame after the post-frame callback.
     await tester.pump();
@@ -490,6 +489,7 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const ValueKey('app-preloader')), findsNothing);
+    expect(find.text('DEMO DATA'), findsNothing);
     expect(find.text('PARKED'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

@@ -61,29 +61,6 @@ class VehicleCard extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.7),
                       size: 20,
                     ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFC857).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: const Color(0xFFFFC857).withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: const Text(
-                        'DEMO DATA',
-                        style: TextStyle(
-                          color: Color(0xFFFFC857),
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ],
