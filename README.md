@@ -50,7 +50,7 @@ The ambition is an automotive-grade design direction. That means the interface s
 
 > **Prototype boundary:** SkyUI is not a vehicle controller, production infotainment platform, certified automotive HMI, cybersecurity-assured release, or fully offline runtime. The only current evidence boundary is a 1680×720 landscape widget and headless-browser smoke test. Physical-display, resolution-matrix, accessibility, performance, lifecycle, safety, security, hardware, and compliance validation remain pending.
 
-The current application implements no backend, remote telemetry, crash reporting, analytics, vehicle-signal collection, or cloud synchronization. The only outbound requests are optional map tile and style requests to MapTiler when an API key is injected at build time, and Flutter web fallback fonts.
+The current application implements no backend, remote telemetry, crash reporting, analytics, vehicle-signal collection, or cloud synchronization. The only outbound requests are optional map tile and style requests to MapTiler when an API key is injected at build time (or Esri's keyless prototype fallback when no valid key is available), and Flutter web fallback fonts.
 
 ## Current status
 
@@ -223,7 +223,7 @@ These are development targets only. Android release configuration currently uses
 
 ### Map basemap key
 
-The Navigation map uses MapTiler ([`basic-v2`](https://cloud.maptiler.com/maps/), light cartography). The key is injected at build time and is not committed:
+The Navigation map uses MapTiler ([`basic-v2`](https://cloud.maptiler.com/maps/), light cartography) when a key is available. The key is injected at build time and is not committed:
 
 ```bash
 flutter run -d windows --dart-define=MAPTILER_KEY=your_key_here
@@ -232,14 +232,16 @@ flutter build windows --debug --dart-define=MAPTILER_KEY=your_key_here
 
 Create a free key under MapTiler Cloud → Account → API keys. Restrict it to the platforms you use; a key embedded in a desktop or web build is readable by anyone with the binary.
 
-Without a key, or when the tile host is unreachable, the map falls back to the local painted fixture instead of rendering tiles. The web launcher now allows `https://api.maptiler.com` in its CSP and the reachability probe works in the browser; a key still has to be present at build time, otherwise the launcher keeps using the painted fixture. Map credits (`© MapTiler © OpenStreetMap contributors`) are required and are shown as a small chip.
+**Quota fallback.** If no key is configured, or MapTiler rejects the key because the monthly quota is exhausted, the raster map falls back to Esri's keyless Light Gray canvas (`server.arcgisonline.com`) with the required `Esri, HERE, Garmin, © OpenStreetMap contributors` credit. This keeps development and screenshots working without a key. Esri's public tile service is suitable for prototype evaluation only; production distribution needs a licensed provider (MapTiler, OpenFreeMap, Stadia, or a self-hosted stack). Geocoding and routing remain MapTiler-only, so place search stays disabled without a valid key.
+
+If both hosts are unreachable, the map falls back to the local painted fixture instead of rendering a blank surface. The web launcher allows `https://api.maptiler.com` and `https://server.arcgisonline.com` in its CSP, and the reachability probe works in the browser. Map credits are required and shown as a small chip.
 
 For day-to-day desktop work, no build flag is needed: put the key in a git-ignored `maptiler_key.txt` at the repository root (or set `MAPTILER_KEY` in the environment). Desktop builds resolve the key in this order: build define → `MAPTILER_KEY` environment variable → `maptiler_key.txt` / `.maptiler_key` found by searching upward from the working directory and from the executable.
 
 ## Verification currently completed
 
 - `flutter analyze` passes.
-- 68 Flutter tests pass.
+- 69 Flutter tests pass.
 - `python -m py_compile run_app.py` passes.
 - The enforced CSP-compatible web release build passes.
 - The loopback server returns security headers and rejects an untrusted Host header.

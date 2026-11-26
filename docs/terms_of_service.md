@@ -58,7 +58,7 @@ The current Dart implementation collects and transmits no telemetry, analytics, 
 
 The only outbound requests are:
 
-- optional map tile and style requests to `https://api.maptiler.com` when an API key is injected at build time or supplied through the `MAPTILER_KEY` environment variable on desktop. The provider necessarily receives the request IP address, client user agent, and requested tile coordinates, which approximate the map area currently displayed. No key is stored in the repository, and no request is made when no key is configured; the app then shows a local painted map instead.
+- optional map tile and style requests to `https://api.maptiler.com` when an API key is injected at build time or supplied through the `MAPTILER_KEY` environment variable on desktop. If no key is configured, or the provider rejects the key because the monthly quota is exhausted, the app requests light-gray raster tiles from Esri's public `https://server.arcgisonline.com` service as a prototype fallback. Both providers necessarily receive the request IP address, client user agent, and requested tile coordinates, which approximate the map area currently displayed. No key is stored in the repository. If both hosts are unreachable, the app shows a local painted map instead.
 - Flutter web fallback-font requests to `https://fonts.gstatic.com` in the browser build.
 
 No personal data, vehicle identifiers, or diagnostics are sent to any of these hosts.
@@ -92,7 +92,7 @@ No APK, AAB, IPA, macOS bundle, Windows installer, Linux package, or web artifac
 
 ## 8. Local web launcher limitation
 
-The local launcher is a development web-app simulator, not a native embedded runtime. It builds a CSP-compatible local CanvasKit bundle; Flutter fallback fonts may still use `https://fonts.gstatic.com`, and the launcher CSP allows `https://api.maptiler.com` for imagery and connections. The browser build still needs a MapTiler key at build time; without one it shows the painted map instead of tiles. Fully offline operation is not claimed until local fonts are bundled, offline tiles exist, and a network trace confirms no external fetch.
+The local launcher is a development web-app simulator, not a native embedded runtime. It builds a CSP-compatible local CanvasKit bundle; Flutter fallback fonts may still use `https://fonts.gstatic.com`, and the launcher CSP allows `https://api.maptiler.com` and `https://server.arcgisonline.com` for imagery and connections. The browser build uses MapTiler when a key is injected at build time; otherwise it uses Esri's keyless prototype fallback. When neither host is reachable it shows the painted map instead of tiles. Fully offline operation is not claimed until local fonts are bundled, offline tiles exist, and a network trace confirms no external fetch.
 
 ## 9. Warranty and liability boundary
 
